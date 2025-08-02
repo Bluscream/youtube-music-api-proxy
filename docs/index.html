@@ -1,0 +1,90 @@
+---
+layout: page
+title: Welcome
+description: YouTube Music API Proxy - A comprehensive API for accessing YouTube Music data
+---
+
+# Welcome to YouTube Music API Proxy
+
+A powerful and comprehensive API proxy that provides easy access to YouTube Music data, including search, streaming, and
+metadata retrieval.
+
+## Quick Start
+
+### Search for Music
+
+```bash
+curl "https://your-api-domain.com/api/search?query=despacito"
+```
+
+### Get Song Information
+
+```bash
+curl "https://your-api-domain.com/api/song?videoId=VIDEO_ID"
+```
+
+### Stream Music
+
+```bash
+curl "https://your-api-domain.com/api/stream?videoId=VIDEO_ID"
+```
+
+## Features
+
+- **Music Search**: Search for songs, artists, and albums
+- **Streaming**: Get direct streaming URLs for music
+- **Metadata**: Retrieve detailed song information
+- **Playlists**: Access and manage playlists
+- **High Quality**: Support for various audio qualities
+- **Rate Limiting**: Built-in rate limiting for API protection
+
+## Documentation
+
+- [Getting Started](getting-started.html) - Learn how to set up and use the API
+- [API Reference](examples.html) - Complete API documentation with examples
+- [OpenAPI Specification](openapi.yaml) - Machine-readable API specification
+
+## Examples
+
+### Search Example
+
+```json
+{
+"query": "despacito",
+"results": [
+{
+"videoId": "kJQP7kiw5Fk",
+"title": "Despacito",
+"artist": "Luis Fonsi",
+"duration": "4:42",
+"thumbnail": "https://..."
+}
+]
+}
+```
+
+### Stream Example
+
+```json
+{
+"videoId": "kJQP7kiw5Fk",
+"streams": [
+{
+"url": "https://...",
+"quality": "128kbps",
+"format": "mp3"
+}
+]
+}
+```
+
+## Getting Help
+
+- Check the [documentation](getting-started.html) for detailed guides
+- Review the [API examples](examples.html) for common use cases
+- Use the [OpenAPI spec](openapi.yaml) for integration details
+
+---
+
+**Ready to get started?** Check out the [Getting Started Guide](getting-started.html) to begin using the YouTube Music
+API Proxy.
