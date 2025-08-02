@@ -24,7 +24,6 @@ author:
 markdown: kramdown
 highlighter: rouge
 plugins:
-  - jekyll-remote-theme
   - jekyll-seo-tag
   - jekyll-sitemap
 
@@ -40,20 +39,10 @@ defaults:
       path: ""
       type: "docs"
     values:
-      layout: "page"
+      layout: "default"
       author_profile: false
       share: false
       comments: false
-      sidebar:
-        nav: "docs"
-
-# Sidebar navigation
-sidebar:
-  nav: "docs"
-
-# Theme settings - using remote theme for GitHub Pages compatibility
-remote_theme: "mmistakes/minimal-mistakes@4.24.0"
-minimal_mistakes_skin: "air" # "air", "contrast", "dark", "dirt", "sunrise"
 
 # SEO
 seo:
@@ -61,63 +50,6 @@ seo:
   name: "YouTube Music API Proxy Documentation"
   description: "Comprehensive documentation for the YouTube Music API Proxy"
   url: "https://bluscream.github.io/youtube-music-api-proxy"
-  image: "https://bluscream.github.io/youtube-music-api-proxy/assets/images/logo.png"
-
-# Analytics (optional)
-analytics:
-  provider: "google"
-  google:
-    tracking_id: ""
-    anonymize_ip: true
-
-# Comments (optional)
-comments:
-  provider: "disqus"
-  disqus:
-    shortname: ""
-
-# Social sharing
-share: true
-share_buttons:
-  - "twitter"
-  - "facebook"
-  - "linkedin"
-  - "reddit"
-
-# Reading time
-reading_time: true
-
-# Table of contents
-toc: true
-toc_sticky: true
-
-# Search
-search: true
-search_full_content: true
-
-# Pagination
-paginate: 10
-paginate_path: "/page/:num/"
-
-# Feed
-feed:
-  path: atom.xml
-  limit: 10
-
-# Sitemap
-sitemap:
-  path: sitemap.xml
-  priority: 0.5
-  changefreq: weekly
-  lastmod: true
-
-# Robots
-robots:
-  user_agent: "*"
-  disallow:
-    - "/admin/"
-    - "/private/"
-  sitemap: "/sitemap.xml"
 
 # Head and footer
 head_scripts:
