@@ -33,7 +33,7 @@ The API supports the following configuration variables:
 
 ### Search
 ```
-GET /api/youtubemusic/search?query={query}&category={category}&cookies={cookies}&location={location}
+GET /api/search?query={query}&category={category}&cookies={cookies}&location={location}
 ```
 
 **Parameters:**
@@ -44,7 +44,7 @@ GET /api/youtubemusic/search?query={query}&category={category}&cookies={cookies}
 
 ### Song/Video Information
 ```
-GET /api/youtubemusic/song/{id}?cookies={cookies}&location={location}
+GET /api/song/{id}?cookies={cookies}&location={location}
 ```
 
 **Parameters:**
@@ -56,7 +56,7 @@ GET /api/youtubemusic/song/{id}?cookies={cookies}&location={location}
 
 ### Direct Audio Streaming
 ```
-GET /api/youtubemusic/stream/{id}.m4a?cookies={cookies}&location={location}
+GET /api/stream/{id}.m4a?cookies={cookies}&location={location}
 ```
 
 **Parameters:**
@@ -68,7 +68,7 @@ GET /api/youtubemusic/stream/{id}.m4a?cookies={cookies}&location={location}
 
 ### Album Information
 ```
-GET /api/youtubemusic/album/{browseId}?cookies={cookies}&location={location}
+GET /api/album/{browseId}?cookies={cookies}&location={location}
 ```
 
 **Parameters:**
@@ -78,7 +78,7 @@ GET /api/youtubemusic/album/{browseId}?cookies={cookies}&location={location}
 
 ### Artist Information
 ```
-GET /api/youtubemusic/artist/{browseId}?cookies={cookies}&location={location}
+GET /api/artist/{browseId}?cookies={cookies}&location={location}
 ```
 
 **Parameters:**
@@ -88,7 +88,7 @@ GET /api/youtubemusic/artist/{browseId}?cookies={cookies}&location={location}
 
 ### Library (Requires Authentication)
 ```
-GET /api/youtubemusic/library?cookies={cookies}&location={location}
+GET /api/library?cookies={cookies}&location={location}
 ```
 
 **Parameters:**
@@ -99,7 +99,7 @@ GET /api/youtubemusic/library?cookies={cookies}&location={location}
 
 ### Library Songs (Requires Authentication)
 ```
-GET /api/youtubemusic/library/songs?cookies={cookies}&location={location}
+GET /api/library/songs?cookies={cookies}&location={location}
 ```
 
 **Parameters:**
@@ -108,7 +108,7 @@ GET /api/youtubemusic/library/songs?cookies={cookies}&location={location}
 
 ### Library Albums (Requires Authentication)
 ```
-GET /api/youtubemusic/library/albums?cookies={cookies}&location={location}
+GET /api/library/albums?cookies={cookies}&location={location}
 ```
 
 **Parameters:**
@@ -117,7 +117,7 @@ GET /api/youtubemusic/library/albums?cookies={cookies}&location={location}
 
 ### Library Artists (Requires Authentication)
 ```
-GET /api/youtubemusic/library/artists?cookies={cookies}&location={location}
+GET /api/library/artists?cookies={cookies}&location={location}
 ```
 
 **Parameters:**
@@ -126,7 +126,7 @@ GET /api/youtubemusic/library/artists?cookies={cookies}&location={location}
 
 ### Library Subscriptions (Requires Authentication)
 ```
-GET /api/youtubemusic/library/subscriptions?cookies={cookies}&location={location}
+GET /api/library/subscriptions?cookies={cookies}&location={location}
 ```
 
 **Parameters:**
@@ -135,7 +135,7 @@ GET /api/youtubemusic/library/subscriptions?cookies={cookies}&location={location
 
 ### Library Podcasts (Requires Authentication)
 ```
-GET /api/youtubemusic/library/podcasts?cookies={cookies}&location={location}
+GET /api/library/podcasts?cookies={cookies}&location={location}
 ```
 
 **Parameters:**
@@ -144,7 +144,7 @@ GET /api/youtubemusic/library/podcasts?cookies={cookies}&location={location}
 
 ### Library Playlists (Requires Authentication)
 ```
-GET /api/youtubemusic/library/playlists?cookies={cookies}&location={location}
+GET /api/library/playlists?cookies={cookies}&location={location}
 ```
 
 **Parameters:**
@@ -181,17 +181,17 @@ Once running, visit the root URL to access the interactive Swagger documentation
 
 ### Search for Songs
 ```bash
-curl "https://localhost:5001/api/youtubemusic/search?query=despacito&category=Songs"
+curl "https://localhost:5001/api/search?query=despacito&category=Songs"
 ```
 
 ### Get Song Information
 ```bash
-curl "https://localhost:5001/api/youtubemusic/song/dQw4w9WgXcQ"
+curl "https://localhost:5001/api/song/dQw4w9WgXcQ"
 ```
 
 ### Stream Audio
 ```bash
-curl "https://localhost:5001/api/youtubemusic/stream/dQw4w9WgXcQ.m4a" -o audio.m4a
+curl "https://localhost:5001/api/stream/dQw4w9WgXcQ.m4a" -o audio.m4a
 ```
 
 ### With Authentication
@@ -199,21 +199,21 @@ curl "https://localhost:5001/api/youtubemusic/stream/dQw4w9WgXcQ.m4a" -o audio.m
 # Base64 encode your YouTube cookies
 COOKIES=$(echo "your_cookies_here" | base64)
 
-curl "https://localhost:5001/api/youtubemusic/search?query=despacito&cookies=$COOKIES"
+curl "https://localhost:5001/api/search?query=despacito&cookies=$COOKIES"
 ```
 
 ### Get Library Content
 ```bash
 # Get complete library
-curl "https://localhost:5001/api/youtubemusic/library?cookies=$COOKIES"
+curl "https://localhost:5001/api/library?cookies=$COOKIES"
 
 # Get specific library sections
-curl "https://localhost:5001/api/youtubemusic/library/songs?cookies=$COOKIES"
-curl "https://localhost:5001/api/youtubemusic/library/albums?cookies=$COOKIES"
-curl "https://localhost:5001/api/youtubemusic/library/artists?cookies=$COOKIES"
-curl "https://localhost:5001/api/youtubemusic/library/subscriptions?cookies=$COOKIES"
-curl "https://localhost:5001/api/youtubemusic/library/podcasts?cookies=$COOKIES"
-curl "https://localhost:5001/api/youtubemusic/library/playlists?cookies=$COOKIES"
+curl "https://localhost:5001/api/library/songs?cookies=$COOKIES"
+curl "https://localhost:5001/api/library/albums?cookies=$COOKIES"
+curl "https://localhost:5001/api/library/artists?cookies=$COOKIES"
+curl "https://localhost:5001/api/library/subscriptions?cookies=$COOKIES"
+curl "https://localhost:5001/api/library/podcasts?cookies=$COOKIES"
+curl "https://localhost:5001/api/library/playlists?cookies=$COOKIES"
 ```
 
 ## Authentication
