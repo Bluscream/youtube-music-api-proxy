@@ -1,90 +1,433 @@
 ---
 layout: page
-title: Welcome
-description: YouTube Music API Proxy - A comprehensive API for accessing YouTube Music data
+title: YouTube Music API Proxy Documentation
+description: Comprehensive documentation for the YouTube Music API Proxy
 ---
 
-# Welcome to YouTube Music API Proxy
+# YouTube Music API Proxy Documentation
 
-A powerful and comprehensive API proxy that provides easy access to YouTube Music data, including search, streaming, and
-metadata retrieval.
+Welcome to the YouTube Music API Proxy documentation! This API provides a RESTful interface to access YouTube Music data
+and streaming functionality.
 
-## Quick Start
+## 🚀 Quick Start
 
-### Search for Music
-
-```bash
-curl "https://your-api-domain.com/api/search?query=despacito"
+### Base URL
+```
+https://your-api-domain.com/api
 ```
 
-### Get Song Information
+### Authentication
+Most endpoints support optional authentication via YouTube cookies:
+- Pass `cookies` as a query parameter (Base64 encoded)
+- Or set `YTM_COOKIES` environment variable
 
+### Example Request
 ```bash
-curl "https://your-api-domain.com/api/song?videoId=VIDEO_ID"
+curl "https://your-api-domain.com/api/search?query=despacito&category=Songs"
 ```
 
-### Stream Music
+## 📚 API Reference
 
-```bash
-curl "https://your-api-domain.com/api/stream?videoId=VIDEO_ID"
+### Search Endpoints
+
+#### Search for Content
+```http
+GET /api/search
 ```
 
-## Features
+Search for songs, videos, albums, artists, and more on YouTube Music.
 
-- **Music Search**: Search for songs, artists, and albums
-- **Streaming**: Get direct streaming URLs for music
-- **Metadata**: Retrieve detailed song information
-- **Playlists**: Access and manage playlists
-- **High Quality**: Support for various audio qualities
-- **Rate Limiting**: Built-in rate limiting for API protection
+**Query Parameters:**
+- `query` (required): Search query string
+- `category` (optional): Filter by category
+- `Songs` - Music tracks
+- `Videos` - Music videos
+- `Albums` - Music albums
+- `Artists` - Music artists
+- `CommunityPlaylists` - User playlists
+- `Podcasts` - Podcast content
+- `Episodes` - Podcast episodes
+- `Profiles` - User profiles
+- `location` (optional): Geographical location (default: "US")
+- `cookies` (optional): Base64 encoded YouTube cookies
 
-## Documentation
+**Example:**
+```bash
+curl "https://your-api-domain.com/api/search?query=despacito&category=Songs"
+```
 
-- [Getting Started](getting-started.html) - Learn how to set up and use the API
-- [API Reference](examples.html) - Complete API documentation with examples
-- [OpenAPI Specification](openapi.yaml) - Machine-readable API specification
-
-## Examples
-
-### Search Example
-
+**Response:**
 ```json
 {
-"query": "despacito",
 "results": [
 {
-"videoId": "kJQP7kiw5Fk",
+"type": "SongSearchResult",
+"id": "dQw4w9WgXcQ",
 "title": "Despacito",
 "artist": "Luis Fonsi",
-"duration": "4:42",
-"thumbnail": "https://..."
+"duration": "00:04:41",
+"thumbnail": "https://...",
+"browseId": "UC..."
 }
-]
+],
+"totalCount": 1,
+"query": "despacito",
+"category": "Songs"
 }
 ```
 
-### Stream Example
+### Content Information Endpoints
 
+#### Get Song/Video Information
+```http
+GET /api/song/{id}
+```
+
+Get detailed information about a song or video including streaming URLs.
+
+**Path Parameters:**
+- `id` (required): YouTube video/song ID
+
+**Query Parameters:**
+- `location` (optional): Geographical location
+- `cookies` (optional): Base64 encoded YouTube cookies
+
+**Example:**
+```bash
+curl "https://your-api-domain.com/api/song/dQw4w9WgXcQ"
+```
+
+#### Get Album Information
+```http
+GET /api/album/{browseId}
+```
+
+Get detailed information about an album including songs and metadata.
+
+**Path Parameters:**
+- `browseId` (required): Album browse ID
+
+**Example:**
+```bash
+curl "https://your-api-domain.com/api/album/MPREb_..."
+```
+
+#### Get Artist Information
+```http
+GET /api/artist/{browseId}
+```
+
+Get detailed information about an artist including albums, songs, and metadata.
+
+**Path Parameters:**
+- `browseId` (required): Artist browse ID
+
+**Example:**
+```bash
+curl "https://your-api-domain.com/api/artist/UC..."
+```
+
+#### Get Playlist Information
+```http
+GET /api/playlist/{id}
+```
+
+Get playlist information including songs and metadata.
+
+**Path Parameters:**
+- `id` (required): Playlist ID
+
+**Example:**
+```bash
+curl "https://your-api-domain.com/api/playlist/PL..."
+```
+
+### Streaming Endpoints
+
+#### Get Streaming Data
+```http
+GET /api/streaming/{id}
+```
+
+Get streaming data including audio and video URLs.
+
+**Path Parameters:**
+- `id` (required): YouTube video/song ID
+
+**Example:**
+```bash
+curl "https://your-api-domain.com/api/streaming/dQw4w9WgXcQ"
+```
+
+#### Direct Audio Streaming
+```http
+GET /api/stream/{id}.m4a
+```
+
+Stream audio directly from YouTube Music.
+
+**Path Parameters:**
+- `id` (required): YouTube video/song ID
+
+**Query Parameters:**
+- `quality` (optional): Audio quality preference
+
+**Example:**
+```bash
+curl "https://your-api-domain.com/api/stream/dQw4w9WgXcQ.m4a" -o audio.m4a
+```
+
+### Library Endpoints (Requires Authentication)
+
+#### Get Complete Library
+```http
+GET /api/library
+```
+
+Get user's complete library including songs, albums, artists, subscriptions, podcasts, and playlists.
+
+**Query Parameters:**
+- `cookies` (required): Base64 encoded YouTube cookies
+- `location` (optional): Geographical location
+
+**Example:**
+```bash
+curl "https://your-api-domain.com/api/library?cookies=eyJjb29raWVzIjoi..."
+```
+
+#### Get Library Songs
+```http
+GET /api/library/songs
+```
+
+Get user's library songs.
+
+**Query Parameters:**
+- `cookies` (required): Base64 encoded YouTube cookies
+- `location` (optional): Geographical location
+
+#### Get Library Albums
+```http
+GET /api/library/albums
+```
+
+Get user's library albums.
+
+**Query Parameters:**
+- `cookies` (required): Base64 encoded YouTube cookies
+- `location` (optional): Geographical location
+
+#### Get Library Artists
+```http
+GET /api/library/artists
+```
+
+Get user's library artists.
+
+**Query Parameters:**
+- `cookies` (required): Base64 encoded YouTube cookies
+- `location` (optional): Geographical location
+
+#### Get Library Subscriptions
+```http
+GET /api/library/subscriptions
+```
+
+Get user's library subscriptions.
+
+**Query Parameters:**
+- `cookies` (required): Base64 encoded YouTube cookies
+- `location` (optional): Geographical location
+
+#### Get Library Podcasts
+```http
+GET /api/library/podcasts
+```
+
+Get user's library podcasts.
+
+**Query Parameters:**
+- `cookies` (required): Base64 encoded YouTube cookies
+- `location` (optional): Geographical location
+
+#### Get Library Playlists
+```http
+GET /api/library/playlists
+```
+
+Get user's library playlists.
+
+**Query Parameters:**
+- `cookies` (required): Base64 encoded YouTube cookies
+- `location` (optional): Geographical location
+
+## 🔐 Authentication
+
+### Getting YouTube Cookies
+
+1. **Log into YouTube Music** in your browser
+2. **Open Developer Tools** (F12)
+3. **Go to Application/Storage tab**
+4. **Find Cookies** for `music.youtube.com`
+5. **Copy the cookie string** (all cookies concatenated)
+6. **Base64 encode** the cookie string
+
+### Example Cookie Extraction
+```javascript
+// In browser console
+document.cookie.split(';').map(c => c.trim()).join('; ')
+```
+
+### Using Cookies
+```bash
+# Base64 encode cookies
+COOKIES=$(echo "your_cookies_here" | base64)
+
+# Use in API calls
+curl "https://your-api-domain.com/api/search?query=despacito&cookies=$COOKIES"
+```
+
+## 📊 Response Models
+
+### Error Response
 ```json
 {
-"videoId": "kJQP7kiw5Fk",
-"streams": [
-{
-"url": "https://...",
-"quality": "128kbps",
-"format": "mp3"
-}
-]
+"error": "Error message",
+"details": "Optional error details"
 }
 ```
 
-## Getting Help
+### Search Response
+```json
+{
+"results": [
+{
+"type": "SongSearchResult|VideoSearchResult|AlbumSearchResult|ArtistSearchResult",
+"id": "string",
+"title": "string",
+"artist": "string",
+"duration": "string",
+"thumbnail": "string",
+"browseId": "string"
+}
+],
+"totalCount": 0,
+"query": "string",
+"category": "string"
+}
+```
 
-- Check the [documentation](getting-started.html) for detailed guides
-- Review the [API examples](examples.html) for common use cases
-- Use the [OpenAPI spec](openapi.yaml) for integration details
+### Song/Video Info Response
+```json
+{
+"id": "string",
+"title": "string",
+"artist": "string",
+"album": "string",
+"duration": "string",
+"thumbnail": "string",
+"description": "string",
+"streamingData": {
+"streamInfo": [
+{
+"type": "AudioStreamInfo|VideoStreamInfo",
+"url": "string",
+"bitrate": 0,
+"contentLenght": 0
+}
+]
+}
+}
+```
 
----
+## 🚦 Status Codes
 
-**Ready to get started?** Check out the [Getting Started Guide](getting-started.html) to begin using the YouTube Music
-API Proxy.
+- `200` - Success
+- `400` - Bad Request (invalid parameters)
+- `401` - Unauthorized (authentication required)
+- `404` - Not Found (content not found)
+- `500` - Internal Server Error
+
+## 🔧 Configuration
+
+### Environment Variables
+- `YTM_COOKIES` - Base64 encoded YouTube cookies
+- `YTM_VISITORDATA` - Visitor data for session tailoring
+- `YTM_POTOKEN` - Proof of Origin Token
+- `YTM_GEOGRAPHICAL_LOCATION` - Geographical location (default: "US")
+
+### Query Parameters
+- `cookies` - Base64 encoded YouTube cookies
+- `location` - Geographical location
+
+## 📝 Examples
+
+### Search Examples
+```bash
+# Search for songs
+curl "https://your-api-domain.com/api/search?query=despacito&category=Songs"
+
+# Search for videos
+curl "https://your-api-domain.com/api/search?query=despacito&category=Videos"
+
+# Search for artists
+curl "https://your-api-domain.com/api/search?query=luis%20fonsi&category=Artists"
+```
+
+### Streaming Examples
+```bash
+# Get streaming data
+curl "https://your-api-domain.com/api/streaming/dQw4w9WgXcQ"
+
+# Stream audio directly
+curl "https://your-api-domain.com/api/stream/dQw4w9WgXcQ.m4a" -o audio.m4a
+
+# Stream with authentication
+curl "https://your-api-domain.com/api/stream/dQw4w9WgXcQ.m4a?cookies=$COOKIES" -o audio.m4a
+```
+
+### Library Examples
+```bash
+# Get complete library
+curl "https://your-api-domain.com/api/library?cookies=$COOKIES"
+
+# Get specific library sections
+curl "https://your-api-domain.com/api/library/songs?cookies=$COOKIES"
+curl "https://your-api-domain.com/api/library/albums?cookies=$COOKIES"
+curl "https://your-api-domain.com/api/library/artists?cookies=$COOKIES"
+```
+
+## 🛠️ Development
+
+### Prerequisites
+- .NET 8.0 SDK
+- Node.js (for YouTubeSessionGenerator)
+
+### Running Locally
+```bash
+# Clone repository
+git clone https://github.com/Bluscream/youtube-music-api-proxy.git
+cd youtube-music-api-proxy
+
+# Restore dependencies
+dotnet restore
+
+# Run the application
+dotnet run
+```
+
+### Swagger Documentation
+Once running, visit the root URL to access interactive Swagger documentation.
+
+## 📄 License
+
+This project is licensed under the same license as the underlying
+[YouTubeMusicAPI](https://github.com/IcySnex/YouTubeMusicAPI) library.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📞 Support
+
+If you encounter any issues or have questions, please open an issue on GitHub.
