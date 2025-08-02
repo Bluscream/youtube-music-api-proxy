@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="{{ site.locale | slice: 0,2 | default: "en" }}" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% if page.title %}{{ page.title }} - {{ site.title }}{% else %}{{ site.title }}{% endif %}</title>
+    <meta name="description" content="{{ page.description | default: site.description }}">
+    
+    {% if site.head_scripts %}
+      {% for script in site.head_scripts %}
+        <script src="{{ script }}"></script>
+      {% endfor %}
+    {% endif %}
+    
+    <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
+  </head>
+  <body>
+    <header>
+      <h1>{{ site.title }}</h1>
+      <p>{{ site.description }}</p>
+    </header>
+    
+    <main>
+      {{ content }}
+    </main>
+    
+    <footer>
+      <p>&copy; {{ site.time | date: '%Y' }} {{ site.author.name }}. All rights reserved.</p>
+    </footer>
+    
+    {% if site.footer_scripts %}
+      {% for script in site.footer_scripts %}
+        <script src="{{ script }}"></script>
+      {% endfor %}
+    {% endif %}
+  </body>
+</html> 

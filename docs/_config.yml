@@ -91,18 +91,18 @@ reading_time: true
 toc: true
 toc_sticky: true
 
-# Search
-search: true
-search_full_content: true
+# Search - disabled for GitHub Pages compatibility
+# search: true
+# search_full_content: true
 
-# Pagination
-paginate: 10
-paginate_path: "/page/:num/"
+# Pagination - disabled to avoid warnings
+# paginate: 10
+# paginate_path: "/page/:num/"
 
-# Feed
-feed:
-  path: atom.xml
-  limit: 10
+# Feed - disabled for now
+# feed:
+#   path: atom.xml
+#   limit: 10
 
 # Sitemap
 sitemap:
