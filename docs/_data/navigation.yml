@@ -1,0 +1,50 @@
+docs:
+  - title: Getting Started
+    url: /getting-started/
+    children:
+      - title: Quick Start
+        url: /getting-started/#quick-setup
+      - title: Installation
+        url: /getting-started/#installation
+      - title: Configuration
+        url: /getting-started/#configuration
+      - title: Authentication Setup
+        url: /getting-started/#authentication-setup
+
+  - title: API Reference
+    url: /index/
+    children:
+      - title: Search Endpoints
+        url: /index/#search-endpoints
+      - title: Content Information
+        url: /index/#content-information-endpoints
+      - title: Streaming Endpoints
+        url: /index/#streaming-endpoints
+      - title: Library Endpoints
+        url: /index/#library-endpoints-requires-authentication
+
+  - title: Examples
+    url: /examples/
+    children:
+      - title: Search Examples
+        url: /examples/#search-examples
+      - title: Content Information
+        url: /examples/#content-information-examples
+      - title: Streaming Examples
+        url: /examples/#streaming-examples
+      - title: Library Examples
+        url: /examples/#library-examples-requires-authentication
+      - title: Advanced Examples
+        url: /examples/#advanced-examples
+
+  - title: Interactive Documentation
+    url: /swagger.html
+    external: true
+
+  - title: OpenAPI Specification
+    url: /openapi.yaml
+    external: true
+
+  - title: GitHub Repository
+    url: https://github.com/Bluscream/youtube-music-api-proxy
+    external: true 

@@ -1,0 +1,163 @@
+title: YouTube Music API Proxy Documentation
+description: Comprehensive documentation for the YouTube Music API Proxy
+url: "https://bluscream.github.io"
+baseurl: "/youtube-music-api-proxy"
+
+# GitHub Pages settings
+github:
+  repository_url: "https://github.com/Bluscream/youtube-music-api-proxy"
+  repository_name: "youtube-music-api-proxy"
+  branch: "main"
+
+# Site settings
+author:
+  name: "Bluscream"
+  email: ""
+  bio: "YouTube Music API Proxy Developer"
+  location: ""
+  links:
+    - label: "GitHub"
+      icon: "fab fa-fw fa-github"
+      url: "https://github.com/Bluscream"
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+plugins:
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+# Collections
+collections:
+  docs:
+    output: true
+    permalink: /:collection/:name/
+
+# Defaults
+defaults:
+  - scope:
+      path: ""
+      type: "docs"
+    values:
+      layout: "page"
+      author_profile: false
+      share: false
+      comments: false
+      sidebar:
+        nav: "docs"
+
+# Sidebar navigation
+sidebar:
+  nav: "docs"
+
+# Theme settings
+theme: "minimal-mistakes-jekyll"
+minimal_mistakes_skin: "air" # "air", "contrast", "dark", "dirt", "sunrise"
+
+# SEO
+seo:
+  type: "WebSite"
+  name: "YouTube Music API Proxy Documentation"
+  description: "Comprehensive documentation for the YouTube Music API Proxy"
+  url: "https://bluscream.github.io/youtube-music-api-proxy"
+  image: "https://bluscream.github.io/youtube-music-api-proxy/assets/images/logo.png"
+
+# Analytics (optional)
+analytics:
+  provider: "google"
+  google:
+    tracking_id: ""
+    anonymize_ip: true
+
+# Comments (optional)
+comments:
+  provider: "disqus"
+  disqus:
+    shortname: ""
+
+# Social sharing
+share: true
+share_buttons:
+  - "twitter"
+  - "facebook"
+  - "linkedin"
+  - "reddit"
+
+# Reading time
+reading_time: true
+
+# Table of contents
+toc: true
+toc_sticky: true
+
+# Search
+search: true
+search_full_content: true
+
+# Pagination
+paginate: 10
+paginate_path: "/page/:num/"
+
+# Feed
+feed:
+  path: atom.xml
+  limit: 10
+
+# Sitemap
+sitemap:
+  path: sitemap.xml
+  priority: 0.5
+  changefreq: weekly
+  lastmod: true
+
+# Robots
+robots:
+  user_agent: "*"
+  disallow:
+    - "/admin/"
+    - "/private/"
+  sitemap: "/sitemap.xml"
+
+# Head and footer
+head_scripts:
+  - "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui-bundle.js"
+  - "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui.css"
+
+footer_scripts:
+  - "/assets/js/custom.js"
+
+# Exclude from processing
+exclude:
+  - "Gemfile"
+  - "Gemfile.lock"
+  - "node_modules"
+  - "vendor/bundle/"
+  - "vendor/cache/"
+  - "vendor/gems/"
+  - "vendor/ruby/"
+  - "*.md"
+  - "*.yml"
+  - "*.yaml"
+  - "*.json"
+  - "*.xml"
+  - "*.txt"
+  - "*.log"
+  - "*.tmp"
+  - "*.temp"
+  - "*.cache"
+  - "*.bak"
+  - "*.swp"
+  - "*.swo"
+  - "*~"
+  - ".#*"
+  - "#*#"
+  - ".#*#"
+  - "Thumbs.db"
+  - "ehthumbs.db"
+  - "Desktop.ini"
+  - "$RECYCLE.BIN/"
+  - "*.cab"
+  - "*.msi"
+  - "*.msm"
+  - "*.msp"
+  - "*.lnk" 

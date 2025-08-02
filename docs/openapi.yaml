@@ -1,0 +1,1390 @@
+openapi: 3.0.3
+info:
+  title: YouTube Music API Proxy
+  description: |
+    A RESTful API wrapper around the YouTubeMusicAPI library, providing access to YouTube Music data and streaming functionality.
+    
+    ## Features
+    - Search for songs, videos, albums, artists, and more
+    - Get detailed information about content including streaming URLs
+    - Direct audio streaming from YouTube Music
+    - Access to user library (with authentication)
+    - Support for YouTube cookies authentication
+    
+    ## Authentication
+    Most endpoints support optional authentication via YouTube cookies:
+    - Pass `cookies` as a query parameter (Base64 encoded)
+    - Or set `YTM_COOKIES` environment variable
+    
+    ## Rate Limiting
+    Please be respectful of YouTube's servers and implement appropriate rate limiting in your applications.
+    
+    ## Support
+    For issues and questions, please visit our [GitHub repository](https://github.com/Bluscream/youtube-music-api-proxy).
+  version: 1.0.0
+  contact:
+    name: API Support
+    url: https://github.com/Bluscream/youtube-music-api-proxy/issues
+  license:
+    name: MIT
+    url: https://github.com/Bluscream/youtube-music-api-proxy/blob/main/LICENSE
+
+servers:
+  - url: https://your-api-domain.com/api
+    description: Production server
+  - url: https://localhost:5001/api
+    description: Local development server
+  - url: http://localhost:5000/api
+    description: Local development server (HTTP)
+
+paths:
+  /search:
+    get:
+      summary: Search for content on YouTube Music
+      description: |
+        Search for songs, videos, albums, artists, and more on YouTube Music.
+        Supports various search categories and optional authentication.
+      operationId: search
+      tags:
+        - Search
+      parameters:
+        - name: query
+          in: query
+          required: true
+          description: Search query string
+          schema:
+            type: string
+            example: "despacito"
+        - name: category
+          in: query
+          required: false
+          description: Filter by content category
+          schema:
+            type: string
+            enum:
+              - Songs
+              - Videos
+              - Albums
+              - Artists
+              - CommunityPlaylists
+              - Podcasts
+              - Episodes
+              - Profiles
+            example: "Songs"
+        - name: location
+          in: query
+          required: false
+          description: Geographical location (defaults to "US")
+          schema:
+            type: string
+            example: "US"
+        - name: cookies
+          in: query
+          required: false
+          description: Base64 encoded YouTube cookies for authentication
+          schema:
+            type: string
+            example: "eyJjb29raWVzIjoi..."
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+              examples:
+                songs:
+                  summary: Song search results
+                  value:
+                    results:
+                      - type: "SongSearchResult"
+                        id: "dQw4w9WgXcQ"
+                        title: "Despacito"
+                        artist: "Luis Fonsi"
+                        duration: "00:04:41"
+                        thumbnail: "https://i.ytimg.com/vi/dQw4w9WgXcQ/default.jpg"
+                        browseId: "UC..."
+                    totalCount: 1
+                    query: "despacito"
+                    category: "Songs"
+        '400':
+          description: Bad request - invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /song/{id}:
+    get:
+      summary: Get song/video information
+      description: |
+        Get detailed information about a song or video including streaming URLs.
+        This endpoint provides metadata and streaming data for the specified content.
+      operationId: getSongVideoInfo
+      tags:
+        - Content Information
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: YouTube video/song ID
+          schema:
+            type: string
+            example: "dQw4w9WgXcQ"
+        - name: location
+          in: query
+          required: false
+          description: Geographical location
+          schema:
+            type: string
+            example: "US"
+        - name: cookies
+          in: query
+          required: false
+          description: Base64 encoded YouTube cookies for authentication
+          schema:
+            type: string
+            example: "eyJjb29raWVzIjoi..."
+      responses:
+        '200':
+          description: Song/video information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SongVideoInfoResponse'
+        '400':
+          description: Bad request - invalid ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Song/video not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /streaming/{id}:
+    get:
+      summary: Get streaming data
+      description: |
+        Get streaming data including audio and video URLs for the specified content.
+        This endpoint provides access to various quality streams.
+      operationId: getStreamingData
+      tags:
+        - Streaming
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: YouTube video/song ID
+          schema:
+            type: string
+            example: "dQw4w9WgXcQ"
+        - name: location
+          in: query
+          required: false
+          description: Geographical location
+          schema:
+            type: string
+            example: "US"
+        - name: cookies
+          in: query
+          required: false
+          description: Base64 encoded YouTube cookies for authentication
+          schema:
+            type: string
+            example: "eyJjb29raWVzIjoi..."
+      responses:
+        '200':
+          description: Streaming data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StreamingData'
+        '400':
+          description: Bad request - invalid ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Content not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /stream/{id}.m4a:
+    get:
+      summary: Stream audio directly
+      description: |
+        Stream audio directly from YouTube Music in M4A format.
+        This endpoint returns the actual audio stream.
+      operationId: streamAudio
+      tags:
+        - Streaming
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: YouTube video/song ID
+          schema:
+            type: string
+            example: "dQw4w9WgXcQ"
+        - name: location
+          in: query
+          required: false
+          description: Geographical location
+          schema:
+            type: string
+            example: "US"
+        - name: quality
+          in: query
+          required: false
+          description: Audio quality preference
+          schema:
+            type: string
+            example: "AUDIO_QUALITY_MEDIUM"
+        - name: cookies
+          in: query
+          required: false
+          description: Base64 encoded YouTube cookies for authentication
+          schema:
+            type: string
+            example: "eyJjb29raWVzIjoi..."
+      responses:
+        '200':
+          description: Audio stream
+          content:
+            audio/mpeg:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Bad request - invalid ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Audio stream not available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /album/{browseId}:
+    get:
+      summary: Get album information
+      description: |
+        Get detailed information about an album including songs and metadata.
+      operationId: getAlbumInfo
+      tags:
+        - Content Information
+      parameters:
+        - name: browseId
+          in: path
+          required: true
+          description: Album browse ID
+          schema:
+            type: string
+            example: "MPREb_..."
+        - name: location
+          in: query
+          required: false
+          description: Geographical location
+          schema:
+            type: string
+            example: "US"
+        - name: cookies
+          in: query
+          required: false
+          description: Base64 encoded YouTube cookies for authentication
+          schema:
+            type: string
+            example: "eyJjb29raWVzIjoi..."
+      responses:
+        '200':
+          description: Album information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlbumInfo'
+        '400':
+          description: Bad request - invalid browse ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Album not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /artist/{browseId}:
+    get:
+      summary: Get artist information
+      description: |
+        Get detailed information about an artist including albums, songs, and metadata.
+      operationId: getArtistInfo
+      tags:
+        - Content Information
+      parameters:
+        - name: browseId
+          in: path
+          required: true
+          description: Artist browse ID
+          schema:
+            type: string
+            example: "UC..."
+        - name: location
+          in: query
+          required: false
+          description: Geographical location
+          schema:
+            type: string
+            example: "US"
+        - name: cookies
+          in: query
+          required: false
+          description: Base64 encoded YouTube cookies for authentication
+          schema:
+            type: string
+            example: "eyJjb29raWVzIjoi..."
+      responses:
+        '200':
+          description: Artist information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArtistInfo'
+        '400':
+          description: Bad request - invalid browse ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Artist not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /playlist/{id}:
+    get:
+      summary: Get playlist information
+      description: |
+        Get playlist information including songs and metadata.
+      operationId: getPlaylist
+      tags:
+        - Content Information
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Playlist ID
+          schema:
+            type: string
+            example: "PL..."
+        - name: location
+          in: query
+          required: false
+          description: Geographical location
+          schema:
+            type: string
+            example: "US"
+        - name: cookies
+          in: query
+          required: false
+          description: Base64 encoded YouTube cookies for authentication
+          schema:
+            type: string
+            example: "eyJjb29raWVzIjoi..."
+      responses:
+        '200':
+          description: Playlist information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaylistResponse'
+        '400':
+          description: Bad request - invalid playlist ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Playlist not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /library:
+    get:
+      summary: Get user's complete library
+      description: |
+        Get user's complete library including songs, albums, artists, subscriptions, podcasts, and playlists.
+        **Requires authentication.**
+      operationId: getLibrary
+      tags:
+        - Library
+      parameters:
+        - name: cookies
+          in: query
+          required: true
+          description: Base64 encoded YouTube cookies for authentication
+          schema:
+            type: string
+            example: "eyJjb29raWVzIjoi..."
+        - name: location
+          in: query
+          required: false
+          description: Geographical location
+          schema:
+            type: string
+            example: "US"
+      responses:
+        '200':
+          description: Complete library
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /library/songs:
+    get:
+      summary: Get user's library songs
+      description: |
+        Get user's library songs.
+        **Requires authentication.**
+      operationId: getLibrarySongs
+      tags:
+        - Library
+      parameters:
+        - name: cookies
+          in: query
+          required: true
+          description: Base64 encoded YouTube cookies for authentication
+          schema:
+            type: string
+            example: "eyJjb29raWVzIjoi..."
+        - name: location
+          in: query
+          required: false
+          description: Geographical location
+          schema:
+            type: string
+            example: "US"
+      responses:
+        '200':
+          description: Library songs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibrarySongsResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /library/albums:
+    get:
+      summary: Get user's library albums
+      description: |
+        Get user's library albums.
+        **Requires authentication.**
+      operationId: getLibraryAlbums
+      tags:
+        - Library
+      parameters:
+        - name: cookies
+          in: query
+          required: true
+          description: Base64 encoded YouTube cookies for authentication
+          schema:
+            type: string
+            example: "eyJjb29raWVzIjoi..."
+        - name: location
+          in: query
+          required: false
+          description: Geographical location
+          schema:
+            type: string
+            example: "US"
+      responses:
+        '200':
+          description: Library albums
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryAlbumsResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /library/artists:
+    get:
+      summary: Get user's library artists
+      description: |
+        Get user's library artists.
+        **Requires authentication.**
+      operationId: getLibraryArtists
+      tags:
+        - Library
+      parameters:
+        - name: cookies
+          in: query
+          required: true
+          description: Base64 encoded YouTube cookies for authentication
+          schema:
+            type: string
+            example: "eyJjb29raWVzIjoi..."
+        - name: location
+          in: query
+          required: false
+          description: Geographical location
+          schema:
+            type: string
+            example: "US"
+      responses:
+        '200':
+          description: Library artists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryArtistsResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /library/subscriptions:
+    get:
+      summary: Get user's library subscriptions
+      description: |
+        Get user's library subscriptions.
+        **Requires authentication.**
+      operationId: getLibrarySubscriptions
+      tags:
+        - Library
+      parameters:
+        - name: cookies
+          in: query
+          required: true
+          description: Base64 encoded YouTube cookies for authentication
+          schema:
+            type: string
+            example: "eyJjb29raWVzIjoi..."
+        - name: location
+          in: query
+          required: false
+          description: Geographical location
+          schema:
+            type: string
+            example: "US"
+      responses:
+        '200':
+          description: Library subscriptions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibrarySubscriptionsResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /library/podcasts:
+    get:
+      summary: Get user's library podcasts
+      description: |
+        Get user's library podcasts.
+        **Requires authentication.**
+      operationId: getLibraryPodcasts
+      tags:
+        - Library
+      parameters:
+        - name: cookies
+          in: query
+          required: true
+          description: Base64 encoded YouTube cookies for authentication
+          schema:
+            type: string
+            example: "eyJjb29raWVzIjoi..."
+        - name: location
+          in: query
+          required: false
+          description: Geographical location
+          schema:
+            type: string
+            example: "US"
+      responses:
+        '200':
+          description: Library podcasts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryPodcastsResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /library/playlists:
+    get:
+      summary: Get user's library playlists
+      description: |
+        Get user's library playlists.
+        **Requires authentication.**
+      operationId: getLibraryPlaylists
+      tags:
+        - Library
+      parameters:
+        - name: cookies
+          in: query
+          required: true
+          description: Base64 encoded YouTube cookies for authentication
+          schema:
+            type: string
+            example: "eyJjb29raWVzIjoi..."
+        - name: location
+          in: query
+          required: false
+          description: Geographical location
+          schema:
+            type: string
+            example: "US"
+      responses:
+        '200':
+          description: Library playlists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryPlaylistsResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: "Query parameter is required"
+        details:
+          type: string
+          description: Optional error details
+          example: "Additional error information"
+
+    SearchResponse:
+      type: object
+      required:
+        - results
+        - totalCount
+        - query
+      properties:
+        results:
+          type: array
+          description: List of search results
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/SongSearchResult'
+              - $ref: '#/components/schemas/VideoSearchResult'
+              - $ref: '#/components/schemas/AlbumSearchResult'
+              - $ref: '#/components/schemas/ArtistSearchResult'
+        totalCount:
+          type: integer
+          description: Total number of results found
+          example: 1
+        query:
+          type: string
+          description: Search query used
+          example: "despacito"
+        category:
+          type: string
+          description: Category filter applied (if any)
+          example: "Songs"
+
+    SongSearchResult:
+      type: object
+      required:
+        - type
+        - id
+        - title
+      properties:
+        type:
+          type: string
+          enum: [SongSearchResult]
+          example: "SongSearchResult"
+        id:
+          type: string
+          description: YouTube video ID
+          example: "dQw4w9WgXcQ"
+        title:
+          type: string
+          description: Song title
+          example: "Despacito"
+        artist:
+          type: string
+          description: Artist name
+          example: "Luis Fonsi"
+        duration:
+          type: string
+          description: Duration in HH:MM:SS format
+          example: "00:04:41"
+        thumbnail:
+          type: string
+          description: Thumbnail URL
+          example: "https://i.ytimg.com/vi/dQw4w9WgXcQ/default.jpg"
+        browseId:
+          type: string
+          description: Browse ID for additional info
+          example: "UC..."
+
+    VideoSearchResult:
+      type: object
+      required:
+        - type
+        - id
+        - title
+      properties:
+        type:
+          type: string
+          enum: [VideoSearchResult]
+          example: "VideoSearchResult"
+        id:
+          type: string
+          description: YouTube video ID
+          example: "dQw4w9WgXcQ"
+        title:
+          type: string
+          description: Video title
+          example: "Despacito - Luis Fonsi"
+        artist:
+          type: string
+          description: Artist name
+          example: "Luis Fonsi"
+        duration:
+          type: string
+          description: Duration in HH:MM:SS format
+          example: "00:04:41"
+        thumbnail:
+          type: string
+          description: Thumbnail URL
+          example: "https://i.ytimg.com/vi/dQw4w9WgXcQ/default.jpg"
+        browseId:
+          type: string
+          description: Browse ID for additional info
+          example: "UC..."
+
+    AlbumSearchResult:
+      type: object
+      required:
+        - type
+        - browseId
+        - title
+      properties:
+        type:
+          type: string
+          enum: [AlbumSearchResult]
+          example: "AlbumSearchResult"
+        browseId:
+          type: string
+          description: Album browse ID
+          example: "MPREb_..."
+        title:
+          type: string
+          description: Album title
+          example: "Despacito & Mis Grandes Éxitos"
+        artist:
+          type: string
+          description: Artist name
+          example: "Luis Fonsi"
+        year:
+          type: string
+          description: Release year
+          example: "2017"
+        thumbnail:
+          type: string
+          description: Album cover URL
+          example: "https://..."
+
+    ArtistSearchResult:
+      type: object
+      required:
+        - type
+        - browseId
+        - name
+      properties:
+        type:
+          type: string
+          enum: [ArtistSearchResult]
+          example: "ArtistSearchResult"
+        browseId:
+          type: string
+          description: Artist browse ID
+          example: "UC..."
+        name:
+          type: string
+          description: Artist name
+          example: "Luis Fonsi"
+        subscribers:
+          type: string
+          description: Subscriber count
+          example: "10M"
+        thumbnail:
+          type: string
+          description: Artist photo URL
+          example: "https://..."
+
+    SongVideoInfoResponse:
+      type: object
+      required:
+        - id
+        - title
+      properties:
+        id:
+          type: string
+          description: YouTube video ID
+          example: "dQw4w9WgXcQ"
+        title:
+          type: string
+          description: Song/video title
+          example: "Despacito"
+        artist:
+          type: string
+          description: Artist name
+          example: "Luis Fonsi"
+        album:
+          type: string
+          description: Album name
+          example: "Despacito & Mis Grandes Éxitos"
+        duration:
+          type: string
+          description: Duration in HH:MM:SS format
+          example: "00:04:41"
+        thumbnail:
+          type: string
+          description: Thumbnail URL
+          example: "https://i.ytimg.com/vi/dQw4w9WgXcQ/default.jpg"
+        description:
+          type: string
+          description: Video description
+          example: "Official Despacito music video..."
+        streamingData:
+          $ref: '#/components/schemas/StreamingData'
+
+    StreamingData:
+      type: object
+      required:
+        - streamInfo
+      properties:
+        streamInfo:
+          type: array
+          description: Available streaming options
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/AudioStreamInfo'
+              - $ref: '#/components/schemas/VideoStreamInfo'
+
+    AudioStreamInfo:
+      type: object
+      required:
+        - type
+        - url
+        - bitrate
+      properties:
+        type:
+          type: string
+          enum: [AudioStreamInfo]
+          example: "AudioStreamInfo"
+        url:
+          type: string
+          description: Direct streaming URL
+          example: "https://..."
+        bitrate:
+          type: integer
+          description: Audio bitrate in kbps
+          example: 128
+        contentLenght:
+          type: integer
+          description: Content length in bytes
+          example: 12345678
+
+    VideoStreamInfo:
+      type: object
+      required:
+        - type
+        - url
+        - width
+        - height
+      properties:
+        type:
+          type: string
+          enum: [VideoStreamInfo]
+          example: "VideoStreamInfo"
+        url:
+          type: string
+          description: Direct streaming URL
+          example: "https://..."
+        width:
+          type: integer
+          description: Video width in pixels
+          example: 1920
+        height:
+          type: integer
+          description: Video height in pixels
+          example: 1080
+        bitrate:
+          type: integer
+          description: Video bitrate in kbps
+          example: 5000
+
+    AlbumInfo:
+      type: object
+      description: Album information including songs and metadata
+      properties:
+        browseId:
+          type: string
+          description: Album browse ID
+          example: "MPREb_..."
+        title:
+          type: string
+          description: Album title
+          example: "Despacito & Mis Grandes Éxitos"
+        artist:
+          type: string
+          description: Artist name
+          example: "Luis Fonsi"
+        year:
+          type: string
+          description: Release year
+          example: "2017"
+        thumbnail:
+          type: string
+          description: Album cover URL
+          example: "https://..."
+        songs:
+          type: array
+          description: Songs in the album
+          items:
+            $ref: '#/components/schemas/SongSearchResult'
+
+    ArtistInfo:
+      type: object
+      description: Artist information including albums, songs, and metadata
+      properties:
+        browseId:
+          type: string
+          description: Artist browse ID
+          example: "UC..."
+        name:
+          type: string
+          description: Artist name
+          example: "Luis Fonsi"
+        subscribers:
+          type: string
+          description: Subscriber count
+          example: "10M"
+        thumbnail:
+          type: string
+          description: Artist photo URL
+          example: "https://..."
+        albums:
+          type: array
+          description: Artist albums
+          items:
+            $ref: '#/components/schemas/AlbumSearchResult'
+        songs:
+          type: array
+          description: Artist songs
+          items:
+            $ref: '#/components/schemas/SongSearchResult'
+
+    PlaylistResponse:
+      type: object
+      required:
+        - id
+        - browseId
+        - songs
+        - totalSongs
+      properties:
+        id:
+          type: string
+          description: Playlist ID
+          example: "PL..."
+        browseId:
+          type: string
+          description: Playlist browse ID
+          example: "VL..."
+        playlist:
+          type: object
+          description: Playlist metadata
+        songs:
+          type: array
+          description: Songs in the playlist
+          items:
+            $ref: '#/components/schemas/SongSearchResult'
+        totalSongs:
+          type: integer
+          description: Total number of songs
+          example: 50
+
+    LibraryResponse:
+      type: object
+      required:
+        - songs
+        - albums
+        - artists
+        - subscriptions
+        - podcasts
+        - playlists
+      properties:
+        songs:
+          type: array
+          description: User's library songs
+          items:
+            $ref: '#/components/schemas/LibrarySong'
+        albums:
+          type: array
+          description: User's library albums
+          items:
+            $ref: '#/components/schemas/LibraryAlbum'
+        artists:
+          type: array
+          description: User's library artists
+          items:
+            $ref: '#/components/schemas/LibraryArtist'
+        subscriptions:
+          type: array
+          description: User's library subscriptions
+          items:
+            $ref: '#/components/schemas/LibrarySubscription'
+        podcasts:
+          type: array
+          description: User's library podcasts
+          items:
+            $ref: '#/components/schemas/LibraryPodcast'
+        playlists:
+          type: array
+          description: User's library playlists
+          items:
+            $ref: '#/components/schemas/LibraryCommunityPlaylist'
+
+    LibrarySongsResponse:
+      type: object
+      required:
+        - songs
+        - totalCount
+      properties:
+        songs:
+          type: array
+          description: User's library songs
+          items:
+            $ref: '#/components/schemas/LibrarySong'
+        totalCount:
+          type: integer
+          description: Total number of songs in library
+          example: 1000
+
+    LibraryAlbumsResponse:
+      type: object
+      required:
+        - albums
+        - totalCount
+      properties:
+        albums:
+          type: array
+          description: User's library albums
+          items:
+            $ref: '#/components/schemas/LibraryAlbum'
+        totalCount:
+          type: integer
+          description: Total number of albums in library
+          example: 100
+
+    LibraryArtistsResponse:
+      type: object
+      required:
+        - artists
+        - totalCount
+      properties:
+        artists:
+          type: array
+          description: User's library artists
+          items:
+            $ref: '#/components/schemas/LibraryArtist'
+        totalCount:
+          type: integer
+          description: Total number of artists in library
+          example: 50
+
+    LibrarySubscriptionsResponse:
+      type: object
+      required:
+        - subscriptions
+        - totalCount
+      properties:
+        subscriptions:
+          type: array
+          description: User's library subscriptions
+          items:
+            $ref: '#/components/schemas/LibrarySubscription'
+        totalCount:
+          type: integer
+          description: Total number of subscriptions in library
+          example: 25
+
+    LibraryPodcastsResponse:
+      type: object
+      required:
+        - podcasts
+        - totalCount
+      properties:
+        podcasts:
+          type: array
+          description: User's library podcasts
+          items:
+            $ref: '#/components/schemas/LibraryPodcast'
+        totalCount:
+          type: integer
+          description: Total number of podcasts in library
+          example: 10
+
+    LibraryPlaylistsResponse:
+      type: object
+      required:
+        - playlists
+        - totalCount
+      properties:
+        playlists:
+          type: array
+          description: User's library playlists
+          items:
+            $ref: '#/components/schemas/LibraryCommunityPlaylist'
+        totalCount:
+          type: integer
+          description: Total number of playlists in library
+          example: 30
+
+    LibrarySong:
+      type: object
+      description: Library song item
+      properties:
+        id:
+          type: string
+          description: YouTube video ID
+          example: "dQw4w9WgXcQ"
+        title:
+          type: string
+          description: Song title
+          example: "Despacito"
+        artist:
+          type: string
+          description: Artist name
+          example: "Luis Fonsi"
+
+    LibraryAlbum:
+      type: object
+      description: Library album item
+      properties:
+        browseId:
+          type: string
+          description: Album browse ID
+          example: "MPREb_..."
+        title:
+          type: string
+          description: Album title
+          example: "Despacito & Mis Grandes Éxitos"
+        artist:
+          type: string
+          description: Artist name
+          example: "Luis Fonsi"
+
+    LibraryArtist:
+      type: object
+      description: Library artist item
+      properties:
+        browseId:
+          type: string
+          description: Artist browse ID
+          example: "UC..."
+        name:
+          type: string
+          description: Artist name
+          example: "Luis Fonsi"
+
+    LibrarySubscription:
+      type: object
+      description: Library subscription item
+      properties:
+        browseId:
+          type: string
+          description: Channel browse ID
+          example: "UC..."
+        name:
+          type: string
+          description: Channel name
+          example: "Luis Fonsi"
+
+    LibraryPodcast:
+      type: object
+      description: Library podcast item
+      properties:
+        browseId:
+          type: string
+          description: Podcast browse ID
+          example: "MPREb_..."
+        title:
+          type: string
+          description: Podcast title
+          example: "My Podcast"
+
+    LibraryCommunityPlaylist:
+      type: object
+      description: Library playlist item
+      properties:
+        id:
+          type: string
+          description: Playlist ID
+          example: "PL..."
+        title:
+          type: string
+          description: Playlist title
+          example: "My Favorites"
+
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: query
+      name: cookies
+      description: Base64 encoded YouTube cookies for authentication
+
+tags:
+  - name: Search
+    description: Search for content on YouTube Music
+  - name: Content Information
+    description: Get detailed information about songs, videos, albums, artists, and playlists
+  - name: Streaming
+    description: Access streaming data and direct audio streaming
+  - name: Library
+    description: Access user's library content (requires authentication)
+
+externalDocs:
+  description: Find more info about YouTube Music API Proxy
+  url: https://github.com/Bluscream/youtube-music-api-proxy 
