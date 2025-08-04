@@ -43,50 +43,67 @@ function updateCSSBreakpoints() {
     document.documentElement.style.setProperty('--sidebar-collapse-breakpoint', `${SIDEBAR_COLLAPSE_BREAKPOINT}px`);
 }
 
-// Sidebar collapse functionality
+// Unified sidebar toggle functionality for both desktop and mobile
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
     const mainContent = document.getElementById('mainContent');
     const sidebarToggle = document.getElementById('sidebarToggle');
+    const mobileMenuToggle = document.getElementById('mobileMenuToggle');
 
-    if (isSidebarCollapsed) {
-        // Expand sidebar
-        sidebar.classList.remove('collapsed');
-        mainContent.classList.remove('sidebar-collapsed');
-        sidebarToggle.textContent = '◀';
-        sidebarToggle.title = 'Collapse sidebar';
-        isSidebarCollapsed = false;
-    } else if (isSidebarCompact) {
-        // Go to full size
-        sidebar.classList.remove('compact');
-        mainContent.classList.remove('sidebar-compact');
-        sidebarToggle.textContent = '◀';
-        sidebarToggle.title = 'Collapse sidebar';
-        isSidebarCompact = false;
-    } else {
-        // Collapse sidebar
-        if (shouldCollapseSidebar()) {
-            // Full collapse for small screens
-            sidebar.classList.add('collapsed');
-            mainContent.classList.add('sidebar-collapsed');
-            sidebarToggle.textContent = '▶';
-            sidebarToggle.title = 'Expand sidebar';
-            isSidebarCollapsed = true;
+    if (isMobile()) {
+        // Mobile behavior - simple toggle with backdrop
+        isMobileMenuOpen = !isMobileMenuOpen;
+
+        if (isMobileMenuOpen) {
+            sidebar.classList.remove('collapsed');
+            mobileMenuToggle.textContent = '✕';
+            addMobileMenuBackdrop();
         } else {
-            // Compact mode for larger screens
-            sidebar.classList.add('compact');
-            mainContent.classList.add('sidebar-compact');
-            sidebarToggle.textContent = '◀';
-            sidebarToggle.title = 'Expand sidebar';
-            isSidebarCompact = true;
+            sidebar.classList.add('collapsed');
+            mobileMenuToggle.textContent = '☰';
+            removeMobileMenuBackdrop();
         }
-    }
+    } else {
+        // Desktop behavior - three-state toggle with persistence
+        if (isSidebarCollapsed) {
+            // Expand sidebar
+            sidebar.classList.remove('collapsed');
+            mainContent.classList.remove('sidebar-collapsed');
+            sidebarToggle.textContent = '◀';
+            sidebarToggle.title = 'Collapse sidebar';
+            isSidebarCollapsed = false;
+        } else if (isSidebarCompact) {
+            // Go to full size
+            sidebar.classList.remove('compact');
+            mainContent.classList.remove('sidebar-compact');
+            sidebarToggle.textContent = '◀';
+            sidebarToggle.title = 'Collapse sidebar';
+            isSidebarCompact = false;
+        } else {
+            // Collapse sidebar
+            if (shouldCollapseSidebar()) {
+                // Full collapse for small screens
+                sidebar.classList.add('collapsed');
+                mainContent.classList.add('sidebar-collapsed');
+                sidebarToggle.textContent = '▶';
+                sidebarToggle.title = 'Expand sidebar';
+                isSidebarCollapsed = true;
+            } else {
+                // Compact mode for larger screens
+                sidebar.classList.add('compact');
+                mainContent.classList.add('sidebar-compact');
+                sidebarToggle.textContent = '◀';
+                sidebarToggle.title = 'Expand sidebar';
+                isSidebarCompact = true;
+            }
+        }
 
-    // Store sidebar state in localStorage
-    localStorage.setItem('sidebarState', JSON.stringify({
-        collapsed: isSidebarCollapsed,
-        compact: isSidebarCompact
-    }));
+        // Store sidebar state in localStorage (desktop only)
+        localStorage.setItem('sidebarState', JSON.stringify({
+            collapsed: isSidebarCollapsed,
+            compact: isSidebarCompact
+        }));
+    }
 }
 
 function restoreSidebarState() {
@@ -209,24 +226,7 @@ function addMobileTouchHandlers() {
     }
 }
 
-// Enhanced mobile menu functionality
-function toggleMobileMenu() {
-    const sidebar = document.getElementById('sidebar');
-    const mobileMenuToggle = document.getElementById('mobileMenuToggle');
 
-    isMobileMenuOpen = !isMobileMenuOpen;
-
-    if (isMobileMenuOpen) {
-        sidebar.classList.remove('collapsed');
-        mobileMenuToggle.textContent = '✕';
-        // Add backdrop for mobile menu
-        addMobileMenuBackdrop();
-    } else {
-        sidebar.classList.add('collapsed');
-        mobileMenuToggle.textContent = '☰';
-        removeMobileMenuBackdrop();
-    }
-}
 
 function addMobileMenuBackdrop() {
     if (!document.getElementById('mobileMenuBackdrop')) {
@@ -251,7 +251,7 @@ function addMobileMenuBackdrop() {
         }, 10);
 
         // Close menu when backdrop is clicked
-        backdrop.addEventListener('click', toggleMobileMenu);
+        backdrop.addEventListener('click', toggleSidebar);
     }
 }
 
@@ -673,6 +673,16 @@ function updateVolumeDisplay() {
     if (volumeThumb) volumeThumb.style.left = percentage + '%';
 }
 
+function updateProgressBar() {
+    if (currentAudio) {
+        const progress = (currentAudio.currentTime / currentAudio.duration) * 100;
+        const progressFill = document.getElementById('progressFill');
+        if (progressFill) {
+            progressFill.style.width = progress + '%';
+        }
+    }
+}
+
 function initVolumeSlider() {
     const volumeSlider = document.getElementById('volumeSlider');
     const volumeThumb = document.getElementById('volumeThumb');
@@ -744,7 +754,7 @@ function updateActiveNavItem(clickedItem) {
 
     // Close mobile menu after navigation
     if (isMobile() && isMobileMenuOpen) {
-        toggleMobileMenu();
+        toggleSidebar();
     }
 }
 
@@ -853,7 +863,7 @@ function displayPlaylistsInSidebar() {
 async function loadPlaylist(playlistId, playlistTitle) {
     // Close mobile menu after playlist selection
     if (isMobile() && isMobileMenuOpen) {
-        toggleMobileMenu();
+        toggleSidebar();
     }
 
     showLoading();
@@ -1027,7 +1037,7 @@ function displayLibraryContent(libraryData) {
 async function loadAlbum(browseId, albumTitle) {
     // Close mobile menu after album selection
     if (isMobile() && isMobileMenuOpen) {
-        toggleMobileMenu();
+        toggleSidebar();
     }
 
     showLoading();
@@ -1051,7 +1061,7 @@ async function loadAlbum(browseId, albumTitle) {
 async function loadArtist(browseId, artistName) {
     // Close mobile menu after artist selection
     if (isMobile() && isMobileMenuOpen) {
-        toggleMobileMenu();
+        toggleSidebar();
     }
 
     showLoading();
@@ -1179,7 +1189,7 @@ document.addEventListener('click', function (event) {
     if (isMobileMenuOpen &&
         !sidebar.contains(event.target) &&
         !mobileMenuToggle.contains(event.target)) {
-        toggleMobileMenu();
+        toggleSidebar();
     }
 });
 
@@ -1187,7 +1197,7 @@ document.addEventListener('click', function (event) {
 window.addEventListener('resize', function () {
     // Handle mobile menu
     if (!isMobile() && isMobileMenuOpen) {
-        toggleMobileMenu();
+        toggleSidebar();
     }
 
     // Handle sidebar auto-collapse
