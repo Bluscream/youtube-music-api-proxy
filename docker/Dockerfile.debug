@@ -1,10 +1,10 @@
-# Multi-stage build for YouTube Music API Proxy
-# Supports: Linux (amd64, arm64), Windows (with Docker Desktop), macOS (with Docker Desktop)
+# Debug build for YouTube Music API Proxy
+# Includes debugging tools and development features
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 # Build arguments
-ARG BUILD_CONFIGURATION=Release
+ARG BUILD_CONFIGURATION=Debug
 
 # Copy csproj and restore dependencies
 COPY ["YoutubeMusicAPIProxy.csproj", "./"]
@@ -14,20 +14,26 @@ RUN dotnet restore "YoutubeMusicAPIProxy.csproj"
 COPY . .
 RUN dotnet build "YoutubeMusicAPIProxy.csproj" -c ${BUILD_CONFIGURATION} -o /app/build
 
-# Publish
+# Publish (keep debug symbols)
 FROM build AS publish
 RUN dotnet publish "YoutubeMusicAPIProxy.csproj" -c ${BUILD_CONFIGURATION} -o /app/publish /p:UseAppHost=false
 
-# Runtime stage
+# Runtime stage with debugging tools
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
 
 # Build arguments
-ARG BUILD_CONFIGURATION=Release
+ARG BUILD_CONFIGURATION=Debug
 
-# Install Node.js for YouTubeSessionGenerator
+# Install debugging tools and Node.js
 RUN apt-get update && apt-get install -y \
     curl \
+    procps \
+    lsof \
+    net-tools \
+    iputils-ping \
+    telnet \
+    vim \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && apt-get clean \
@@ -44,9 +50,11 @@ USER appuser
 # Expose port
 EXPOSE 8080
 
-# Set environment variables based on build configuration
+# Set environment variables for debugging
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=${BUILD_CONFIGURATION}
+ENV DOTNET_USE_POLLING_FILE_WATCHER=1
+ENV DOTNET_RUNNING_IN_CONTAINER=true
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

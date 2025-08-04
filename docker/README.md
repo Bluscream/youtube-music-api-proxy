@@ -2,6 +2,20 @@
 
 This directory contains all Docker-related files for building, running, and publishing the YouTube Music API Proxy.
 
+## Available Versions
+
+### Release Version (Production)
+- **Tag**: `latest` or `latest-debug`
+- **Environment**: Production optimized
+- **Size**: ~641MB
+- **Use case**: Production deployments
+
+### Debug Version (Development)
+- **Tag**: `latest-debug`
+- **Environment**: Development with debugging tools
+- **Size**: ~707MB (includes debugging tools)
+- **Use case**: Development, debugging, troubleshooting
+
 ## Quick Start
 
 ### Using Docker Compose (Recommended)
@@ -20,169 +34,185 @@ This directory contains all Docker-related files for building, running, and publ
 
 ### Using PowerShell Scripts
 
-1. **Build the image:**
+1. **Build both versions:**
    ```powershell
    cd docker
-   .\build.ps1
+   .\build-and-publish-versions.ps1
    ```
 
-2. **Run the container:**
+2. **Run release version:**
    ```powershell
    .\run.ps1
    ```
 
-3. **Publish to registries:**
+3. **Run debug version:**
+   ```powershell
+   .\run.ps1 -ImageName "bluscream1/youtube-music-api-proxy" -Tag "latest-debug"
+   ```
+
+4. **Publish to registries:**
    ```powershell
    .\publish.ps1
    ```
 
 ## Files Overview
 
-- **`Dockerfile`** - Multi-stage Docker build for the .NET 9.0 application
+- **`Dockerfile`** - Multi-stage Docker build for Release version
+- **`Dockerfile.debug`** - Multi-stage Docker build for Debug version with debugging tools
 - **`.dockerignore`** - Excludes unnecessary files from Docker build context
-- **`docker-compose.yml`** - Development environment with volume mounts and debugging
+- **`docker-compose.yml`** - Development environment setup
 - **`docker-compose.prod.yml`** - Production environment with resource limits
-- **`build.ps1`** - PowerShell script to build Docker image locally
-- **`run.ps1`** - PowerShell script to run container locally
-- **`publish.ps1`** - PowerShell script to publish to Docker Hub and GitHub CR
+- **`build.ps1`** - PowerShell script for building images
+- **`build-and-publish-versions.ps1`** - PowerShell script for building both versions
+- **`run.ps1`** - PowerShell script for running containers
+- **`publish.ps1`** - PowerShell script for publishing to registries
+- **`README.md`** - This comprehensive guide
 
-## Docker Images
+## Image Registries
 
-The application will be published to:
+### Docker Hub
+- **Release**: `bluscream1/youtube-music-api-proxy:latest`
+- **Debug**: `bluscream1/youtube-music-api-proxy:latest-debug`
 
-- **Docker Hub:** `bluscream/youtube-music-api-proxy`
-- **GitHub Container Registry:** `ghcr.io/bluscream/youtube-music-api-proxy`
-
-## Environment Variables
-
-### Required
-- `ASPNETCORE_URLS` - Set to `http://+:8080` in container
-- `ASPNETCORE_ENVIRONMENT` - Set to `Production` in container
-
-### Optional
-- `YTM_COOKIES` - Base64 encoded YouTube cookies for authentication
-- `YTM_VISITORDATA` - Visitor data for session tailoring
-- `YTM_POTOKEN` - Proof of Origin Token for attestation
-- `YTM_GEOGRAPHICAL_LOCATION` - Geographical location (defaults to "US")
+### GitHub Container Registry
+- **Release**: `ghcr.io/bluscream/youtube-music-api-proxy:latest`
+- **Debug**: `ghcr.io/bluscream/youtube-music-api-proxy:latest-debug`
 
 ## Usage Examples
 
-### Pull and Run from Registry
-
+### Pull and Run Release Version
 ```bash
 # From Docker Hub
-docker run -d -p 8080:8080 --name ytm-api bluscream/youtube-music-api-proxy:latest
+docker run -d -p 8080:8080 --name ytm-api bluscream1/youtube-music-api-proxy:latest
 
 # From GitHub Container Registry
 docker run -d -p 8080:8080 --name ytm-api ghcr.io/bluscream/youtube-music-api-proxy:latest
 ```
 
-### With Environment Variables
-
+### Pull and Run Debug Version
 ```bash
-docker run -d -p 8080:8080 \
-  -e YTM_COOKIES="your_base64_cookies" \
-  -e YTM_GEOGRAPHICAL_LOCATION="US" \
-  --name ytm-api \
-  bluscream/youtube-music-api-proxy:latest
+# From Docker Hub
+docker run -d -p 8080:8080 --name ytm-api-debug bluscream1/youtube-music-api-proxy:latest-debug
+
+# From GitHub Container Registry
+docker run -d -p 8080:8080 --name ytm-api-debug ghcr.io/bluscream/youtube-music-api-proxy:latest-debug
 ```
 
-### Using Docker Compose with Custom Config
+### Using Docker Compose
+```bash
+# Development (uses debug version)
+docker-compose up
 
-```yaml
-version: '3.8'
-services:
-  youtube-music-api-proxy:
-    image: bluscream/youtube-music-api-proxy:latest
-    ports:
-      - "8080:8080"
-    environment:
-      - YTM_COOKIES=your_base64_cookies_here
-      - YTM_GEOGRAPHICAL_LOCATION=US
-    restart: unless-stopped
+# Production (uses release version)
+docker-compose -f docker-compose.prod.yml up -d
 ```
+
+## Version Differences
+
+| Feature | Release | Debug |
+|---------|---------|-------|
+| Build Configuration | Release | Debug |
+| Environment | Production | Development |
+| Debug Symbols | No | Yes |
+| Debugging Tools | No | Yes (procps, lsof, net-tools, vim) |
+| File Watching | No | Yes |
+| Container Size | ~641MB | ~707MB |
+| Performance | Optimized | Development-friendly |
+
+## Environment Variables
+
+Both versions support the same environment variables:
+
+- `ASPNETCORE_ENVIRONMENT`: Set automatically based on build configuration
+- `YTM_GEOGRAPHICAL_LOCATION`: Geographic location for YouTube Music
+- `YTM_COOKIES`: Base64 encoded cookies (optional)
+- `YTM_VISITORDATA`: Visitor data (optional)
+- `YTM_POTOKEN`: Proof of origin token (optional)
 
 ## Health Checks
 
-The container includes a health check that verifies the API is responding:
+Both versions include health checks that verify the API is responding:
 
 ```bash
 # Check container health
 docker ps
 
 # View health check logs
-docker inspect --format='{{json .State.Health}}' container_name
+docker inspect --format='{{json .State.Health}}' <container_name>
 ```
 
 ## Troubleshooting
 
-### Common Issues
-
-1. **Port already in use:**
-   ```bash
-   # Change the port mapping
-   docker run -p 8081:8080 bluscream/youtube-music-api-proxy:latest
-   ```
-
-2. **Authentication issues:**
-   - Ensure YouTube cookies are properly base64 encoded
-   - Check that cookies are not expired
-
-3. **Node.js dependency issues:**
-   - The Dockerfile includes Node.js installation for YouTubeSessionGenerator
-   - If you encounter issues, try rebuilding with `--no-cache`
-
-### Logs and Debugging
+### Debug Version Features
+The debug version includes additional tools for troubleshooting:
 
 ```bash
-# View container logs
-docker logs container_name
+# Access debug container shell
+docker exec -it <container_name> /bin/bash
 
-# Follow logs in real-time
-docker logs -f container_name
+# Check processes
+ps aux
 
-# Execute commands in running container
-docker exec -it container_name /bin/bash
+# Check network connections
+netstat -tulpn
+
+# Check open files
+lsof
+
+# Edit files (vim included)
+vim /app/appsettings.json
 ```
 
-## Publishing to Registries
+### Common Issues
 
-### Prerequisites
-
-1. **Docker Hub:**
+1. **Port already in use**: Change the port mapping
    ```bash
-   docker login
+   docker run -d -p 8081:8080 --name ytm-api bluscream1/youtube-music-api-proxy:latest
    ```
 
-2. **GitHub Container Registry:**
-   ```bash
-   docker login ghcr.io
-   ```
+2. **Permission issues**: The container runs as non-root user `appuser`
 
-### Publishing
+3. **Memory issues**: Use the production compose file with resource limits
 
+## Building Locally
+
+### Build Release Version
+```bash
+docker build -t youtube-music-api-proxy:latest -f docker/Dockerfile .
+```
+
+### Build Debug Version
+```bash
+docker build -t youtube-music-api-proxy:debug -f docker/Dockerfile.debug .
+```
+
+### Build Both Versions
 ```powershell
-# Publish to both registries
-.\publish.ps1
-
-# Publish to specific registry
-.\publish.ps1 -DockerHub
-.\publish.ps1 -GitHub
-
-# Publish with specific tag
-.\publish.ps1 -Tag "v1.0.0"
+.\docker\build-and-publish-versions.ps1 -SkipPush
 ```
 
-## Security Considerations
+## Publishing
 
-- The container runs as a non-root user (`appuser`)
-- Health checks are enabled to monitor container status
-- Resource limits can be set in production deployments
-- Environment variables should be properly secured in production
+### To Docker Hub
+```bash
+docker push bluscream1/youtube-music-api-proxy:latest
+docker push bluscream1/youtube-music-api-proxy:latest-debug
+```
 
-## Performance Optimization
+### To GitHub Container Registry
+```bash
+docker push ghcr.io/bluscream/youtube-music-api-proxy:latest
+docker push ghcr.io/bluscream/youtube-music-api-proxy:latest-debug
+```
 
-- Multi-stage build reduces final image size
-- Alpine-based runtime image for smaller footprint
-- Layer caching optimized for faster rebuilds
-- Production compose file includes resource limits 
+### Automated Publishing
+```powershell
+.\docker\build-and-publish-versions.ps1
+```
+
+## Support
+
+For issues and questions:
+- Check the [main README](../readme.md)
+- Review the [Linux Usage Guide](LINUX_USAGE.md)
+- Check the [Publishing Guide](PUBLISH_GUIDE.md) 
