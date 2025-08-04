@@ -654,4 +654,50 @@ public class YouTubeMusicController : ControllerBase
             return StatusCode(500, new ErrorResponse { Error = "Internal server error" });
         }
     }
+
+    /// <summary>
+    /// Clear the session cache (useful for testing or when cookies change)
+    /// </summary>
+    /// <returns>Success message</returns>
+    /// <response code="200">Session cache cleared successfully</response>
+    /// <response code="500">If there was an internal server error</response>
+    [HttpPost("cache/clear")]
+    [ProducesResponseType(typeof(object), 200)]
+    [ProducesResponseType(typeof(ErrorResponse), 500)]
+    public IActionResult ClearSessionCache()
+    {
+        try
+        {
+            _service.ClearSessionCache();
+            return Ok(new { message = "Session cache cleared successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error clearing session cache");
+            return StatusCode(500, new ErrorResponse { Error = "Internal server error" });
+        }
+    }
+
+    /// <summary>
+    /// Get session cache statistics
+    /// </summary>
+    /// <returns>Cache statistics</returns>
+    /// <response code="200">Returns cache statistics</response>
+    /// <response code="500">If there was an internal server error</response>
+    [HttpGet("cache/stats")]
+    [ProducesResponseType(typeof(object), 200)]
+    [ProducesResponseType(typeof(ErrorResponse), 500)]
+    public IActionResult GetSessionCacheStats()
+    {
+        try
+        {
+            var stats = _service.GetSessionCacheStats();
+            return Ok(stats);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting session cache stats");
+            return StatusCode(500, new ErrorResponse { Error = "Internal server error" });
+        }
+    }
 } 
