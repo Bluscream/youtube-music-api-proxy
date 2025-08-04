@@ -33,13 +33,13 @@
     .sidebar-toggle {
         display: flex !important;
     }
-    
+
     /* Auto-collapse sidebar on smaller screens */
     .sidebar:not(.collapsed):not(.compact) {
         transform: translateX(-100%);
         width: 0;
     }
-    
+
     .main-content:not(.sidebar-collapsed):not(.sidebar-compact) {
         margin-left: 0;
     }

@@ -48,7 +48,7 @@ function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
     const mainContent = document.getElementById('mainContent');
     const sidebarToggle = document.getElementById('sidebarToggle');
-    
+
     if (isSidebarCollapsed) {
         // Expand sidebar
         sidebar.classList.remove('collapsed');
@@ -81,7 +81,7 @@ function toggleSidebar() {
             isSidebarCompact = true;
         }
     }
-    
+
     // Store sidebar state in localStorage
     localStorage.setItem('sidebarState', JSON.stringify({
         collapsed: isSidebarCollapsed,
@@ -93,12 +93,12 @@ function restoreSidebarState() {
     const sidebar = document.getElementById('sidebar');
     const mainContent = document.getElementById('mainContent');
     const sidebarToggle = document.getElementById('sidebarToggle');
-    
+
     try {
         const savedState = localStorage.getItem('sidebarState');
         if (savedState) {
             const state = JSON.parse(savedState);
-            
+
             if (state.collapsed && !isMobile()) {
                 sidebar.classList.add('collapsed');
                 mainContent.classList.add('sidebar-collapsed');
@@ -122,7 +122,7 @@ function handleWindowResize() {
     const sidebar = document.getElementById('sidebar');
     const mainContent = document.getElementById('mainContent');
     const sidebarToggle = document.getElementById('sidebarToggle');
-    
+
     if (isMobile()) {
         // On mobile, always use mobile menu behavior
         sidebar.classList.remove('collapsed', 'compact');
@@ -133,7 +133,7 @@ function handleWindowResize() {
     } else {
         // On desktop, show toggle button and handle auto-collapse
         sidebarToggle.style.display = 'flex';
-        
+
         if (shouldCollapseSidebar() && !isSidebarCollapsed && !isSidebarCompact) {
             // Auto-collapse on small screens
             sidebar.classList.add('collapsed');
@@ -1189,7 +1189,7 @@ window.addEventListener('resize', function () {
     if (!isMobile() && isMobileMenuOpen) {
         toggleMobileMenu();
     }
-    
+
     // Handle sidebar auto-collapse
     handleWindowResize();
 });
