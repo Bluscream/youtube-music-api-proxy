@@ -255,7 +255,7 @@ function displayPlaylistsInSidebar() {
     if (playlists.length > 0) {
         playlistsSection.style.display = 'block';
         playlistsList.innerHTML = playlists.map(playlist => {
-            const title = playlist.title || 'Unknown Playlist';
+            const title = playlist.name || playlist.title || 'Unknown Playlist';
             const safeTitle = title.replace(/'/g, "\\'");
 
             return `
