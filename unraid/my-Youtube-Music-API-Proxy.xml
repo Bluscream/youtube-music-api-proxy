@@ -4,30 +4,130 @@
   <Repository>bluscream/youtube-music-api-proxy:latest</Repository>
   <Registry>https://hub.docker.com/r/bluscream/youtube-music-api-proxy</Registry>
   <Network>bridge</Network>
-  <MyIP/>
+  <MyIP />
   <Shell>sh</Shell>
   <Privileged>false</Privileged>
   <Support>https://github.com/Bluscream/youtube-music-api-proxy/issues</Support>
   <Project>https://github.com/Bluscream/youtube-music-api-proxy</Project>
   <Category>MediaServer:Music</Category>
-  <WebUI>http://[IP]:[PORT:80]/</WebUI>
+  <WebUI>http://[IP]:[PORT:15000]/</WebUI>
   <TemplateURL>https://github.com/Bluscream/youtube-music-api-proxy</TemplateURL>
   <Icon>https://raw.githubusercontent.com/Bluscream/youtube-music-api-proxy/main/unraid/icon.png</Icon>
-  <ExtraParams/>
-  <PostArgs/>
-  <CPUset/>
+  <ExtraParams />
+  <PostArgs />
+  <CPUset />
   <DateInstalled>1703123456</DateInstalled>
-  <DonateText/>
-  <DonateLink/>
-  <Requires/>
-  <Config Name="HTTP Port" Target="80" Default="80" Mode="tcp" Description="HTTP Port" Type="Port" Display="always" Required="false" Mask="false"/>
-  <Config Name="HTTPS Port" Target="443" Default="443" Mode="tcp" Description="HTTPS Port" Type="Port" Display="always" Required="false" Mask="false"/>
-  <Config Name="Geographical Location" Target="YTM_GEOGRAPHICAL_LOCATION" Default="US" Mode="" Description="Geographical location for YouTube Music (e.g., US, UK, DE)" Type="Variable" Display="always" Required="false" Mask="false"/>
-  <Config Name="Cookies" Target="YTM_COOKIES" Default="" Mode="" Description="Base64 encoded YouTube cookies for authentication (optional)" Type="Variable" Display="always" Required="false" Mask="true"/>
-  <Config Name="Visitor Data" Target="YTM_VISITORDATA" Default="" Mode="" Description="Visitor data for session tailoring (optional)" Type="Variable" Display="always" Required="false" Mask="true"/>
-  <Config Name="Proof of Origin Token" Target="YTM_POTOKEN" Default="" Mode="" Description="Proof of Origin Token for attestation (optional)" Type="Variable" Display="always" Required="false" Mask="true"/>
-  <Config Name="User Agent" Target="YTM_USER_AGENT" Default="" Mode="" Description="Custom user agent string (optional)" Type="Variable" Display="always" Required="false" Mask="false"/>
-  <Config Name="Timeout" Target="YTM_TIMEOUT" Default="30" Mode="" Description="Request timeout in seconds" Type="Variable" Display="always" Required="false" Mask="false"/>
-  <Config Name="Max Retries" Target="YTM_MAX_RETRIES" Default="3" Mode="" Description="Maximum retry attempts" Type="Variable" Display="always" Required="false" Mask="false"/>
-  <Config Name="Debug" Target="YTM_DEBUG" Default="false" Mode="" Description="Enable debug logging (true/false)" Type="Variable" Display="always" Required="false" Mask="false"/>
+  <DonateText />
+  <DonateLink />
+  <Requires />
+  <Config
+    Name="HTTP Port"
+    Target="80"
+    Default="15000"
+    Mode="tcp"
+    Description="HTTP Port"
+    Type="Port"
+    Display="always"
+    Required="false"
+    Mask="false"
+  />
+  <Config
+    Name="HTTPS Port"
+    Target="443"
+    Default="15001"
+    Mode="tcp"
+    Description="HTTPS Port"
+    Type="Port"
+    Display="always"
+    Required="false"
+    Mask="false"
+  />
+  <Config
+    Name="Geographical Location"
+    Target="YTM_GEOGRAPHICAL_LOCATION"
+    Default="US"
+    Mode=""
+    Description="Geographical location for YouTube Music (e.g., US, UK, DE)"
+    Type="Variable"
+    Display="always"
+    Required="false"
+    Mask="false"
+  />
+  <Config
+    Name="Cookies"
+    Target="YTM_COOKIES"
+    Default=""
+    Mode=""
+    Description="Base64 encoded YouTube cookies for authentication (optional)"
+    Type="Variable"
+    Display="always"
+    Required="false"
+    Mask="true"
+  />
+  <Config
+    Name="Visitor Data"
+    Target="YTM_VISITORDATA"
+    Default=""
+    Mode=""
+    Description="Visitor data for session tailoring (optional)"
+    Type="Variable"
+    Display="always"
+    Required="false"
+    Mask="true"
+  />
+  <Config
+    Name="Proof of Origin Token"
+    Target="YTM_POTOKEN"
+    Default=""
+    Mode=""
+    Description="Proof of Origin Token for attestation (optional)"
+    Type="Variable"
+    Display="always"
+    Required="false"
+    Mask="true"
+  />
+  <Config
+    Name="User Agent"
+    Target="YTM_USER_AGENT"
+    Default=""
+    Mode=""
+    Description="Custom user agent string (optional)"
+    Type="Variable"
+    Display="always"
+    Required="false"
+    Mask="false"
+  />
+  <Config
+    Name="Timeout"
+    Target="YTM_TIMEOUT"
+    Default="30"
+    Mode=""
+    Description="Request timeout in seconds"
+    Type="Variable"
+    Display="always"
+    Required="false"
+    Mask="false"
+  />
+  <Config
+    Name="Max Retries"
+    Target="YTM_MAX_RETRIES"
+    Default="3"
+    Mode=""
+    Description="Maximum retry attempts"
+    Type="Variable"
+    Display="always"
+    Required="false"
+    Mask="false"
+  />
+  <Config
+    Name="Debug"
+    Target="YTM_DEBUG"
+    Default="false"
+    Mode=""
+    Description="Enable debug logging (true/false)"
+    Type="Variable"
+    Display="always"
+    Required="false"
+    Mask="false"
+  />
 </Container>
