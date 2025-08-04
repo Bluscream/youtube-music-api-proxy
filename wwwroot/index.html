@@ -27,19 +27,19 @@
         <div class="logo">YouTube Music</div>
 
         <div class="nav-section">
-            <div class="nav-item active" onclick="loadLibrary(event)">
+            <div class="nav-item active" id="libraryNavItem">
                 <div class="nav-icon">📚</div>
                 <span>Library</span>
             </div>
-            <div class="nav-item" onclick="loadSongs(event)">
+            <div class="nav-item" id="songsNavItem">
                 <div class="nav-icon">🎵</div>
                 <span>Songs</span>
             </div>
-            <div class="nav-item" onclick="loadArtists(event)">
+            <div class="nav-item" id="artistsNavItem">
                 <div class="nav-icon">👤</div>
                 <span>Artists</span>
             </div>
-            <div class="nav-item" onclick="loadAlbums(event)">
+            <div class="nav-item" id="albumsNavItem">
                 <div class="nav-icon">💿</div>
                 <span>Albums</span>
             </div>
@@ -55,8 +55,7 @@
         <div class="header">
             <div class="search-container">
                 <div class="search-icon">🔍</div>
-                <input type="text" class="search-input" placeholder="Search for songs, artists, or albums"
-                    onkeypress="handleSearch(event)">
+                <input type="text" class="search-input" id="searchInput" placeholder="Search for songs, artists, or albums">
             </div>
         </div>
 

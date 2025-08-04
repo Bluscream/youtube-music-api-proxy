@@ -1629,6 +1629,31 @@ updateRepeatShuffleDisplay();
 addMobileTouchHandlers();
 enhancePlayerControls();
 
+// Add event listeners for navigation items
+document.addEventListener('DOMContentLoaded', function() {
+    const libraryNavItem = document.getElementById('libraryNavItem');
+    const songsNavItem = document.getElementById('songsNavItem');
+    const artistsNavItem = document.getElementById('artistsNavItem');
+    const albumsNavItem = document.getElementById('albumsNavItem');
+    const searchInput = document.getElementById('searchInput');
+    
+    if (libraryNavItem) {
+        libraryNavItem.addEventListener('click', loadLibrary);
+    }
+    if (songsNavItem) {
+        songsNavItem.addEventListener('click', loadSongs);
+    }
+    if (artistsNavItem) {
+        artistsNavItem.addEventListener('click', loadArtists);
+    }
+    if (albumsNavItem) {
+        albumsNavItem.addEventListener('click', loadAlbums);
+    }
+    if (searchInput) {
+        searchInput.addEventListener('keypress', handleSearch);
+    }
+});
+
 // Make functions globally accessible for onclick handlers
 window.loadLibrary = loadLibrary;
 window.loadSongs = loadSongs;
