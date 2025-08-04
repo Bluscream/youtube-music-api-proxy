@@ -28,7 +28,7 @@ function isMobile() {
 }
 
 function isSmallMobile() {
-    return getWindowWidth() <= SMALL_MOBILE_BREAKPOINT;
+    return getWindowWidth() <= SMALL_MOBILE_BREAKPOINT;s
 }
 
 function shouldCollapseSidebar() {
@@ -122,24 +122,8 @@ function handleWindowResize() {
         isSidebarCollapsed = false;
         sidebarToggle.style.display = 'none';
     } else {
-        // On desktop, show toggle button and handle auto-collapse
+        // On desktop, show toggle button
         sidebarToggle.style.display = 'flex';
-
-        if (shouldCollapseSidebar() && !isSidebarCollapsed) {
-            // Auto-collapse on small screens
-            sidebar.classList.add('collapsed');
-            mainContent.classList.add('sidebar-collapsed');
-            sidebarToggle.textContent = '▶';
-            sidebarToggle.title = 'Expand sidebar';
-            isSidebarCollapsed = true;
-        } else if (!shouldCollapseSidebar() && isSidebarCollapsed) {
-            // Auto-expand on larger screens if it was auto-collapsed
-            sidebar.classList.remove('collapsed');
-            mainContent.classList.remove('sidebar-collapsed');
-            sidebarToggle.textContent = '◀';
-            sidebarToggle.title = 'Collapse sidebar';
-            isSidebarCollapsed = false;
-        }
     }
 }
 

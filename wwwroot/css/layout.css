@@ -118,7 +118,7 @@
 }
 
 /* Ensure toggle button is visible when sidebar is collapsed */
-.sidebar.collapsed ~ .sidebar-toggle {
+.sidebar.collapsed~.sidebar-toggle {
     left: 20px;
 }
 

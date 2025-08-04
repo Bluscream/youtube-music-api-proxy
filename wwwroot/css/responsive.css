@@ -28,21 +28,11 @@
     }
 }
 
-/* Desktop sidebar collapse breakpoint */
-@media (max-width: var(--sidebar-collapse-breakpoint)) {
+/* Desktop sidebar toggle button */
+@media (min-width: calc(var(--mobile-breakpoint) + 1px)) {
     .sidebar-toggle {
         display: flex !important;
         left: 20px;
-    }
-
-    /* Auto-collapse sidebar on smaller screens */
-    .sidebar:not(.collapsed) {
-        transform: translateX(-100%);
-        width: 0;
-    }
-
-    .main-content:not(.sidebar-collapsed) {
-        margin-left: 0;
     }
 }
 
