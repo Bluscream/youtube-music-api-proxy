@@ -1,0 +1,99 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>YouTube Music API Proxy</Name>
+  <Repository>bluscream1/youtube-music-api-proxy-1</Repository>
+  <Registry>https://hub.docker.com/r/bluscream1/youtube-music-api-proxy</Registry>
+  <Network>bridge</Network>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/Bluscream/youtube-music-api-proxy</Support>
+  <Project>https://github.com/Bluscream/youtube-music-api-proxy</Project>
+  <Overview>YouTube Music API Proxy - A .NET 9.0 API that provides access to YouTube Music data through a RESTful interface. Supports search, video info, and more.</Overview>
+  <Category>MediaServer:Music</Category>
+  <WebUI>http://[IP]:[PORT:8080]/</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/Bluscream/youtube-music-api-proxy/main/unraid/template.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/Bluscream/youtube-music-api-proxy/main/unraid/icon.png</Icon>
+  <ExtraParams />
+  <PostArgs />
+  <CPUset />
+  <DateInstalled>1703123456</DateInstalled>
+  <DonateText />
+  <DonateLink />
+  <Requires>Docker</Requires>
+  <Config
+    Name="WebUI"
+    Target="8080"
+    Default="8080"
+    Mode="tcp"
+    Description="Web Interface Port"
+    Type="Port"
+    Display="always"
+    Required="true"
+    Mask="false"
+  />
+  <Config
+    Name="Geographical Location"
+    Target="YTM_GEOGRAPHICAL_LOCATION"
+    Default="US"
+    Mode=""
+    Description="Geographical location for YouTube Music (e.g., US, UK, DE)"
+    Type="Variable"
+    Display="always"
+    Required="false"
+    Mask="false"
+  />
+  <Config
+    Name="YouTube Cookies"
+    Target="YTM_COOKIES"
+    Default=""
+    Mode=""
+    Description="Base64 encoded YouTube cookies for authentication (optional)"
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="true"
+  />
+  <Config
+    Name="Visitor Data"
+    Target="YTM_VISITORDATA"
+    Default=""
+    Mode=""
+    Description="Visitor data for session tailoring (optional)"
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="true"
+  />
+  <Config
+    Name="Proof of Origin Token"
+    Target="YTM_POTOKEN"
+    Default=""
+    Mode=""
+    Description="Proof of origin token for attestation (optional)"
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="true"
+  />
+  <Config
+    Name="AppData Config"
+    Target="/app/config"
+    Default="/mnt/user/appdata/youtube-music-api-proxy"
+    Mode="rw"
+    Description="Configuration directory"
+    Type="Path"
+    Display="advanced"
+    Required="false"
+    Mask="false"
+  />
+  <Config
+    Name="Logs"
+    Target="/app/logs"
+    Default="/mnt/user/appdata/youtube-music-api-proxy/logs"
+    Mode="rw"
+    Description="Log directory"
+    Type="Path"
+    Display="advanced"
+    Required="false"
+    Mask="false"
+  />
+</Container>
