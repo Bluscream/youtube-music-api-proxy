@@ -1,0 +1,32 @@
+:root {
+    --mobile-breakpoint: 768px;
+    --small-mobile-breakpoint: 480px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Roboto', Arial, sans-serif;
+    background-color: #0f0f0f;
+    color: #ffffff;
+    display: flex;
+    height: 100vh;
+}
+
+.loading {
+    display: none;
+    text-align: center;
+    padding: 40px;
+    color: #b3b3b3;
+}
+
+.error {
+    display: none;
+    text-align: center;
+    padding: 40px;
+    color: #ff4444;
+}

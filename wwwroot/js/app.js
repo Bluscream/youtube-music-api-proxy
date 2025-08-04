@@ -462,7 +462,7 @@ function updateActiveNavItem(clickedItem) {
     });
     // Add active class to clicked item
     clickedItem.classList.add('active');
-    
+
     // Close mobile menu after navigation
     if (isMobile() && isMobileMenuOpen) {
         toggleMobileMenu();
@@ -576,7 +576,7 @@ async function loadPlaylist(playlistId, playlistTitle) {
     if (isMobile() && isMobileMenuOpen) {
         toggleMobileMenu();
     }
-    
+
     showLoading();
     try {
         const queryParams = getQueryParams();
@@ -750,7 +750,7 @@ async function loadAlbum(browseId, albumTitle) {
     if (isMobile() && isMobileMenuOpen) {
         toggleMobileMenu();
     }
-    
+
     showLoading();
     try {
         const queryParams = getQueryParams();
@@ -774,7 +774,7 @@ async function loadArtist(browseId, artistName) {
     if (isMobile() && isMobileMenuOpen) {
         toggleMobileMenu();
     }
-    
+
     showLoading();
     try {
         const queryParams = getQueryParams();

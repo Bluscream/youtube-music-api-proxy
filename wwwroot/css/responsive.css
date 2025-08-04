@@ -1,0 +1,400 @@
+/* Responsive Design - Mobile Breakpoints */
+@media (max-width: var(--mobile-breakpoint)) {
+    .sidebar {
+        width: 200px;
+    }
+
+    .search-container {
+        max-width: 300px;
+    }
+
+    .now-playing {
+        width: 200px;
+    }
+
+    .player-bar {
+        left: 200px;
+        /* Adjust for smaller sidebar width */
+    }
+
+    .notification-container {
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+
+    .notification {
+        min-width: auto;
+    }
+}
+
+/* Mobile Responsive Design */
+@media (max-width: var(--mobile-breakpoint)) {
+    body {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid #282828;
+        position: relative;
+        z-index: 200;
+    }
+
+    .sidebar.collapsed {
+        display: none;
+    }
+
+    .mobile-menu-toggle {
+        display: block;
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: none;
+        border: none;
+        color: #ffffff;
+        font-size: 24px;
+        cursor: pointer;
+        z-index: 201;
+    }
+
+    .mobile-menu-toggle:hover {
+        color: #1db954;
+    }
+
+    .logo {
+        padding: 20px 24px;
+        margin-bottom: 0;
+        border-bottom: none;
+    }
+
+    .nav-section {
+        margin-bottom: 0;
+    }
+
+    .nav-item {
+        padding: 16px 24px;
+        border-bottom: 1px solid #282828;
+    }
+
+    .main-content {
+        padding-bottom: 120px;
+    }
+
+    .header {
+        height: auto;
+        padding: 16px 24px;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .search-container {
+        max-width: none;
+        width: 100%;
+    }
+
+    .search-input {
+        height: 48px;
+        font-size: 18px;
+    }
+
+    .content-area {
+        padding: 16px;
+    }
+
+    .welcome-title {
+        font-size: 24px;
+    }
+
+    .welcome-subtitle {
+        font-size: 14px;
+    }
+
+    .search-results {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 12px;
+    }
+
+    .result-card {
+        padding: 12px;
+    }
+
+    .result-thumbnail {
+        height: 100px;
+    }
+
+    .library-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .library-section h2 {
+        font-size: 20px;
+    }
+
+    .library-category h3 {
+        font-size: 16px;
+    }
+
+    .player-bar {
+        height: auto;
+        left: 0;
+        padding: 16px;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .now-playing {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .player-controls {
+        width: 100%;
+    }
+
+    .control-buttons {
+        gap: 24px;
+    }
+
+    .progress-bar {
+        max-width: none;
+    }
+
+    .volume-controls {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .playlist-song-item {
+        padding: 12px;
+        gap: 12px;
+    }
+
+    .playlist-song-thumbnail {
+        width: 40px;
+        height: 40px;
+    }
+
+    .notification-container {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+
+    .notification {
+        min-width: auto;
+        padding: 12px;
+    }
+}
+
+@media (max-width: var(--small-mobile-breakpoint)) {
+    .content-area {
+        padding: 12px;
+    }
+
+    .welcome-title {
+        font-size: 20px;
+    }
+
+    .search-results {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .result-card {
+        padding: 8px;
+    }
+
+    .result-thumbnail {
+        height: 80px;
+    }
+
+    .control-buttons {
+        gap: 16px;
+    }
+
+    .control-button {
+        font-size: 20px;
+        padding: 6px;
+    }
+
+    .play-button {
+        font-size: 28px;
+    }
+
+    .now-playing-thumbnail {
+        width: 48px;
+        height: 48px;
+    }
+
+    .now-playing-title {
+        font-size: 12px;
+    }
+
+    .now-playing-artist {
+        font-size: 10px;
+    }
+}
+
+/* Ensure proper touch targets on mobile */
+@media (max-width: var(--mobile-breakpoint)) {
+
+    .nav-item,
+    .control-button,
+    .library-item,
+    .playlist-item,
+    .playlist-song-item {
+        min-height: 44px;
+    }
+
+    .search-input {
+        min-height: 44px;
+    }
+
+    /* Improve touch scrolling */
+    .content-area {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Prevent zoom on input focus */
+    .search-input {
+        font-size: 16px;
+    }
+
+    /* Better touch feedback */
+    .result-card:active,
+    .library-item:active,
+    .playlist-item:active,
+    .playlist-song-item:active {
+        transform: scale(0.98);
+        transition: transform 0.1s;
+    }
+
+    /* Improve button touch targets */
+    .control-button {
+        min-width: 44px;
+        min-height: 44px;
+    }
+}
+
+/* Additional mobile optimizations */
+@media (max-width: var(--small-mobile-breakpoint)) {
+
+    /* Reduce padding for very small screens */
+    .content-area {
+        padding: 8px;
+    }
+
+    .header {
+        padding: 12px 16px;
+    }
+
+    /* Stack player controls vertically on very small screens */
+    .player-bar {
+        padding: 12px;
+    }
+
+    .control-buttons {
+        gap: 12px;
+    }
+
+    /* Make search results single column on very small screens */
+    .search-results {
+        grid-template-columns: 1fr;
+    }
+
+    /* Reduce font sizes for better fit */
+    .welcome-title {
+        font-size: 18px;
+    }
+
+    .welcome-subtitle {
+        font-size: 12px;
+    }
+
+    /* Optimize library grid for very small screens */
+    .library-grid {
+        gap: 12px;
+    }
+
+    /* Make library items more compact */
+    .library-item {
+        padding: 6px 8px;
+    }
+
+    .library-item-thumbnail {
+        width: 32px;
+        height: 32px;
+    }
+
+    /* Optimize playlist items */
+    .playlist-song-item {
+        padding: 8px;
+        gap: 8px;
+    }
+
+    .playlist-song-thumbnail {
+        width: 32px;
+        height: 32px;
+    }
+
+    /* Hide some elements on very small screens */
+    .volume-controls {
+        display: none;
+    }
+
+    /* Make notifications more compact */
+    .notification {
+        padding: 8px;
+        min-width: auto;
+    }
+
+    .notification-title {
+        font-size: 12px;
+    }
+
+    .notification-message {
+        font-size: 10px;
+    }
+}
+
+/* Landscape orientation optimizations for mobile */
+@media (max-width: var(--mobile-breakpoint)) and (orientation: landscape) {
+    .sidebar {
+        height: 60px;
+        overflow: hidden;
+    }
+
+    .sidebar .nav-section {
+        display: none;
+    }
+
+    .sidebar .logo {
+        padding: 10px 24px;
+        font-size: 18px;
+        margin-bottom: 0;
+    }
+
+    .main-content {
+        padding-bottom: 80px;
+    }
+
+    .player-bar {
+        height: 60px;
+        padding: 8px 16px;
+        flex-direction: row;
+        gap: 16px;
+    }
+
+    .now-playing {
+        width: 200px;
+    }
+
+    .control-buttons {
+        gap: 16px;
+    }
+}
