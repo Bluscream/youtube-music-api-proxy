@@ -663,7 +663,7 @@ function displayLibraryContent(libraryData) {
     if (libraryData.albums && libraryData.albums.length > 0) {
         albumsSection.style.display = 'block';
         albumsContainer.innerHTML = libraryData.albums.slice(0, 10).map(album => {
-            const title = album.title || 'Unknown Album';
+            const title = album.name || album.title || 'Unknown Album';
             const artist = album.artist || '';
             const safeTitle = title.replace(/'/g, "\\'");
 
