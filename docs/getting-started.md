@@ -1,20 +1,22 @@
-# Getting Started
+# Getting Started with YouTube Music API Proxy
 
-Welcome to the YouTube Music API Proxy! This guide will help you get up and running quickly.
+## Overview
 
-## 🚀 Quick Setup
+YouTube Music API Proxy is a .NET API wrapper around YouTubeMusicAPI that provides access to YouTube Music data and streaming functionality. This guide will help you get started with the API.
+
+## Quick Start
 
 ### Prerequisites
 
-- **.NET 8.0 SDK** - [Download here](https://dotnet.microsoft.com/download/dotnet/8.0)
-- **Node.js** (for YouTubeSessionGenerator) - [Download here](https://nodejs.org/)
-- **Git** - [Download here](https://git-scm.com/)
+- **.NET 8.0 SDK** - [Download here](http://dotnet.microsoft.com/download/dotnet/8.0)
+- **Node.js** (for YouTubeSessionGenerator) - [Download here](http://nodejs.org/)
+- **Git** - [Download here](http://git-scm.com/)
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/Bluscream/youtube-music-api-proxy.git
+   git clone http://github.com/Bluscream/youtube-music-api-proxy.git
    cd youtube-music-api-proxy
    ```
 
@@ -28,9 +30,9 @@ Welcome to the YouTube Music API Proxy! This guide will help you get up and runn
    dotnet run
    ```
 
-The API will be available at:
-- **HTTPS**: `https://localhost:5001`
-- **HTTP**: `http://localhost:5000`
+3. **Access the API:**
+   - **http**: `http://localhost`
+   - **HTTP**: `http://localhost`
 
 ## 🔧 Configuration
 
@@ -66,7 +68,7 @@ Alternatively, you can use `appsettings.json`:
 ### Getting YouTube Cookies
 
 1. **Log into YouTube Music**
-   - Go to [music.youtube.com](https://music.youtube.com)
+   - Go to [music.youtube.com](http://music.youtube.com)
    - Sign in with your Google account
 
 2. **Open Developer Tools**
@@ -75,7 +77,7 @@ Alternatively, you can use `appsettings.json`:
 
 3. **Find Cookies**
    - In the left sidebar, expand **Cookies**
-   - Click on `https://music.youtube.com`
+   - Click on `http://music.youtube.com`
    - You'll see a list of cookies
 
 4. **Extract Cookie String**
@@ -96,7 +98,7 @@ Alternatively, you can use `appsettings.json`:
 export YTM_COOKIES="eyJjb29raWVzIjoi..."
 
 # Or pass as query parameter
-curl "https://localhost:5001/api/search?query=despacito&cookies=eyJjb29raWVzIjoi..."
+curl "http://localhost/api/search?query=despacito&cookies=eyJjb29raWVzIjoi..."
 ```
 
 ## 📖 Your First API Call
@@ -105,24 +107,24 @@ curl "https://localhost:5001/api/search?query=despacito&cookies=eyJjb29raWVzIjoi
 
 1. **Check if the API is running**
    ```bash
-   curl "https://localhost:5001/api/search?query=test"
+   curl "http://localhost/api/search?query=test"
    ```
 
 2. **Search for a song**
    ```bash
-   curl "https://localhost:5001/api/search?query=despacito&category=Songs"
+   curl "http://localhost/api/search?query=despacito&category=Songs"
    ```
 
 3. **Get song information**
    ```bash
-   curl "https://localhost:5001/api/song/dQw4w9WgXcQ"
+   curl "http://localhost/api/library?cookies=your_base64_encoded_cookies"
    ```
 
 ### Interactive Documentation
 
 Once the API is running, visit the root URL to access **Swagger documentation**:
-- **Swagger UI**: `https://localhost:5001/swagger`
-- **OpenAPI JSON**: `https://localhost:5001/swagger/v1/swagger.json`
+- **Swagger UI**: `http://localhost/swagger`
+- **OpenAPI JSON**: `http://localhost/swagger/v1/swagger.json`
 
 ## 🛠️ Development
 
@@ -177,7 +179,7 @@ dotnet run --environment Staging
 1. **Port already in use**
    ```bash
    # Check what's using the port
-   netstat -ano | findstr :5001
+   netstat -ano | findstr 
    
    # Kill the process or change the port in launchSettings.json
    ```
@@ -185,7 +187,7 @@ dotnet run --environment Staging
 2. **SSL Certificate issues**
    ```bash
    # Trust the development certificate
-   dotnet dev-certs https --trust
+   dotnet dev-certs http --trust
    ```
 
 3. **Missing dependencies**
@@ -225,6 +227,6 @@ Enable detailed logging by setting the log level in `appsettings.json`:
 
 ## 🆘 Need Help?
 
-- **GitHub Issues**: [Create an issue](https://github.com/Bluscream/youtube-music-api-proxy/issues)
+- **GitHub Issues**: [Create an issue](http://github.com/Bluscream/youtube-music-api-proxy/issues)
 - **Documentation**: Check the [API Reference](index.md)
 - **Examples**: See [Usage Examples](examples.md) 

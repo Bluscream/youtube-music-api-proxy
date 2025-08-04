@@ -2,6 +2,82 @@ let currentAudio = null;
 let isPlaying = false;
 let currentSongId = null;
 let playlists = [];
+let currentPlaylist = null;
+let currentPlaylistSongs = [];
+let currentSongIndex = -1;
+let autoPlayEnabled = true;
+
+// Notification System
+let notificationCounter = 0;
+
+function showNotification(type, title, message, duration = 5000) {
+    const container = document.getElementById('notificationContainer');
+    const notificationId = `notification-${++notificationCounter}`;
+
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.id = notificationId;
+
+    const icons = {
+        error: '❌',
+        success: '✅',
+        warning: '⚠️',
+        info: 'ℹ️'
+    };
+
+    notification.innerHTML = `
+        <div class="notification-icon">${icons[type] || icons.info}</div>
+        <div class="notification-content">
+            <div class="notification-title">${title}</div>
+            <div class="notification-message">${message}</div>
+        </div>
+        <button class="notification-close" onclick="removeNotification('${notificationId}')">×</button>
+    `;
+
+    container.appendChild(notification);
+
+    // Trigger animation
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 10);
+
+    // Auto-remove after duration
+    if (duration > 0) {
+        setTimeout(() => {
+            removeNotification(notificationId);
+        }, duration);
+    }
+
+    return notificationId;
+}
+
+function removeNotification(notificationId) {
+    const notification = document.getElementById(notificationId);
+    if (notification) {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }
+}
+
+function showErrorNotification(message) {
+    return showNotification('error', 'Error', message, 8000);
+}
+
+function showSuccessNotification(message) {
+    return showNotification('success', 'Success', message, 4000);
+}
+
+function showWarningNotification(message) {
+    return showNotification('warning', 'Warning', message, 6000);
+}
+
+function showInfoNotification(message) {
+    return showNotification('info', 'Info', message, 5000);
+}
 
 // Get all query parameters from the current URL
 function getQueryParams() {
@@ -74,10 +150,13 @@ function displaySearchResults(results) {
         const safeTitle = title.replace(/'/g, "\\'");
         const safeArtist = artist.replace(/'/g, "\\'");
 
+        const thumbnail = result.thumbnails && result.thumbnails.length > 0 ? result.thumbnails[0].url : (result.thumbnail || '');
+        const safeThumbnail = thumbnail.replace(/'/g, "\\'");
+
         return `
-            <div class="result-card" ${isPlayable ? `onclick="playSong('${songId}', '${safeTitle}', '${safeArtist}')"` : ''}>
+            <div class="result-card" ${isPlayable ? `onclick="playSong('${songId}', '${safeTitle}', '${safeArtist}', '${safeThumbnail}', null, -1)"` : ''}>
                 <div class="result-thumbnail">
-                    ${result.thumbnail ? `<img src="${result.thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
+                    ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
                 </div>
                 <div class="result-title">${title}</div>
                 <div class="result-artist">${artist}</div>
@@ -87,17 +166,46 @@ function displaySearchResults(results) {
     }).join('');
 }
 
-async function playSong(songId, title, artist) {
+function highlightCurrentSong() {
+    // Remove playing class from all playlist items
+    document.querySelectorAll('.playlist-song-item').forEach(item => {
+        item.classList.remove('playing');
+    });
+
+    // Add playing class to current song
+    if (currentSongIndex >= 0 && currentPlaylistSongs.length > 0) {
+        const currentSongElement = document.querySelector(`.playlist-song-item:nth-child(${currentSongIndex + 1})`);
+        if (currentSongElement) {
+            currentSongElement.classList.add('playing');
+        }
+    }
+}
+
+async function playSong(songId, title, artist, thumbnail = null, playlistId = null, songIndex = -1) {
     if (currentAudio) {
         currentAudio.pause();
         currentAudio = null;
     }
 
     currentSongId = songId;
+    currentSongIndex = songIndex;
     document.getElementById('nowPlayingTitle').textContent = title;
     document.getElementById('nowPlayingArtist').textContent = artist;
     document.getElementById('playButton').textContent = '⏸';
     isPlaying = true;
+
+    // Highlight current song in playlist
+    if (playlistId && songIndex >= 0) {
+        highlightCurrentSong();
+    }
+
+    // Set thumbnail if provided
+    const thumbnailElement = document.getElementById('nowPlayingThumbnail');
+    if (thumbnail && thumbnail.trim() !== '') {
+        thumbnailElement.innerHTML = `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">`;
+    } else {
+        thumbnailElement.innerHTML = '🎵';
+    }
 
     try {
         const queryParams = getQueryParams();
@@ -105,8 +213,32 @@ async function playSong(songId, title, artist) {
         const audioUrl = `/api/stream/${songId}?${queryString}`;
 
         const audio = new Audio(audioUrl);
+        audio.volume = currentVolume; // Set initial volume
+
+        // Add error handling for audio loading
+        audio.addEventListener('error', (e) => {
+            console.error('Audio error:', e);
+            isPlaying = false;
+            document.getElementById('playButton').textContent = '▶';
+            showErrorNotification(`Failed to play "${title}" by ${artist}. The song may be unavailable or restricted.`);
+        });
+
+        audio.addEventListener('abort', () => {
+            console.log('Audio loading aborted');
+            isPlaying = false;
+            document.getElementById('playButton').textContent = '▶';
+            showWarningNotification(`Playback of "${title}" was interrupted.`);
+        });
+
         audio.addEventListener('loadeddata', () => {
-            audio.play();
+            audio.play().catch(error => {
+                console.error('Play error:', error);
+                isPlaying = false;
+                document.getElementById('playButton').textContent = '▶';
+                showErrorNotification(`Failed to start playback of "${title}". Please try again.`);
+            }).then(() => {
+                showSuccessNotification(`Now playing: "${title}" by ${artist}`);
+            });
         });
 
         audio.addEventListener('timeupdate', () => {
@@ -117,11 +249,49 @@ async function playSong(songId, title, artist) {
         audio.addEventListener('ended', () => {
             isPlaying = false;
             document.getElementById('playButton').textContent = '▶';
+
+            // Auto-play next song if enabled and we're in a playlist
+            if (autoPlayEnabled && currentPlaylist && currentPlaylistSongs.length > 0) {
+                playNextSong();
+            } else {
+                showInfoNotification('Song finished playing');
+            }
         });
 
         currentAudio = audio;
     } catch (error) {
-        showError('Failed to play song');
+        console.error('PlaySong error:', error);
+        isPlaying = false;
+        document.getElementById('playButton').textContent = '▶';
+        showErrorNotification(`Failed to load "${title}" by ${artist}. Please check your connection and try again.`);
+    }
+}
+
+function playNextSong() {
+    if (currentPlaylistSongs.length === 0 || currentSongIndex === -1) return;
+
+    const nextIndex = currentSongIndex + 1;
+    if (nextIndex < currentPlaylistSongs.length) {
+        const nextSong = currentPlaylistSongs[nextIndex];
+        const title = nextSong.name || nextSong.title || 'Unknown Title';
+        const artist = nextSong.artists && nextSong.artists.length > 0 ? nextSong.artists[0].name : '';
+        const thumbnail = nextSong.thumbnails && nextSong.thumbnails.length > 0 ? nextSong.thumbnails[0].url : '';
+
+        playSong(nextSong.id || '', title, artist, thumbnail, currentPlaylist, nextIndex);
+    }
+}
+
+function playPreviousSong() {
+    if (currentPlaylistSongs.length === 0 || currentSongIndex === -1) return;
+
+    const prevIndex = currentSongIndex - 1;
+    if (prevIndex >= 0) {
+        const prevSong = currentPlaylistSongs[prevIndex];
+        const title = prevSong.name || prevSong.title || 'Unknown Title';
+        const artist = prevSong.artists && prevSong.artists.length > 0 ? prevSong.artists[0].name : '';
+        const thumbnail = prevSong.thumbnails && prevSong.thumbnails.length > 0 ? prevSong.thumbnails[0].url : '';
+
+        playSong(prevSong.id || '', title, artist, thumbnail, currentPlaylist, prevIndex);
     }
 }
 
@@ -148,13 +318,78 @@ function seek(event) {
     }
 }
 
+let isDraggingVolume = false;
+let currentVolume = 0.5;
+
 function setVolume(event) {
     if (currentAudio) {
         const rect = event.target.getBoundingClientRect();
         const clickX = event.clientX - rect.left;
-        const volume = clickX / rect.width;
-        currentAudio.volume = Math.max(0, Math.min(1, volume));
+        const volume = Math.max(0, Math.min(1, clickX / rect.width));
+        currentAudio.volume = volume;
+        currentVolume = volume;
+        updateVolumeDisplay();
+
+        // Show volume notification for significant changes
+        if (volume === 0) {
+            showInfoNotification('Volume muted');
+        } else if (volume > 0.8) {
+            showWarningNotification('Volume set to high level');
+        }
     }
+}
+
+function updateVolumeDisplay() {
+    const volumeFill = document.getElementById('volumeFill');
+    const volumeThumb = document.getElementById('volumeThumb');
+    const percentage = currentVolume * 100;
+
+    if (volumeFill) volumeFill.style.width = percentage + '%';
+    if (volumeThumb) volumeThumb.style.left = percentage + '%';
+}
+
+function initVolumeSlider() {
+    const volumeSlider = document.getElementById('volumeSlider');
+    const volumeThumb = document.getElementById('volumeThumb');
+
+    if (!volumeSlider || !volumeThumb) return;
+
+    // Set initial volume
+    updateVolumeDisplay();
+
+    // Mouse events for dragging
+    volumeThumb.addEventListener('mousedown', (e) => {
+        isDraggingVolume = true;
+        e.preventDefault();
+    });
+
+    volumeSlider.addEventListener('mousedown', (e) => {
+        isDraggingVolume = true;
+        setVolume(e);
+    });
+
+    // Add click handler for volume slider
+    volumeSlider.addEventListener('click', (e) => {
+        setVolume(e);
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (isDraggingVolume) {
+            const rect = volumeSlider.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const volume = Math.max(0, Math.min(1, clickX / rect.width));
+
+            if (currentAudio) {
+                currentAudio.volume = volume;
+            }
+            currentVolume = volume;
+            updateVolumeDisplay();
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        isDraggingVolume = false;
+    });
 }
 
 function showLoading() {
@@ -242,9 +477,14 @@ async function loadPlaylists() {
             const data = await response.json();
             playlists = data.playlists || [];
             displayPlaylistsInSidebar();
+
+            if (playlists.length > 0) {
+                showSuccessNotification(`Loaded ${playlists.length} playlist${playlists.length > 1 ? 's' : ''}`);
+            }
         }
     } catch (error) {
         console.error('Playlists error:', error);
+        showErrorNotification('Failed to load playlists');
     }
 }
 
@@ -258,9 +498,16 @@ function displayPlaylistsInSidebar() {
             const title = playlist.name || playlist.title || 'Unknown Playlist';
             const safeTitle = title.replace(/'/g, "\\'");
 
+            // Get playlist thumbnail - try different possible properties
+            const thumbnail = playlist.thumbnail ||
+                (playlist.thumbnails && playlist.thumbnails.length > 0 ? playlist.thumbnails[0].url : null) ||
+                (playlist.art && playlist.art.sources && playlist.art.sources.length > 0 ? playlist.art.sources[0].url : null);
+
             return `
                 <div class="playlist-item" onclick="loadPlaylist('${playlist.id || ''}', '${safeTitle}')">
-                    <div class="playlist-icon">📋</div>
+                    <div class="playlist-thumbnail">
+                        ${thumbnail ? `<img src="${thumbnail}" alt="${title}">` : '📋'}
+                    </div>
                     <div style="flex: 1; overflow: hidden;">
                         <div style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${title}</div>
                         <div style="font-size: 12px; color: #666;">${playlist.songCount || 0} songs</div>
@@ -299,36 +546,49 @@ function displayPlaylistContent(playlistData, playlistTitle) {
 
     welcomeSection.style.display = 'none';
     libraryContent.style.display = 'none';
-    container.style.display = 'grid';
+    container.style.display = 'block'; // Changed from 'grid' to 'block' for list layout
+
+    // Store playlist information for queue management
+    currentPlaylist = playlistData.id || playlistData.browseId || '';
+    currentPlaylistSongs = playlistData.songs || [];
 
     // Add playlist header
     container.innerHTML = `
-        <div style="grid-column: 1 / -1; margin-bottom: 20px;">
+        <div style="margin-bottom: 20px;">
             <h2 style="color: #ffffff; margin-bottom: 8px;">${playlistTitle}</h2>
             <p style="color: #b3b3b3; margin: 0;">${playlistData.songs?.length || 0} songs</p>
         </div>
     `;
 
-    // Add playlist songs
+    // Add playlist songs as a list
     if (playlistData.songs && playlistData.songs.length > 0) {
-        container.innerHTML += playlistData.songs.map(song => {
-            const title = song.title || 'Unknown Title';
-            const artist = song.artist || '';
+        container.innerHTML += `
+            <div class="playlist-songs-list">
+                ${playlistData.songs.map((song, index) => {
+            const title = song.name || song.title || 'Unknown Title';
+            const artist = song.artists && song.artists.length > 0 ? song.artists[0].name : '';
+            const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : '';
             const safeTitle = title.replace(/'/g, "\\'");
             const safeArtist = artist.replace(/'/g, "\\'");
+            const safeThumbnail = thumbnail.replace(/'/g, "\\'");
 
             return `
-                <div class="result-card" onclick="playSong('${song.id || ''}', '${safeTitle}', '${safeArtist}')">
-                    <div class="result-thumbnail">
-                        ${song.thumbnail ? `<img src="${song.thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
-                    </div>
-                    <div class="result-title">${title}</div>
-                    <div class="result-artist">${artist}</div>
-                </div>
-            `;
-        }).join('');
+                        <div class="playlist-song-item" onclick="playSong('${song.id || ''}', '${safeTitle}', '${safeArtist}', '${safeThumbnail}', '${currentPlaylist}', ${index})">
+                            <div class="playlist-song-thumbnail">
+                                ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
+                            </div>
+                            <div class="playlist-song-info">
+                                <div class="playlist-song-title">${title}</div>
+                                <div class="playlist-song-artist">${artist}</div>
+                            </div>
+                            <div class="playlist-song-number">${index + 1}</div>
+                        </div>
+                    `;
+        }).join('')}
+            </div>
+        `;
     } else {
-        container.innerHTML += '<div style="grid-column: 1 / -1; text-align: center; color: #b3b3b3;">No songs in this playlist</div>';
+        container.innerHTML += '<div style="text-align: center; color: #b3b3b3;">No songs in this playlist</div>';
     }
 }
 
@@ -345,17 +605,21 @@ function displayLibraryContent(libraryData) {
 
     // Display songs
     const songsContainer = document.getElementById('librarySongs');
+    const songsSection = songsContainer.parentElement;
     if (libraryData.songs && libraryData.songs.length > 0) {
+        songsSection.style.display = 'block';
         songsContainer.innerHTML = libraryData.songs.slice(0, 10).map(song => {
-            const title = song.title || 'Unknown Title';
-            const artist = song.artist || '';
+            const title = song.name || song.title || 'Unknown Title';
+            const artist = song.artists && song.artists.length > 0 ? song.artists[0].name : '';
+            const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : '';
             const safeTitle = title.replace(/'/g, "\\'");
             const safeArtist = artist.replace(/'/g, "\\'");
+            const safeThumbnail = thumbnail.replace(/'/g, "\\'");
 
             return `
-                <div class="library-item" onclick="playSong('${song.id || ''}', '${safeTitle}', '${safeArtist}')">
+                <div class="library-item" onclick="playSong('${song.id || ''}', '${safeTitle}', '${safeArtist}', '${safeThumbnail}', null, -1)">
                     <div class="library-item-thumbnail">
-                        ${song.thumbnail ? `<img src="${song.thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
+                        ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
                     </div>
                     <div class="library-item-info">
                         <div class="library-item-title">${title}</div>
@@ -365,12 +629,14 @@ function displayLibraryContent(libraryData) {
             `;
         }).join('');
     } else {
-        songsContainer.innerHTML = '<div style="color: #666; font-style: italic;">No songs in library</div>';
+        songsSection.style.display = 'none';
     }
 
     // Display albums
     const albumsContainer = document.getElementById('libraryAlbums');
+    const albumsSection = albumsContainer.parentElement;
     if (libraryData.albums && libraryData.albums.length > 0) {
+        albumsSection.style.display = 'block';
         albumsContainer.innerHTML = libraryData.albums.slice(0, 10).map(album => {
             const title = album.title || 'Unknown Album';
             const artist = album.artist || '';
@@ -389,12 +655,14 @@ function displayLibraryContent(libraryData) {
             `;
         }).join('');
     } else {
-        albumsContainer.innerHTML = '<div style="color: #666; font-style: italic;">No albums in library</div>';
+        albumsSection.style.display = 'none';
     }
 
     // Display artists
     const artistsContainer = document.getElementById('libraryArtists');
+    const artistsSection = artistsContainer.parentElement;
     if (libraryData.artists && libraryData.artists.length > 0) {
+        artistsSection.style.display = 'block';
         artistsContainer.innerHTML = libraryData.artists.slice(0, 10).map(artist => {
             const name = artist.name || 'Unknown Artist';
             const subscribers = artist.subscribers || '';
@@ -413,7 +681,7 @@ function displayLibraryContent(libraryData) {
             `;
         }).join('');
     } else {
-        artistsContainer.innerHTML = '<div style="color: #666; font-style: italic;">No artists in library</div>';
+        artistsSection.style.display = 'none';
     }
 }
 
@@ -475,15 +743,17 @@ function displayAlbumContent(albumData, albumTitle) {
     // Add album songs
     if (albumData.songs && albumData.songs.length > 0) {
         container.innerHTML += albumData.songs.map(song => {
-            const title = song.title || 'Unknown Title';
-            const artist = song.artist || '';
+            const title = song.name || song.title || 'Unknown Title';
+            const artist = song.artists && song.artists.length > 0 ? song.artists[0].name : '';
+            const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : '';
             const safeTitle = title.replace(/'/g, "\\'");
             const safeArtist = artist.replace(/'/g, "\\'");
+            const safeThumbnail = thumbnail.replace(/'/g, "\\'");
 
             return `
-                <div class="result-card" onclick="playSong('${song.id || ''}', '${safeTitle}', '${safeArtist}')">
+                <div class="result-card" onclick="playSong('${song.id || ''}', '${safeTitle}', '${safeArtist}', '${safeThumbnail}', null, -1)">
                     <div class="result-thumbnail">
-                        ${song.thumbnail ? `<img src="${song.thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
+                        ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
                     </div>
                     <div class="result-title">${title}</div>
                     <div class="result-artist">${artist}</div>
@@ -515,15 +785,17 @@ function displayArtistContent(artistData, artistName) {
     // Add artist songs
     if (artistData.songs && artistData.songs.length > 0) {
         container.innerHTML += artistData.songs.map(song => {
-            const title = song.title || 'Unknown Title';
-            const artist = song.artist || '';
+            const title = song.name || song.title || 'Unknown Title';
+            const artist = song.artists && song.artists.length > 0 ? song.artists[0].name : '';
+            const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : '';
             const safeTitle = title.replace(/'/g, "\\'");
             const safeArtist = artist.replace(/'/g, "\\'");
+            const safeThumbnail = thumbnail.replace(/'/g, "\\'");
 
             return `
-                <div class="result-card" onclick="playSong('${song.id || ''}', '${safeTitle}', '${safeArtist}')">
+                <div class="result-card" onclick="playSong('${song.id || ''}', '${safeTitle}', '${safeArtist}', '${safeThumbnail}', null, -1)">
                     <div class="result-thumbnail">
-                        ${song.thumbnail ? `<img src="${song.thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
+                        ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
                     </div>
                     <div class="result-title">${title}</div>
                     <div class="result-artist">${artist}</div>
@@ -535,6 +807,22 @@ function displayArtistContent(artistData, artistName) {
     }
 }
 
+function toggleAutoPlay() {
+    autoPlayEnabled = !autoPlayEnabled;
+    const autoPlayButton = document.getElementById('autoPlayButton');
+    if (autoPlayButton) {
+        autoPlayButton.textContent = autoPlayEnabled ? '🔁' : '⏸';
+        autoPlayButton.title = autoPlayEnabled ? 'Auto-play enabled' : 'Auto-play disabled';
+    }
+
+    if (autoPlayEnabled) {
+        showSuccessNotification('Auto-play enabled');
+    } else {
+        showInfoNotification('Auto-play disabled');
+    }
+}
+
 // Initialize
 loadHome();
-loadPlaylists(); 
+loadPlaylists();
+initVolumeSlider(); 

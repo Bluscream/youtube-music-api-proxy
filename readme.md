@@ -1,337 +1,252 @@
 # YouTube Music API Proxy
 
-A .NET Web API wrapper around the [YouTubeMusicAPI](https://github.com/IcySnex/YouTubeMusicAPI) library, providing RESTful endpoints for accessing YouTube Music data and streaming functionality.
+A .NET API wrapper around YouTubeMusicAPI for accessing YouTube Music data and streaming functionality.
 
 ## Features
 
-- **Search**: Search for songs, videos, albums, artists, and more on YouTube Music
-- **Song/Video Info**: Get detailed information about songs and videos including streaming URLs
-- **Streaming**: Direct audio streaming from YouTube Music
-- **Album/Artist Info**: Get detailed information about albums and artists
-- **Authentication**: Support for YouTube cookies authentication
-- **Session Generation**: Automatic generation of visitor data and proof-of-origin tokens
-- **Swagger Documentation**: Interactive API documentation
-- **Configuration**: Flexible configuration via environment variables or appsettings
+- 🔍 **Search**: Search for songs, videos, albums, artists, and playlists
+- 🎵 **Streaming**: Direct audio streaming from YouTube Music
+- 📚 **Library Access**: Access your personal music library (with authentication)
+- 🔐 **Authentication**: Support for YouTube cookies authentication
+- 🐳 **Docker Support**: Ready-to-use Docker containers
+- 📖 **API Documentation**: Built-in Swagger/OpenAPI documentation
+- 🔒 **HTTPS Support**: Self-signed certificate generation on first start
 
-## Configuration
+## Quick Start
 
-The API supports flexible configuration with the following priority order:
-1. **Query Parameters** (highest priority)
-2. **AppSettings** (appsettings.json)
-3. **Environment Variables** (lowest priority)
+### Using Docker (Recommended)
 
-### AppSettings Configuration
+```bash
+# Pull and run the latest version
+docker run -d -p 80:80 -p 443:443 --name ytm-api bluscream/youtube-music-api-proxy:latest
 
-You can configure the API using `appsettings.json`. String values are automatically decoded from base64 if they appear to be base64-encoded:
-
-```json
-{
-    "YouTubeMusic": {
-        "GeographicalLocation": "US",
-        "Cookies": "your_base64_encoded_cookies_here",
-        "VisitorData": "your_visitor_data_here",
-        "PoToken": "your_potoken_here",
-        "UserAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "TimeoutSeconds": 30,
-        "MaxRetries": 3,
-        "Debug": false
-    }
-}
+# Access the API
+curl "http://localhost:80/api/search?query=despacito"
 ```
 
-**Note:** String configuration values are automatically decoded from base64 if they contain only valid base64 characters. If decoding fails, the original value is used.
+### Local Development
 
-### Environment Variables
+```bash
+# Clone the repository
+git clone https://github.com/Bluscream/youtube-music-api-proxy.git
+cd youtube-music-api-proxy
 
-- `YTM_COOKIES`: YouTube cookies for authentication (can be base64 encoded)
-- `YTM_VISITORDATA`: Visitor data for session tailoring (can be base64 encoded)
-- `YTM_POTOKEN`: Proof of Origin Token for attestation (can be base64 encoded)
-- `YTM_GEOGRAPHICAL_LOCATION`: Geographical location (defaults to "US", can be base64 encoded)
-- `YTM_USER_AGENT`: Custom user agent string (can be base64 encoded)
-- `YTM_TIMEOUT`: Request timeout in seconds (defaults to 30)
-- `YTM_MAX_RETRIES`: Maximum retry attempts (defaults to 3)
-- `YTM_DEBUG`: Enable debug logging (true/false, defaults to false)
+# Build and run
+dotnet build
+dotnet run
 
-**Note:** String environment variables are automatically decoded from base64 if they contain only valid base64 characters. If decoding fails, the original value is used.
-
-### Query Parameters
-
-- `cookies`: YouTube cookies (alternative to appsettings/environment variable, can be base64 encoded)
-- `location`: Geographical location (alternative to appsettings/environment variable, can be base64 encoded)
-- `visitorData`: Visitor data (alternative to appsettings/environment variable, can be base64 encoded)
-- `poToken`: Proof of Origin Token (alternative to appsettings/environment variable, can be base64 encoded)
-
-**Note:** Query parameters are automatically decoded from base64 if they contain only valid base64 characters. If decoding fails, the original value is used.
+# Access the API
+curl "https://localhost:443/api/search?query=despacito"
+```
 
 ## API Endpoints
 
 ### Search
-```
-GET /api/search?query={query}&category={category}&cookies={cookies}&location={location}
-```
-
-**Parameters:**
-- `query` (required): Search query
-- `category` (optional): Search category (Songs, Videos, Albums, Artists, etc.)
-- `cookies` (optional): YouTube cookies (can be base64 encoded)
-- `location` (optional): Geographical location (can be base64 encoded)
-
-### Song/Video Information
-```
-GET /api/song/{id}?cookies={cookies}&location={location}
-```
-
-**Parameters:**
-- `id` (required): YouTube video/song ID
-- `cookies` (optional): YouTube cookies (can be base64 encoded)
-- `location` (optional): Geographical location (can be base64 encoded)
-
-**Response:** Includes song/video information plus streaming URLs
-
-### Direct Audio Streaming
-```
-GET /api/stream/{id}.m4a?cookies={cookies}&location={location}
-```
-
-**Parameters:**
-- `id` (required): YouTube video/song ID
-- `cookies` (optional): YouTube cookies (can be base64 encoded)
-- `location` (optional): Geographical location (can be base64 encoded)
-
-**Response:** Direct audio stream
-
-### Album Information
-```
-GET /api/album/{browseId}?cookies={cookies}&location={location}
-```
-
-**Parameters:**
-- `browseId` (required): Album browse ID
-- `cookies` (optional): YouTube cookies (can be base64 encoded)
-- `location` (optional): Geographical location (can be base64 encoded)
-
-### Artist Information
-```
-GET /api/artist/{browseId}?cookies={cookies}&location={location}
-```
-
-**Parameters:**
-- `browseId` (required): Artist browse ID
-- `cookies` (optional): YouTube cookies (can be base64 encoded)
-- `location` (optional): Geographical location (can be base64 encoded)
-
-### Library (Requires Authentication)
-```
-GET /api/library?cookies={cookies}&location={location}
-```
-
-**Parameters:**
-- `cookies` (required): YouTube cookies (can be base64 encoded)
-- `location` (optional): Geographical location (can be base64 encoded)
-
-**Response:** Complete library including songs, albums, artists, subscriptions, podcasts, and playlists
-
-### Library Songs (Requires Authentication)
-```
-GET /api/library/songs?cookies={cookies}&location={location}
-```
-
-**Parameters:**
-- `cookies` (required): YouTube cookies (can be base64 encoded)
-- `location` (optional): Geographical location (can be base64 encoded)
-
-### Library Albums (Requires Authentication)
-```
-GET /api/library/albums?cookies={cookies}&location={location}
-```
-
-**Parameters:**
-- `cookies` (required): YouTube cookies (can be base64 encoded)
-- `location` (optional): Geographical location (can be base64 encoded)
-
-### Library Artists (Requires Authentication)
-```
-GET /api/library/artists?cookies={cookies}&location={location}
-```
-
-**Parameters:**
-- `cookies` (required): YouTube cookies (can be base64 encoded)
-- `location` (optional): Geographical location (can be base64 encoded)
-
-### Library Subscriptions (Requires Authentication)
-```
-GET /api/library/subscriptions?cookies={cookies}&location={location}
-```
-
-**Parameters:**
-- `cookies` (required): YouTube cookies (can be base64 encoded)
-- `location` (optional): Geographical location (can be base64 encoded)
-
-### Library Podcasts (Requires Authentication)
-```
-GET /api/library/podcasts?cookies={cookies}&location={location}
-```
-
-**Parameters:**
-- `cookies` (required): YouTube cookies (can be base64 encoded)
-- `location` (optional): Geographical location (can be base64 encoded)
-
-### Library Playlists (Requires Authentication)
-```
-GET /api/library/playlists?cookies={cookies}&location={location}
-```
-
-**Parameters:**
-- `cookies` (required): YouTube cookies (can be base64 encoded)
-- `location` (optional): Geographical location (can be base64 encoded)
-
-## Setup and Running
-
-### Prerequisites
-
-- .NET 9.0 SDK
-- Node.js (required for YouTubeSessionGenerator)
-
-### Option 1: Docker (Recommended)
-
-#### Quick Start with Docker Compose
-
-1. Clone the repository
-2. Navigate to the `docker` directory
-3. Run the application:
-   ```bash
-   cd docker
-   docker-compose up --build
-   ```
-
-The API will be available at `http://localhost:8080`.
-
-#### Using Docker Images
-
 ```bash
-# Pull and run from Docker Hub
-docker run -d -p 8080:8080 --name ytm-api bluscream/youtube-music-api-proxy:latest
+# Search for songs
+curl "https://localhost:443/api/search?query=despacito&category=Songs"
 
-# Or from GitHub Container Registry
-docker run -d -p 8080:8080 --name ytm-api ghcr.io/bluscream/youtube-music-api-proxy:latest
-```
-
-### Option 2: Local Development
-
-1. Clone the repository
-2. Navigate to the project directory
-3. Restore dependencies:
-   ```bash
-   dotnet restore
-   ```
-4. Run the application:
-   ```bash
-   dotnet run
-   ```
-
-The API will be available at `https://localhost:5001` (or `http://localhost:5000`).
-
-### Docker Images
-
-The application is available as Docker images:
-
-- **Docker Hub:** `bluscream/youtube-music-api-proxy`
-- **GitHub Container Registry:** `ghcr.io/bluscream/youtube-music-api-proxy`
-
-For detailed Docker setup instructions, see the [docker/README.md](docker/README.md) file.
-
-### Swagger Documentation
-
-Once running, visit the root URL to access the interactive Swagger documentation.
-
-## Usage Examples
-
-### Search for Songs
-```bash
-curl "https://localhost:5001/api/search?query=despacito&category=Songs"
+# Search for videos
+curl "https://localhost:443/api/search?query=despacito&category=Videos"
 ```
 
 ### Get Song Information
 ```bash
-curl "https://localhost:5001/api/song/dQw4w9WgXcQ"
+curl "https://localhost:443/api/song/dQw4w9WgXcQ"
 ```
 
 ### Stream Audio
 ```bash
-curl "https://localhost:5001/api/stream/dQw4w9WgXcQ.m4a" -o audio.m4a
+curl "https://localhost:443/api/stream/dQw4w9WgXcQ" -o audio.m4a
 ```
 
-### With Authentication
+### Library Access (requires authentication)
 ```bash
-# Base64 encode your YouTube cookies
-COOKIES=$(echo "your_cookies_here" | base64)
-
-curl "https://localhost:5001/api/search?query=despacito&cookies=$COOKIES"
+curl "https://localhost:443/api/library?cookies=$COOKIES"
+curl "https://localhost:443/api/library/songs?cookies=$COOKIES"
+curl "https://localhost:443/api/library/albums?cookies=$COOKIES"
+curl "https://localhost:443/api/library/artists?cookies=$COOKIES"
+curl "https://localhost:443/api/library/subscriptions?cookies=$COOKIES"
+curl "https://localhost:443/api/library/podcasts?cookies=$COOKIES"
+curl "https://localhost:443/api/library/playlists?cookies=$COOKIES"
 ```
 
-### Get Library Content
-```bash
-# Get complete library
-curl "https://localhost:5001/api/library?cookies=$COOKIES"
+## Configuration
 
-# Get specific library sections
-curl "https://localhost:5001/api/library/songs?cookies=$COOKIES"
-curl "https://localhost:5001/api/library/albums?cookies=$COOKIES"
-curl "https://localhost:5001/api/library/artists?cookies=$COOKIES"
-curl "https://localhost:5001/api/library/subscriptions?cookies=$COOKIES"
-curl "https://localhost:5001/api/library/podcasts?cookies=$COOKIES"
-curl "https://localhost:5001/api/library/playlists?cookies=$COOKIES"
+### Environment Variables
+
+```bash
+# Set geographical location
+export YTM_GEOGRAPHICAL_LOCATION=US
+
+# Set cookies for authentication
+export YTM_COOKIES=your_base64_encoded_cookies_here
+
+# Set visitor data
+export YTM_VISITORDATA=your_visitor_data_here
+
+# Set proof of origin token
+export YTM_POTOKEN=your_proof_of_origin_token_here
+```
+
+### Configuration File
+
+```json
+{
+  "YouTubeMusic": {
+    "GeographicalLocation": "US",
+    "Cookies": null,
+    "VisitorData": null,
+    "PoToken": null,
+    "UserAgent": null,
+    "TimeoutSeconds": 30,
+    "MaxRetries": 3,
+    "Debug": false
+  }
+}
+```
+
+## Docker Deployment
+
+### Using Docker Compose
+
+```bash
+# Development
+cd docker
+docker-compose up -d
+
+# Production
+cd docker
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+### Using Docker Run
+
+```bash
+# Basic run
+docker run -d -p 80:80 -p 443:443 --name ytm-api bluscream/youtube-music-api-proxy:latest
+
+# With custom configuration
+docker run -d -p 80:80 -p 443:443 \
+  -e YTM_GEOGRAPHICAL_LOCATION=US \
+  -e YTM_COOKIES=your_cookies_here \
+  --name ytm-api bluscream/youtube-music-api-proxy:latest
 ```
 
 ## Authentication
 
-For endpoints that require authentication (like accessing premium content or avoiding rate limits), you can provide YouTube cookies:
+Most endpoints support optional authentication via YouTube cookies:
 
-1. Log into YouTube Music in your browser
-2. Extract cookies from your browser's developer tools
-3. (Optional) Base64 encode the cookie string for better security
-4. Configure using one of these methods (in order of priority):
-   - **Query Parameter**: Pass as the `cookies` parameter in API requests
-   - **AppSettings**: Add to `appsettings.json` under `YouTubeMusic.Cookies`
-   - **Environment Variable**: Set the `YTM_COOKIES` environment variable
+1. **Get your YouTube cookies:**
+   - Open YouTube Music in your browser
+   - Open Developer Tools (F12)
+   - Go to Application/Storage > Cookies
+   - Copy the cookie values
 
-**Note:** Cookies can be provided as plain text or base64 encoded. The API automatically detects and decodes base64 values.
+2. **Encode cookies:**
+   ```bash
+   echo -n "your_cookies_here" | base64
+   ```
 
-### Example Configuration Methods
+3. **Use in API calls:**
+   ```bash
+   curl "https://localhost:443/api/library?cookies=your_base64_encoded_cookies"
+   ```
 
-**Query Parameter:**
+## API Documentation
+
+Once the API is running, you can access:
+
+- **Swagger UI**: `https://localhost:443/swagger`
+- **OpenAPI JSON**: `https://localhost:443/swagger/v1/swagger.json`
+
+## Development
+
+### Prerequisites
+
+- .NET 9.0 SDK or later
+- Node.js (for YouTubeSessionGenerator)
+- Git
+
+### Building
+
 ```bash
-# Plain text cookies
-curl "https://localhost:5001/api/library?cookies=your_cookies_here"
+# Build the project
+dotnet build
 
-# Base64 encoded cookies (automatically decoded)
-curl "https://localhost:5001/api/library?cookies=your_base64_encoded_cookies"
+# Build for release
+dotnet build --configuration Release
+
+# Publish for deployment
+dotnet publish --configuration Release --output ./publish
 ```
 
-**AppSettings (appsettings.json):**
-```json
-{
-    "YouTubeMusic": {
-        "Cookies": "your_cookies_here"  // Plain text or base64 encoded
-    }
-}
-```
+### Running
 
-**Environment Variable:**
 ```bash
-# Plain text cookies
-export YTM_COOKIES="your_cookies_here"
+# Development
+dotnet run
 
-# Base64 encoded cookies (automatically decoded)
-export YTM_COOKIES="your_base64_encoded_cookies"
+# Production
+dotnet run --environment Production
+
+# Custom environment
+dotnet run --environment Staging
 ```
 
-## Dependencies
+## Troubleshooting
 
-- [YouTubeMusicAPI](https://github.com/IcySnex/YouTubeMusicAPI) - Core YouTube Music API functionality
-- [YouTubeSessionGenerator](https://github.com/IcySnex/YouTubeSessionGenerator) - Session generation for authentication
-- [Swashbuckle.AspNetCore](https://github.com/domaindrivendev/Swashbuckle.AspNetCore) - Swagger documentation
+### Common Issues
+
+1. **Port already in use:**
+   ```bash
+   # Check what's using the port
+   netstat -ano | findstr :443
+   
+   # Kill the process
+   taskkill /PID <process_id> /F
+   ```
+
+2. **Certificate issues:**
+   - The application creates a self-signed certificate on first start
+   - You may need to accept the certificate in your browser
+   - For production, replace with a proper SSL certificate
+
+3. **Authentication errors:**
+   - Ensure cookies are properly encoded
+   - Check that cookies are not expired
+   - Verify the cookie format
+
+### Logs
+
+```bash
+# Docker logs
+docker logs ytm-api
+
+# Application logs
+tail -f logs/app.log
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-This project is licensed under the same license as the underlying YouTubeMusicAPI library.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+- **GitHub Issues**: [Create an issue](https://github.com/Bluscream/youtube-music-api-proxy/issues)
+- **Documentation**: [Read the docs](https://github.com/Bluscream/youtube-music-api-proxy)
+- **Examples**: [View examples](docs/examples.md)
+
+## Acknowledgments
+
+- [YouTubeMusicAPI](https://github.com/kuylar/YouTubeMusicAPI) - The underlying library
+- [.NET](https://dotnet.microsoft.com/) - The framework
+- [Docker](https://www.docker.com/) - Containerization platform

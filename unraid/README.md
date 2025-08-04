@@ -1,126 +1,154 @@
-# YouTube Music API Proxy for UNRAID
+# YouTube Music API Proxy - UNRAID Template
 
-This template allows you to easily deploy the YouTube Music API Proxy on your UNRAID server using Community Applications.
+This is the UNRAID template for the YouTube Music API Proxy, a .NET API wrapper around YouTubeMusicAPI for accessing YouTube Music data and streaming functionality.
 
 ## Features
 
-- 🎵 **YouTube Music Integration** - Access YouTube Music data through RESTful API
-- 🔍 **Search Functionality** - Search for songs, videos, albums, and playlists
-- 📱 **Video Information** - Get detailed video metadata and streaming URLs
-- 🐳 **Docker Container** - Lightweight and efficient deployment
-- 🔧 **Configurable** - Customizable geographical location and authentication
-- 📊 **Health Monitoring** - Built-in health checks and logging
+- 🔍 **Search**: Search for songs, videos, albums, artists, and playlists
+- 🎵 **Streaming**: Direct audio streaming from YouTube Music
+- 📚 **Library Access**: Access your personal music library (with authentication)
+- 🔐 **Authentication**: Support for YouTube cookies authentication
+- 📖 **API Documentation**: Built-in Swagger/OpenAPI documentation
+- 🔒 **HTTPS Support**: Self-signed certificate generation on first start
 
 ## Installation
 
-### Method 1: Community Applications (Recommended)
+1. **Add the template to UNRAID:**
+   - Go to the **Apps** tab in UNRAID
+   - Click **Add Another App**
+   - Select **My Apps** tab
+   - Search for "YouTube Music API Proxy"
+   - Click **Install**
 
-1. **Install Community Applications** (if not already installed)
-   - Go to Apps → Install Community Applications
-   - Follow the installation instructions
+2. **Configure the container:**
+   - **HTTP Port**: The port for HTTP access (default: 80)
+   - **HTTPS Port**: The port for HTTPS access (default: 443)
+   - **Geographical Location**: Your location for YouTube Music (default: US)
+   - **Cookies**: Base64 encoded YouTube cookies for authentication (optional)
+   - **Visitor Data**: Visitor data for session tailoring (optional)
+   - **Proof of Origin Token**: Proof of Origin Token for attestation (optional)
+   - **User Agent**: Custom user agent string (optional)
+   - **Timeout**: Request timeout in seconds (default: 30)
+   - **Max Retries**: Maximum retry attempts (default: 3)
+   - **Debug**: Enable debug logging (default: false)
 
-2. **Search and Install**
-   - Go to Apps → Search for "YouTube Music API Proxy"
-   - Click "Install" on the YouTube Music API Proxy template
-   - Configure the settings as needed
-   - Click "Apply"
-
-### Method 2: Manual Template Installation
-
-1. **Download Template**
-   - Download the `template.xml` file from this repository
-   - Place it in `/boot/config/plugins/dockerMan/templates-user/`
-
-2. **Install Container**
-   - Go to Docker → Add Container
-   - Select "YouTube Music API Proxy" from the template dropdown
-   - Configure settings and click "Apply"
-
-## Configuration
-
-### Required Settings
-
-- **WebUI Port**: The port for accessing the web interface (default: 8080)
-- **Geographical Location**: Your location for YouTube Music (e.g., US, UK, DE)
-
-### Optional Settings
-
-- **YouTube Cookies**: Base64 encoded cookies for authentication
-- **Visitor Data**: Session tailoring data
-- **Proof of Origin Token**: Attestation token
-- **AppData Config**: Configuration directory path
-- **Logs**: Log directory path
-
-### Environment Variables
-
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `YTM_GEOGRAPHICAL_LOCATION` | Geographical location | US | No |
-| `YTM_COOKIES` | Base64 encoded cookies | - | No |
-| `YTM_VISITORDATA` | Visitor data | - | No |
-| `YTM_POTOKEN` | Proof of origin token | - | No |
+3. **Start the container:**
+   - Click **Apply** to start the container
 
 ## Usage
 
-### Web Interface
+### Access the API
 
-Once installed, access the web interface at:
-```
-http://[UNRAID-IP]:[PORT]/swagger
-```
+Once the container is running, you can access the API at:
+
+- **HTTP**: `http://[UNRAID-IP]:80/`
+- **HTTPS**: `https://[UNRAID-IP]:443/`
 
 ### API Endpoints
 
-- **Search**: `GET /api/search?query=despacito`
-- **Video Info**: `GET /api/video/{videoId}`
-- **Health Check**: `GET /`
-
-### Example API Calls
-
+#### Search
 ```bash
-# Search for a song
-curl "http://[UNRAID-IP]:8080/api/search?query=despacito"
+# Search for songs
+curl "http://[UNRAID-IP]:80/api/search?query=despacito&category=Songs"
 
-# Get video information
-curl "http://[UNRAID-IP]:8080/api/video/L9OTnZI9gYo"
-
-# Health check
-curl "http://[UNRAID-IP]:8080/"
+# Search for videos
+curl "http://[UNRAID-IP]:80/api/search?query=despacito&category=Videos"
 ```
+
+#### Get Song Information
+```bash
+curl "http://[UNRAID-IP]:80/api/song/dQw4w9WgXcQ"
+```
+
+#### Stream Audio
+```bash
+curl "http://[UNRAID-IP]:80/api/stream/dQw4w9WgXcQ" -o audio.m4a
+```
+
+#### Library Access (requires authentication)
+```bash
+curl "http://[UNRAID-IP]:80/api/library?cookies=$COOKIES"
+curl "http://[UNRAID-IP]:80/api/library/songs?cookies=$COOKIES"
+curl "http://[UNRAID-IP]:80/api/library/albums?cookies=$COOKIES"
+curl "http://[UNRAID-IP]:80/api/library/artists?cookies=$COOKIES"
+curl "http://[UNRAID-IP]:80/api/library/subscriptions?cookies=$COOKIES"
+curl "http://[UNRAID-IP]:80/api/library/podcasts?cookies=$COOKIES"
+curl "http://[UNRAID-IP]:80/api/library/playlists?cookies=$COOKIES"
+```
+
+### API Documentation
+
+Once the container is running, you can access:
+
+- **Swagger UI**: `http://[UNRAID-IP]:80/swagger`
+- **OpenAPI JSON**: `http://[UNRAID-IP]:80/swagger/v1/swagger.json`
+
+## Authentication
+
+Most endpoints support optional authentication via YouTube cookies:
+
+1. **Get your YouTube cookies:**
+   - Open YouTube Music in your browser
+   - Open Developer Tools (F12)
+   - Go to Application/Storage > Cookies
+   - Copy the cookie values
+
+2. **Encode cookies:**
+   ```bash
+   echo -n "your_cookies_here" | base64
+   ```
+
+3. **Add to container configuration:**
+   - Set the **Cookies** variable in the container configuration
+   - Restart the container
 
 ## Troubleshooting
 
-### Container Won't Start
+### Common Issues
 
-1. **Check Logs**: Go to Docker → YouTube Music API Proxy → Logs
-2. **Port Conflict**: Ensure port 8080 (or your chosen port) is not in use
-3. **Permissions**: Check that the appdata directory has proper permissions
+1. **Port Conflict**: Ensure ports 80 and 443 (or your chosen ports) are not in use
+2. **Container won't start**: Check the container logs in UNRAID
+3. **Certificate issues**: The application creates a self-signed certificate on first start
+4. **Authentication errors**: Ensure cookies are properly encoded and not expired
 
-### API Not Responding
+### Health Check
 
-1. **Health Check**: Visit `http://[UNRAID-IP]:8080/` to verify the service is running
-2. **Network**: Ensure the container has network access
-3. **Configuration**: Verify environment variables are set correctly
+1. **Check if the service is running:**
+   - Visit `http://[UNRAID-IP]:80/` to verify the service is running
+   - Check the container status in UNRAID
 
-### Authentication Issues
+2. **View container logs:**
+   - Go to the **Docker** tab in UNRAID
+   - Click on the YouTube Music API Proxy container
+   - Click **Logs** to view container logs
 
-1. **Cookies**: Ensure YouTube cookies are properly base64 encoded
-2. **Location**: Set the correct geographical location
-3. **Session**: Some features may require valid YouTube Music session
+## Configuration
+
+### Environment Variables
+
+The container supports the following environment variables:
+
+- `YTM_GEOGRAPHICAL_LOCATION`: Geographical location for YouTube Music
+- `YTM_COOKIES`: Base64 encoded YouTube cookies for authentication
+- `YTM_VISITORDATA`: Visitor data for session tailoring
+- `YTM_POTOKEN`: Proof of Origin Token for attestation
+- `YTM_USER_AGENT`: Custom user agent string
+- `YTM_TIMEOUT`: Request timeout in seconds
+- `YTM_MAX_RETRIES`: Maximum retry attempts
+- `YTM_DEBUG`: Enable debug logging
+
+### SSL/TLS
+
+The application automatically creates a self-signed certificate on first start. For production use, you should replace it with a proper SSL certificate.
 
 ## Support
 
-- **GitHub**: https://github.com/Bluscream/youtube-music-api-proxy-1
-- **Issues**: https://github.com/Bluscream/youtube-music-api-proxy-1/issues
-- **Documentation**: https://github.com/Bluscream/youtube-music-api-proxy-1/blob/main/readme.md
+For issues and questions:
 
-## Version Information
-
-- **Container**: bluscream1/youtube-music-api-proxy-1:latest
-- **Framework**: .NET 9.0
-- **Base Image**: mcr.microsoft.com/dotnet/aspnet:9.0
-- **Architecture**: Linux (amd64, arm64)
+- **GitHub Issues**: [Create an issue](https://github.com/Bluscream/youtube-music-api-proxy/issues)
+- **Documentation**: [Read the docs](https://github.com/Bluscream/youtube-music-api-proxy)
+- **Examples**: [View examples](https://github.com/Bluscream/youtube-music-api-proxy/blob/main/docs/examples.md)
 
 ## License
 
-This project is open source. See the main repository for license information. 
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/Bluscream/youtube-music-api-proxy/blob/main/LICENSE) file for details. 
