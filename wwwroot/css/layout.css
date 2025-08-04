@@ -122,6 +122,11 @@
     left: 20px;
 }
 
+/* Alternative positioning for when sidebar is collapsed */
+.sidebar.collapsed+.main-content .sidebar-toggle {
+    left: 20px;
+}
+
 
 
 .header {

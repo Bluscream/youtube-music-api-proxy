@@ -1,5 +1,5 @@
 :root {
-    --mobile-breakpoint: 768px;
+    --sidebar-collapse-breakpoint: 800px;
 }
 
 * {

@@ -1,5 +1,5 @@
-/* Responsive Design - Mobile Breakpoints */
-@media (max-width: var(--mobile-breakpoint)) {
+/* Responsive Design - Sidebar Collapse Breakpoints */
+@media (max-width: var(--sidebar-collapse-breakpoint)) {
     .sidebar {
         width: 200px;
     }
@@ -29,7 +29,7 @@
 }
 
 /* Desktop sidebar toggle button */
-@media (min-width: calc(var(--mobile-breakpoint) + 1px)) {
+@media (min-width: calc(var(--sidebar-collapse-breakpoint) + 1px)) {
     .sidebar-toggle {
         display: flex !important;
         left: 20px;
@@ -37,7 +37,7 @@
 }
 
 /* Mobile Responsive Design */
-@media (max-width: var(--mobile-breakpoint)) {
+@media (max-width: var(--sidebar-collapse-breakpoint)) {
     body {
         flex-direction: column;
     }
@@ -293,7 +293,7 @@
 
 
 /* Ensure proper touch targets on mobile */
-@media (max-width: var(--mobile-breakpoint)) {
+@media (max-width: var(--sidebar-collapse-breakpoint)) {
 
     .nav-item,
     .control-button,
@@ -347,7 +347,7 @@
 
 
 /* Landscape orientation optimizations for mobile */
-@media (max-width: var(--mobile-breakpoint)) and (orientation: landscape) {
+@media (max-width: var(--sidebar-collapse-breakpoint)) and (orientation: landscape) {
     .sidebar {
         height: 60px;
         overflow: hidden;

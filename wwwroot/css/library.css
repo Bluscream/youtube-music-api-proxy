@@ -96,6 +96,16 @@
     color: #ffffff;
 }
 
+.playlist-item.active {
+    background-color: #1db954;
+    color: #000000;
+}
+
+.playlist-item.active:hover {
+    background-color: #1ed760;
+    color: #000000;
+}
+
 .playlist-icon {
     width: 24px;
     height: 24px;

@@ -92,8 +92,10 @@
                 <button class="control-button" onclick="playPreviousSong()" title="Previous song">⏮</button>
                 <button class="control-button play-button" id="playButton" onclick="togglePlay()">▶</button>
                 <button class="control-button" onclick="playNextSong()" title="Next song">⏭</button>
-                <button class="control-button" id="autoPlayButton" onclick="toggleAutoPlay()"
-                    title="Auto-play enabled">🔁</button>
+                <button class="control-button" id="repeatButton" onclick="toggleRepeatMode()"
+                    title="No repeat">🔁</button>
+                <button class="control-button" id="shuffleButton" onclick="toggleShuffle()"
+                    title="Shuffle off">🔀</button>
             </div>
             <div class="progress-bar" onclick="seek(event)">
                 <div class="progress-fill" id="progressFill"></div>
