@@ -7,6 +7,9 @@ let currentPlaylistSongs = [];
 let currentSongIndex = -1;
 let autoPlayEnabled = true;
 
+// Default title for the application
+const DEFAULT_TITLE = 'YouTube Music';
+
 // Notification System
 let notificationCounter = 0;
 
@@ -194,6 +197,9 @@ async function playSong(songId, title, artist, thumbnail = null, playlistId = nu
     document.getElementById('playButton').textContent = '⏸';
     isPlaying = true;
 
+    // Update document title with current song
+    document.title = `${title} by ${artist}`;
+
     // Highlight current song in playlist
     if (playlistId && songIndex >= 0) {
         highlightCurrentSong();
@@ -220,6 +226,8 @@ async function playSong(songId, title, artist, thumbnail = null, playlistId = nu
             console.error('Audio error:', e);
             isPlaying = false;
             document.getElementById('playButton').textContent = '▶';
+            // Reset document title on error
+            document.title = DEFAULT_TITLE;
             showErrorNotification(`Failed to play "${title}" by ${artist}. The song may be unavailable or restricted.`);
         });
 
@@ -227,6 +235,8 @@ async function playSong(songId, title, artist, thumbnail = null, playlistId = nu
             console.log('Audio loading aborted');
             isPlaying = false;
             document.getElementById('playButton').textContent = '▶';
+            // Reset document title on abort
+            document.title = DEFAULT_TITLE;
             showWarningNotification(`Playback of "${title}" was interrupted.`);
         });
 
@@ -235,9 +245,11 @@ async function playSong(songId, title, artist, thumbnail = null, playlistId = nu
                 console.error('Play error:', error);
                 isPlaying = false;
                 document.getElementById('playButton').textContent = '▶';
+                // Reset document title on play error
+                document.title = DEFAULT_TITLE;
                 showErrorNotification(`Failed to start playback of "${title}". Please try again.`);
             }).then(() => {
-                showSuccessNotification(`Now playing: "${title}" by ${artist}`);
+                // showSuccessNotification(`Now playing: "${title}" by ${artist}`);
             });
         });
 
@@ -249,6 +261,9 @@ async function playSong(songId, title, artist, thumbnail = null, playlistId = nu
         audio.addEventListener('ended', () => {
             isPlaying = false;
             document.getElementById('playButton').textContent = '▶';
+
+            // Reset document title when song ends
+            document.title = DEFAULT_TITLE;
 
             // Auto-play next song if enabled and we're in a playlist
             if (autoPlayEnabled && currentPlaylist && currentPlaylistSongs.length > 0) {
@@ -263,6 +278,8 @@ async function playSong(songId, title, artist, thumbnail = null, playlistId = nu
         console.error('PlaySong error:', error);
         isPlaying = false;
         document.getElementById('playButton').textContent = '▶';
+        // Reset document title on error
+        document.title = DEFAULT_TITLE;
         showErrorNotification(`Failed to load "${title}" by ${artist}. Please check your connection and try again.`);
     }
 }
@@ -301,10 +318,16 @@ function togglePlay() {
             currentAudio.pause();
             document.getElementById('playButton').textContent = '▶';
             isPlaying = false;
+            // Reset document title when paused
+            document.title = DEFAULT_TITLE;
         } else {
             currentAudio.play();
             document.getElementById('playButton').textContent = '⏸';
             isPlaying = true;
+            // Update document title when resumed
+            const title = document.getElementById('nowPlayingTitle').textContent;
+            const artist = document.getElementById('nowPlayingArtist').textContent;
+            document.title = `${title} by ${artist}`;
         }
     }
 }
@@ -333,8 +356,6 @@ function setVolume(event) {
         // Show volume notification for significant changes
         if (volume === 0) {
             showInfoNotification('Volume muted');
-        } else if (volume > 0.8) {
-            showWarningNotification('Volume set to high level');
         }
     }
 }
@@ -479,7 +500,7 @@ async function loadPlaylists() {
             displayPlaylistsInSidebar();
 
             if (playlists.length > 0) {
-                showSuccessNotification(`Loaded ${playlists.length} playlist${playlists.length > 1 ? 's' : ''}`);
+                // showSuccessNotification(`Loaded ${playlists.length} playlist${playlists.length > 1 ? 's' : ''}`);
             }
         }
     } catch (error) {
@@ -572,8 +593,12 @@ function displayPlaylistContent(playlistData, playlistTitle) {
             const safeArtist = artist.replace(/'/g, "\\'");
             const safeThumbnail = thumbnail.replace(/'/g, "\\'");
 
+            // Check if this song is currently playing
+            const isCurrentlyPlaying = currentSongId === (song.id || '') && currentPlaylist === (playlistData.id || playlistData.browseId || '');
+            const playingClass = isCurrentlyPlaying ? ' playing' : '';
+
             return `
-                        <div class="playlist-song-item" onclick="playSong('${song.id || ''}', '${safeTitle}', '${safeArtist}', '${safeThumbnail}', '${currentPlaylist}', ${index})">
+                        <div class="playlist-song-item${playingClass}" onclick="playSong('${song.id || ''}', '${safeTitle}', '${safeArtist}', '${safeThumbnail}', '${currentPlaylist}', ${index})">
                             <div class="playlist-song-thumbnail">
                                 ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
                             </div>
