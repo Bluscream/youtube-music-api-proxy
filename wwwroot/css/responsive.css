@@ -32,6 +32,7 @@
 @media (max-width: var(--sidebar-collapse-breakpoint)) {
     .sidebar-toggle {
         display: flex !important;
+        left: 20px;
     }
 
     /* Auto-collapse sidebar on smaller screens */

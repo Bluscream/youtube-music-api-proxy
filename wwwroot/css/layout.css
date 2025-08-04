@@ -73,9 +73,9 @@
 
 /* Sidebar toggle button */
 .sidebar-toggle {
-    position: absolute;
+    position: fixed;
     top: 20px;
-    right: -12px;
+    left: 20px;
     width: 24px;
     height: 24px;
     background-color: #181818;
@@ -115,6 +115,11 @@
 /* Adjust main content when sidebar is collapsed */
 .main-content.sidebar-collapsed {
     margin-left: 0;
+}
+
+/* Ensure toggle button is visible when sidebar is collapsed */
+.sidebar.collapsed ~ .sidebar-toggle {
+    left: 20px;
 }
 
 
