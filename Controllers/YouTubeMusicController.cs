@@ -242,9 +242,12 @@ public class YouTubeMusicController : ControllerBase
             var authCookies = _configService.GetCookies(cookies);
             var streamingData = await _service.GetStreamingDataAsync(id, authCookies, location);
             
+            _logger.LogDebug("Retrieved streaming data for ID: {Id}. Stream count: {Count}", 
+                id, streamingData.StreamInfo?.Count() ?? 0);
+            
             // Find the best audio stream
             var audioStream = streamingData.StreamInfo
-                .OfType<YouTubeMusicAPI.Models.Streaming.AudioStreamInfo>()
+                ?.OfType<YouTubeMusicAPI.Models.Streaming.AudioStreamInfo>()
                 .OrderByDescending(s => s.Bitrate)
                 .FirstOrDefault();
 
@@ -255,7 +258,24 @@ public class YouTubeMusicController : ControllerBase
 
             // Stream the audio content
             using var httpClient = new HttpClient();
-            var audioResponse = await httpClient.GetAsync(audioStream.Url, HttpCompletionOption.ResponseHeadersRead);
+            
+            // Validate and log the audio URL
+            var audioUrl = audioStream.Url;
+            _logger.LogDebug("Audio stream URL: {Url}", audioUrl);
+            
+            if (string.IsNullOrWhiteSpace(audioUrl))
+            {
+                _logger.LogError("Audio stream URL is null or empty for ID: {Id}", id);
+                return StatusCode(500, new ErrorResponse { Error = "Audio stream URL is missing" });
+            }
+            
+            if (!Uri.IsWellFormedUriString(audioUrl, UriKind.Absolute))
+            {
+                _logger.LogWarning("Audio stream URL is not absolute: {Url}", audioUrl);
+                return StatusCode(500, new ErrorResponse { Error = "Invalid audio stream URL format" });
+            }
+            
+            var audioResponse = await httpClient.GetAsync(audioUrl, HttpCompletionOption.ResponseHeadersRead);
             
             if (!audioResponse.IsSuccessStatusCode)
             {
