@@ -48,6 +48,7 @@ builder.Services.Configure<YouTubeMusicConfig>(builder.Configuration.GetSection(
 
 // Add services
 builder.Services.AddScoped<IYouTubeMusicService, YouTubeMusicService>();
+builder.Services.AddScoped<IConfigurationService, ConfigurationService>();
 builder.Services.AddHttpClient();
 
 var app = builder.Build();
@@ -59,11 +60,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "YouTube Music API Proxy v1");
-        c.RoutePrefix = string.Empty; // Serve Swagger UI at root
+        c.RoutePrefix = "swagger"; // Serve Swagger UI at /swagger
     });
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 app.UseAuthorization();
 app.MapControllers();
 

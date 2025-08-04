@@ -15,7 +15,30 @@ A .NET Web API wrapper around the [YouTubeMusicAPI](https://github.com/IcySnex/Y
 
 ## Configuration
 
-The API supports the following configuration variables:
+The API supports flexible configuration with the following priority order:
+1. **Query Parameters** (highest priority)
+2. **AppSettings** (appsettings.json)
+3. **Environment Variables** (lowest priority)
+
+### AppSettings Configuration
+
+You can configure the API using `appsettings.json`:
+
+```json
+{
+    "YouTubeMusic": {
+        "GeographicalLocation": "US",
+        "Cookies": "your_base64_encoded_cookies_here",
+        "VisitorData": "your_visitor_data_here",
+        "PoToken": "your_potoken_here",
+        "UserAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "ApiKey": "your_api_key_here",
+        "TimeoutSeconds": 30,
+        "MaxRetries": 3,
+        "Debug": false
+    }
+}
+```
 
 ### Environment Variables
 
@@ -23,11 +46,19 @@ The API supports the following configuration variables:
 - `YTM_VISITORDATA`: Visitor data for session tailoring
 - `YTM_POTOKEN`: Proof of Origin Token for attestation
 - `YTM_GEOGRAPHICAL_LOCATION`: Geographical location (defaults to "US")
+- `YTM_USER_AGENT`: Custom user agent string
+- `YTM_API_KEY`: API key for additional features
+- `YTM_TIMEOUT`: Request timeout in seconds (defaults to 30)
+- `YTM_MAX_RETRIES`: Maximum retry attempts (defaults to 3)
+- `YTM_DEBUG`: Enable debug logging (true/false, defaults to false)
 
 ### Query Parameters
 
-- `cookies`: Base64 encoded YouTube cookies (alternative to environment variable)
-- `location`: Geographical location (alternative to environment variable)
+- `cookies`: Base64 encoded YouTube cookies (alternative to appsettings/environment variable)
+- `location`: Geographical location (alternative to appsettings/environment variable)
+- `visitorData`: Visitor data (alternative to appsettings/environment variable)
+- `poToken`: Proof of Origin Token (alternative to appsettings/environment variable)
+- `apiKey`: API key (alternative to appsettings/environment variable)
 
 ## API Endpoints
 
@@ -256,7 +287,31 @@ For endpoints that require authentication (like accessing premium content or avo
 1. Log into YouTube Music in your browser
 2. Extract cookies from your browser's developer tools
 3. Base64 encode the cookie string
-4. Pass as the `cookies` parameter or set the `YTM_COOKIES` environment variable
+4. Configure using one of these methods (in order of priority):
+   - **Query Parameter**: Pass as the `cookies` parameter in API requests
+   - **AppSettings**: Add to `appsettings.json` under `YouTubeMusic.Cookies`
+   - **Environment Variable**: Set the `YTM_COOKIES` environment variable
+
+### Example Configuration Methods
+
+**Query Parameter:**
+```bash
+curl "https://localhost:5001/api/library?cookies=your_base64_encoded_cookies"
+```
+
+**AppSettings (appsettings.json):**
+```json
+{
+    "YouTubeMusic": {
+        "Cookies": "your_base64_encoded_cookies_here"
+    }
+}
+```
+
+**Environment Variable:**
+```bash
+export YTM_COOKIES="your_base64_encoded_cookies"
+```
 
 ## Dependencies
 

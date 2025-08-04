@@ -18,14 +18,56 @@ namespace YoutubeMusicAPIProxy.Controllers;
 public class YouTubeMusicController : ControllerBase
 {
     private readonly IYouTubeMusicService _service;
+    private readonly IConfigurationService _configService;
     private readonly ILogger<YouTubeMusicController> _logger;
 
     public YouTubeMusicController(
         IYouTubeMusicService service,
+        IConfigurationService configService,
         ILogger<YouTubeMusicController> logger)
     {
         _service = service;
+        _configService = configService;
         _logger = logger;
+    }
+
+
+
+    /// <summary>
+    /// Get health and version information
+    /// </summary>
+    /// <returns>Health status and version information</returns>
+    /// <response code="200">Returns health status and version information</response>
+    [HttpGet]
+    [ProducesResponseType(typeof(HealthResponse), 200)]
+    public IActionResult GetHealth()
+    {
+        var process = System.Diagnostics.Process.GetCurrentProcess();
+        var runtimeInfo = new RuntimeInfo
+        {
+            Framework = Environment.Version.ToString(),
+            OS = Environment.OSVersion.ToString(),
+            UptimeSeconds = (DateTime.UtcNow - process.StartTime.ToUniversalTime()).TotalSeconds,
+            MemoryUsageMB = process.WorkingSet64 / 1024 / 1024
+        };
+
+        var environmentInfo = new EnvironmentInfo
+        {
+            Environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Unknown",
+            CookiesConfigured = !string.IsNullOrWhiteSpace(_configService.GetCookies())
+        };
+
+        var healthResponse = new HealthResponse
+        {
+            Status = "healthy",
+            Version = GetType().Assembly.GetName().Version?.ToString() ?? "1.0.0",
+            Name = "YouTube Music API Proxy",
+            Timestamp = DateTime.UtcNow,
+            Runtime = runtimeInfo,
+            Environment = environmentInfo
+        };
+
+        return Ok(healthResponse);
     }
 
     /// <summary>
@@ -171,11 +213,12 @@ public class YouTubeMusicController : ControllerBase
     /// <param name="location">Geographical location (defaults to "US")</param>
     /// <param name="quality">Audio quality preference (e.g., "AUDIO_QUALITY_MEDIUM")</param>
     /// <returns>Audio stream</returns>
-    /// <response code="200">Returns audio stream in M4A format</response>
+    /// <response code="200">Returns audio stream in M4A format (accessible with or without .m4a extension)</response>
     /// <response code="400">If the ID is invalid or missing</response>
     /// <response code="404">If the song/video is not found or no audio stream available</response>
     /// <response code="500">If there was an internal server error</response>
     [HttpGet("stream/{id}.m4a")]
+    [HttpGet("stream/{id}")]
     [ProducesResponseType(200)]
     [ProducesResponseType(typeof(ErrorResponse), 400)]
     [ProducesResponseType(typeof(ErrorResponse), 404)]
@@ -320,7 +363,7 @@ public class YouTubeMusicController : ControllerBase
     /// <summary>
     /// Get user's library (requires authentication)
     /// </summary>
-    /// <param name="cookies">Base64 encoded YouTube cookies for authentication</param>
+    /// <param name="cookies">Base64 encoded YouTube cookies for authentication (can also be set via appsettings or 'YTM_COOKIES' environment variable)</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
     /// <returns>User's complete library including songs, albums, artists, subscriptions, podcasts, and playlists</returns>
     /// <response code="200">Returns user's complete library with all content types</response>
@@ -334,14 +377,15 @@ public class YouTubeMusicController : ControllerBase
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
         [FromQuery] string? location = null)
     {
-        if (string.IsNullOrWhiteSpace(cookies))
+        var authCookies = _configService.GetCookies(cookies);
+        if (string.IsNullOrWhiteSpace(authCookies))
         {
-            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter." });
+            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter, set 'YTM_COOKIES' environment variable, or configure in appsettings." });
         }
 
         try
         {
-            var result = await _service.GetLibraryAsync(cookies, location);
+            var result = await _service.GetLibraryAsync(authCookies, location);
             return Ok(result);
         }
         catch (Exception ex)
@@ -354,7 +398,7 @@ public class YouTubeMusicController : ControllerBase
     /// <summary>
     /// Get user's library songs (requires authentication)
     /// </summary>
-    /// <param name="cookies">Base64 encoded YouTube cookies for authentication</param>
+    /// <param name="cookies">Base64 encoded YouTube cookies for authentication (can also be set via appsettings or 'YTM_COOKIES' environment variable)</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
     /// <returns>User's library songs</returns>
     /// <response code="200">Returns user's library songs</response>
@@ -368,14 +412,15 @@ public class YouTubeMusicController : ControllerBase
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
         [FromQuery] string? location = null)
     {
-        if (string.IsNullOrWhiteSpace(cookies))
+        var authCookies = _configService.GetCookies(cookies);
+        if (string.IsNullOrWhiteSpace(authCookies))
         {
-            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter." });
+            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter, set 'YTM_COOKIES' environment variable, or configure in appsettings." });
         }
 
         try
         {
-            var result = await _service.GetLibrarySongsAsync(cookies, location);
+            var result = await _service.GetLibrarySongsAsync(authCookies, location);
             return Ok(result);
         }
         catch (Exception ex)
@@ -388,7 +433,7 @@ public class YouTubeMusicController : ControllerBase
     /// <summary>
     /// Get user's library albums (requires authentication)
     /// </summary>
-    /// <param name="cookies">Base64 encoded YouTube cookies for authentication</param>
+    /// <param name="cookies">Base64 encoded YouTube cookies for authentication (can also be set via appsettings or 'YTM_COOKIES' environment variable)</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
     /// <returns>User's library albums</returns>
     /// <response code="200">Returns user's library albums</response>
@@ -402,14 +447,15 @@ public class YouTubeMusicController : ControllerBase
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
         [FromQuery] string? location = null)
     {
-        if (string.IsNullOrWhiteSpace(cookies))
+        var authCookies = _configService.GetCookies(cookies);
+        if (string.IsNullOrWhiteSpace(authCookies))
         {
-            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter." });
+            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter, set 'YTM_COOKIES' environment variable, or configure in appsettings." });
         }
 
         try
         {
-            var result = await _service.GetLibraryAlbumsAsync(cookies, location);
+            var result = await _service.GetLibraryAlbumsAsync(authCookies, location);
             return Ok(result);
         }
         catch (Exception ex)
@@ -422,7 +468,7 @@ public class YouTubeMusicController : ControllerBase
     /// <summary>
     /// Get user's library artists (requires authentication)
     /// </summary>
-    /// <param name="cookies">Base64 encoded YouTube cookies for authentication</param>
+    /// <param name="cookies">Base64 encoded YouTube cookies for authentication (can also be set via appsettings or 'YTM_COOKIES' environment variable)</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
     /// <returns>User's library artists</returns>
     /// <response code="200">Returns user's library artists</response>
@@ -436,14 +482,15 @@ public class YouTubeMusicController : ControllerBase
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
         [FromQuery] string? location = null)
     {
-        if (string.IsNullOrWhiteSpace(cookies))
+        var authCookies = _configService.GetCookies(cookies);
+        if (string.IsNullOrWhiteSpace(authCookies))
         {
-            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter." });
+            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter, set 'YTM_COOKIES' environment variable, or configure in appsettings." });
         }
 
         try
         {
-            var result = await _service.GetLibraryArtistsAsync(cookies, location);
+            var result = await _service.GetLibraryArtistsAsync(authCookies, location);
             return Ok(result);
         }
         catch (Exception ex)
@@ -456,7 +503,7 @@ public class YouTubeMusicController : ControllerBase
     /// <summary>
     /// Get user's library subscriptions (requires authentication)
     /// </summary>
-    /// <param name="cookies">Base64 encoded YouTube cookies for authentication</param>
+    /// <param name="cookies">Base64 encoded YouTube cookies for authentication (can also be set via appsettings or 'YTM_COOKIES' environment variable)</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
     /// <returns>User's library subscriptions</returns>
     /// <response code="200">Returns user's library subscriptions</response>
@@ -470,14 +517,15 @@ public class YouTubeMusicController : ControllerBase
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
         [FromQuery] string? location = null)
     {
-        if (string.IsNullOrWhiteSpace(cookies))
+        var authCookies = _configService.GetCookies(cookies);
+        if (string.IsNullOrWhiteSpace(authCookies))
         {
-            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter." });
+            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter, set 'YTM_COOKIES' environment variable, or configure in appsettings." });
         }
 
         try
         {
-            var result = await _service.GetLibrarySubscriptionsAsync(cookies, location);
+            var result = await _service.GetLibrarySubscriptionsAsync(authCookies, location);
             return Ok(result);
         }
         catch (Exception ex)
@@ -490,7 +538,7 @@ public class YouTubeMusicController : ControllerBase
     /// <summary>
     /// Get user's library podcasts (requires authentication)
     /// </summary>
-    /// <param name="cookies">Base64 encoded YouTube cookies for authentication</param>
+    /// <param name="cookies">Base64 encoded YouTube cookies for authentication (can also be set via appsettings or 'YTM_COOKIES' environment variable)</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
     /// <returns>User's library podcasts</returns>
     /// <response code="200">Returns user's library podcasts</response>
@@ -504,14 +552,15 @@ public class YouTubeMusicController : ControllerBase
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
         [FromQuery] string? location = null)
     {
-        if (string.IsNullOrWhiteSpace(cookies))
+        var authCookies = _configService.GetCookies(cookies);
+        if (string.IsNullOrWhiteSpace(authCookies))
         {
-            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter." });
+            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter, set 'YTM_COOKIES' environment variable, or configure in appsettings." });
         }
 
         try
         {
-            var result = await _service.GetLibraryPodcastsAsync(cookies, location);
+            var result = await _service.GetLibraryPodcastsAsync(authCookies, location);
             return Ok(result);
         }
         catch (Exception ex)
@@ -524,7 +573,7 @@ public class YouTubeMusicController : ControllerBase
     /// <summary>
     /// Get user's library playlists (requires authentication)
     /// </summary>
-    /// <param name="cookies">Base64 encoded YouTube cookies for authentication</param>
+    /// <param name="cookies">Base64 encoded YouTube cookies for authentication (can also be set via appsettings or 'YTM_COOKIES' environment variable)</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
     /// <returns>User's library playlists</returns>
     /// <response code="200">Returns user's library playlists</response>
@@ -538,14 +587,15 @@ public class YouTubeMusicController : ControllerBase
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
         [FromQuery] string? location = null)
     {
-        if (string.IsNullOrWhiteSpace(cookies))
+        var authCookies = _configService.GetCookies(cookies);
+        if (string.IsNullOrWhiteSpace(authCookies))
         {
-            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter." });
+            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter, set 'YTM_COOKIES' environment variable, or configure in appsettings." });
         }
 
         try
         {
-            var result = await _service.GetLibraryPlaylistsAsync(cookies, location);
+            var result = await _service.GetLibraryPlaylistsAsync(authCookies, location);
             return Ok(result);
         }
         catch (Exception ex)
