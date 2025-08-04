@@ -20,6 +20,7 @@
 
 <body>
     <div class="sidebar" id="sidebar">
+        <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Toggle sidebar">◀</button>
         <button class="mobile-menu-toggle" id="mobileMenuToggle" onclick="toggleMobileMenu()">☰</button>
         <div class="logo">YouTube Music</div>
 
@@ -27,7 +28,7 @@
             <div class="nav-title">Library</div>
             <div class="nav-item active" onclick="loadLibrary(event)">
                 <div class="nav-icon">📚</div>
-                Library
+                <span>Library</span>
             </div>
         </div>
 
@@ -37,7 +38,7 @@
         </div>
     </div>
 
-    <div class="main-content">
+    <div class="main-content" id="mainContent">
         <div class="header">
             <div class="search-container">
                 <div class="search-icon">🔍</div>

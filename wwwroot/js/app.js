@@ -2,6 +2,7 @@
 // and are synchronized with CSS custom properties for consistent responsive behavior
 const MOBILE_BREAKPOINT = 768;      // Tablet and mobile devices
 const SMALL_MOBILE_BREAKPOINT = 480; // Small mobile devices (phones)
+const SIDEBAR_COLLAPSE_BREAKPOINT = 1024; // Desktop breakpoint for sidebar collapse
 
 let currentAudio = null;
 let isPlaying = false;
@@ -12,6 +13,8 @@ let currentPlaylistSongs = [];
 let currentSongIndex = -1;
 let autoPlayEnabled = true;
 let isMobileMenuOpen = false;
+let isSidebarCollapsed = false;
+let isSidebarCompact = false;
 
 // Default title for the application
 const DEFAULT_TITLE = 'YouTube Music';
@@ -29,10 +32,124 @@ function isSmallMobile() {
     return getWindowWidth() <= SMALL_MOBILE_BREAKPOINT;
 }
 
+function shouldCollapseSidebar() {
+    return getWindowWidth() <= SIDEBAR_COLLAPSE_BREAKPOINT;
+}
+
 // Update CSS variables to match JavaScript constants
 function updateCSSBreakpoints() {
     document.documentElement.style.setProperty('--mobile-breakpoint', `${MOBILE_BREAKPOINT}px`);
     document.documentElement.style.setProperty('--small-mobile-breakpoint', `${SMALL_MOBILE_BREAKPOINT}px`);
+    document.documentElement.style.setProperty('--sidebar-collapse-breakpoint', `${SIDEBAR_COLLAPSE_BREAKPOINT}px`);
+}
+
+// Sidebar collapse functionality
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('mainContent');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    
+    if (isSidebarCollapsed) {
+        // Expand sidebar
+        sidebar.classList.remove('collapsed');
+        mainContent.classList.remove('sidebar-collapsed');
+        sidebarToggle.textContent = '◀';
+        sidebarToggle.title = 'Collapse sidebar';
+        isSidebarCollapsed = false;
+    } else if (isSidebarCompact) {
+        // Go to full size
+        sidebar.classList.remove('compact');
+        mainContent.classList.remove('sidebar-compact');
+        sidebarToggle.textContent = '◀';
+        sidebarToggle.title = 'Collapse sidebar';
+        isSidebarCompact = false;
+    } else {
+        // Collapse sidebar
+        if (shouldCollapseSidebar()) {
+            // Full collapse for small screens
+            sidebar.classList.add('collapsed');
+            mainContent.classList.add('sidebar-collapsed');
+            sidebarToggle.textContent = '▶';
+            sidebarToggle.title = 'Expand sidebar';
+            isSidebarCollapsed = true;
+        } else {
+            // Compact mode for larger screens
+            sidebar.classList.add('compact');
+            mainContent.classList.add('sidebar-compact');
+            sidebarToggle.textContent = '◀';
+            sidebarToggle.title = 'Expand sidebar';
+            isSidebarCompact = true;
+        }
+    }
+    
+    // Store sidebar state in localStorage
+    localStorage.setItem('sidebarState', JSON.stringify({
+        collapsed: isSidebarCollapsed,
+        compact: isSidebarCompact
+    }));
+}
+
+function restoreSidebarState() {
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('mainContent');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    
+    try {
+        const savedState = localStorage.getItem('sidebarState');
+        if (savedState) {
+            const state = JSON.parse(savedState);
+            
+            if (state.collapsed && !isMobile()) {
+                sidebar.classList.add('collapsed');
+                mainContent.classList.add('sidebar-collapsed');
+                sidebarToggle.textContent = '▶';
+                sidebarToggle.title = 'Expand sidebar';
+                isSidebarCollapsed = true;
+            } else if (state.compact && !isMobile()) {
+                sidebar.classList.add('compact');
+                mainContent.classList.add('sidebar-compact');
+                sidebarToggle.textContent = '◀';
+                sidebarToggle.title = 'Expand sidebar';
+                isSidebarCompact = true;
+            }
+        }
+    } catch (error) {
+        console.error('Error restoring sidebar state:', error);
+    }
+}
+
+function handleWindowResize() {
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('mainContent');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    
+    if (isMobile()) {
+        // On mobile, always use mobile menu behavior
+        sidebar.classList.remove('collapsed', 'compact');
+        mainContent.classList.remove('sidebar-collapsed', 'sidebar-compact');
+        isSidebarCollapsed = false;
+        isSidebarCompact = false;
+        sidebarToggle.style.display = 'none';
+    } else {
+        // On desktop, show toggle button and handle auto-collapse
+        sidebarToggle.style.display = 'flex';
+        
+        if (shouldCollapseSidebar() && !isSidebarCollapsed && !isSidebarCompact) {
+            // Auto-collapse on small screens
+            sidebar.classList.add('collapsed');
+            mainContent.classList.add('sidebar-collapsed');
+            sidebarToggle.textContent = '▶';
+            sidebarToggle.title = 'Expand sidebar';
+            isSidebarCollapsed = true;
+        } else if (!shouldCollapseSidebar() && isSidebarCollapsed) {
+            // Auto-expand on larger screens if it was auto-collapsed
+            sidebar.classList.remove('collapsed');
+            mainContent.classList.remove('sidebar-collapsed');
+            sidebarToggle.textContent = '◀';
+            sidebarToggle.title = 'Collapse sidebar';
+            isSidebarCollapsed = false;
+        }
+    }
 }
 
 // Mobile-specific touch handling
@@ -1066,11 +1183,15 @@ document.addEventListener('click', function (event) {
     }
 });
 
-// Close mobile menu when window is resized to desktop
+// Handle window resize events
 window.addEventListener('resize', function () {
+    // Handle mobile menu
     if (!isMobile() && isMobileMenuOpen) {
         toggleMobileMenu();
     }
+    
+    // Handle sidebar auto-collapse
+    handleWindowResize();
 });
 
 // Initialize
@@ -1081,4 +1202,8 @@ initVolumeSlider();
 
 // Initialize mobile enhancements
 addMobileTouchHandlers();
-enhancePlayerControls(); 
+enhancePlayerControls();
+
+// Initialize sidebar state
+restoreSidebarState();
+handleWindowResize(); 

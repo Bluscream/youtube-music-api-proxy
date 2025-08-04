@@ -4,6 +4,41 @@
     border-right: 1px solid #282828;
     padding: 20px 0;
     overflow-y: auto;
+    transition: transform 0.3s ease, width 0.3s ease;
+    position: relative;
+}
+
+/* Sidebar collapse states */
+.sidebar.collapsed {
+    transform: translateX(-100%);
+    width: 0;
+}
+
+.sidebar.compact {
+    width: 60px;
+}
+
+.sidebar.compact .logo {
+    padding: 0 12px 20px;
+    font-size: 18px;
+    text-align: center;
+}
+
+.sidebar.compact .nav-title {
+    display: none;
+}
+
+.sidebar.compact .nav-item {
+    padding: 12px;
+    justify-content: center;
+}
+
+.sidebar.compact .nav-icon {
+    margin-right: 0;
+}
+
+.sidebar.compact .nav-item span {
+    display: none;
 }
 
 .logo {
@@ -13,6 +48,7 @@
     color: #ffffff;
     border-bottom: 1px solid #282828;
     margin-bottom: 20px;
+    transition: all 0.3s ease;
 }
 
 .nav-section {
@@ -26,6 +62,7 @@
     color: #aaaaaa;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    transition: opacity 0.3s ease;
 }
 
 .nav-item {
@@ -36,6 +73,7 @@
     text-decoration: none;
     transition: all 0.2s;
     cursor: pointer;
+    position: relative;
 }
 
 .nav-item:hover {
@@ -55,6 +93,36 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: margin 0.3s ease;
+}
+
+/* Sidebar toggle button */
+.sidebar-toggle {
+    position: absolute;
+    top: 20px;
+    right: -12px;
+    width: 24px;
+    height: 24px;
+    background-color: #181818;
+    border: 1px solid #282828;
+    border-radius: 50%;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1001;
+    transition: all 0.2s ease;
+    font-size: 12px;
+}
+
+.sidebar-toggle:hover {
+    background-color: #282828;
+    transform: scale(1.1);
+}
+
+.sidebar.compact .sidebar-toggle {
+    right: -12px;
 }
 
 .main-content {
@@ -68,6 +136,16 @@
     /* Allow content to shrink */
     overflow-x: hidden;
     /* Prevent horizontal scroll */
+    transition: margin-left 0.3s ease;
+}
+
+/* Adjust main content when sidebar is collapsed */
+.main-content.sidebar-collapsed {
+    margin-left: 0;
+}
+
+.main-content.sidebar-compact {
+    margin-left: -180px; /* 240px - 60px */
 }
 
 .header {
