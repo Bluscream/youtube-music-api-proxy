@@ -6,6 +6,7 @@ let currentPlaylist = null;
 let currentPlaylistSongs = [];
 let currentSongIndex = -1;
 let autoPlayEnabled = true;
+let isMobileMenuOpen = false;
 
 // Default title for the application
 const DEFAULT_TITLE = 'YouTube Music';
@@ -437,6 +438,11 @@ function updateActiveNavItem(clickedItem) {
     });
     // Add active class to clicked item
     clickedItem.classList.add('active');
+    
+    // Close mobile menu after navigation
+    if (window.innerWidth <= 768 && isMobileMenuOpen) {
+        toggleMobileMenu();
+    }
 }
 
 function loadLibrary(event) {
@@ -542,6 +548,11 @@ function displayPlaylistsInSidebar() {
 }
 
 async function loadPlaylist(playlistId, playlistTitle) {
+    // Close mobile menu after playlist selection
+    if (window.innerWidth <= 768 && isMobileMenuOpen) {
+        toggleMobileMenu();
+    }
+    
     showLoading();
     try {
         const queryParams = getQueryParams();
@@ -711,6 +722,11 @@ function displayLibraryContent(libraryData) {
 }
 
 async function loadAlbum(browseId, albumTitle) {
+    // Close mobile menu after album selection
+    if (window.innerWidth <= 768 && isMobileMenuOpen) {
+        toggleMobileMenu();
+    }
+    
     showLoading();
     try {
         const queryParams = getQueryParams();
@@ -730,6 +746,11 @@ async function loadAlbum(browseId, albumTitle) {
 }
 
 async function loadArtist(browseId, artistName) {
+    // Close mobile menu after artist selection
+    if (window.innerWidth <= 768 && isMobileMenuOpen) {
+        toggleMobileMenu();
+    }
+    
     showLoading();
     try {
         const queryParams = getQueryParams();
@@ -846,6 +867,41 @@ function toggleAutoPlay() {
         showInfoNotification('Auto-play disabled');
     }
 }
+
+// Mobile menu functionality
+function toggleMobileMenu() {
+    const sidebar = document.getElementById('sidebar');
+    const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+    
+    isMobileMenuOpen = !isMobileMenuOpen;
+    
+    if (isMobileMenuOpen) {
+        sidebar.classList.remove('collapsed');
+        mobileMenuToggle.textContent = '✕';
+    } else {
+        sidebar.classList.add('collapsed');
+        mobileMenuToggle.textContent = '☰';
+    }
+}
+
+// Close mobile menu when clicking outside
+document.addEventListener('click', function(event) {
+    const sidebar = document.getElementById('sidebar');
+    const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+    
+    if (isMobileMenuOpen && 
+        !sidebar.contains(event.target) && 
+        !mobileMenuToggle.contains(event.target)) {
+        toggleMobileMenu();
+    }
+});
+
+// Close mobile menu when window is resized to desktop
+window.addEventListener('resize', function() {
+    if (window.innerWidth > 768 && isMobileMenuOpen) {
+        toggleMobileMenu();
+    }
+});
 
 // Initialize
 loadHome();
