@@ -97,7 +97,8 @@ public class YouTubeMusicController : ControllerBase
 
         try
         {
-            var searchResults = await _service.SearchAsync(query, category, cookies, location);
+            var authCookies = _configService.GetCookies(cookies);
+            var searchResults = await _service.SearchAsync(query, category, authCookies, location);
             var results = new List<SearchResult>();
             
             await foreach (var result in searchResults)
@@ -149,7 +150,8 @@ public class YouTubeMusicController : ControllerBase
 
         try
         {
-            var result = await _service.GetSongVideoInfoAsync(id, cookies, location);
+            var authCookies = _configService.GetCookies(cookies);
+            var result = await _service.GetSongVideoInfoAsync(id, authCookies, location);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -191,7 +193,8 @@ public class YouTubeMusicController : ControllerBase
 
         try
         {
-            var result = await _service.GetStreamingDataAsync(id, cookies, location);
+            var authCookies = _configService.GetCookies(cookies);
+            var result = await _service.GetStreamingDataAsync(id, authCookies, location);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -236,7 +239,8 @@ public class YouTubeMusicController : ControllerBase
 
         try
         {
-            var streamingData = await _service.GetStreamingDataAsync(id, cookies, location);
+            var authCookies = _configService.GetCookies(cookies);
+            var streamingData = await _service.GetStreamingDataAsync(id, authCookies, location);
             
             // Find the best audio stream
             var audioStream = streamingData.StreamInfo
@@ -303,7 +307,8 @@ public class YouTubeMusicController : ControllerBase
 
         try
         {
-            var result = await _service.GetAlbumInfoAsync(browseId, cookies, location);
+            var authCookies = _configService.GetCookies(cookies);
+            var result = await _service.GetAlbumInfoAsync(browseId, authCookies, location);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -345,7 +350,8 @@ public class YouTubeMusicController : ControllerBase
 
         try
         {
-            var result = await _service.GetArtistInfoAsync(browseId, cookies, location);
+            var authCookies = _configService.GetCookies(cookies);
+            var result = await _service.GetArtistInfoAsync(browseId, authCookies, location);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -633,7 +639,8 @@ public class YouTubeMusicController : ControllerBase
 
         try
         {
-            var result = await _service.GetPlaylistAsync(id, cookies, location);
+            var authCookies = _configService.GetCookies(cookies);
+            var result = await _service.GetPlaylistAsync(id, authCookies, location);
             return Ok(result);
         }
         catch (ArgumentException ex)

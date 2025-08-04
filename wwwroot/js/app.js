@@ -103,7 +103,7 @@ async function playSong(songId, title, artist) {
         const queryParams = getQueryParams();
         const queryString = buildQueryString(queryParams);
         const audioUrl = `/api/stream/${songId}?${queryString}`;
-        
+
         const audio = new Audio(audioUrl);
         audio.addEventListener('loadeddata', () => {
             audio.play();
@@ -278,7 +278,7 @@ async function loadPlaylist(playlistId, playlistTitle) {
     try {
         const queryParams = getQueryParams();
         const queryString = buildQueryString(queryParams);
-        
+
         const response = await fetch(`/api/playlist/${playlistId}?${queryString}`);
         if (response.ok) {
             const data = await response.json();
@@ -422,7 +422,7 @@ async function loadAlbum(browseId, albumTitle) {
     try {
         const queryParams = getQueryParams();
         const queryString = buildQueryString(queryParams);
-        
+
         const response = await fetch(`/api/album/${browseId}?${queryString}`);
         if (response.ok) {
             const data = await response.json();
@@ -441,7 +441,7 @@ async function loadArtist(browseId, artistName) {
     try {
         const queryParams = getQueryParams();
         const queryString = buildQueryString(queryParams);
-        
+
         const response = await fetch(`/api/artist/${browseId}?${queryString}`);
         if (response.ok) {
             const data = await response.json();
