@@ -1,0 +1,49 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Docker
+docker/
+Dockerfile*
+.dockerignore
+
+# Build outputs
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.dll
+*.exe
+*.pdb
+
+# IDE
+.vs/
+.vscode/
+*.sln.iml
+*.csproj.user
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Documentation
+docs/
+*.md
+!readme.md
+
+# Tools
+tools/
+
+# Test files
+*test*
+*Test*
+
+# Temporary files
+*.tmp
+*.temp 

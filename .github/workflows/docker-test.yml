@@ -1,0 +1,58 @@
+name: Test Docker Image
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test-docker:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Build Docker image
+      run: |
+        docker build -t youtube-music-api-proxy:test -f docker/Dockerfile .
+
+    - name: Start container
+      run: |
+        docker run -d --name ytm-test -p 8080:8080 youtube-music-api-proxy:test
+
+    - name: Wait for container to be ready
+      run: |
+        timeout 60 bash -c 'until curl -f http://localhost:8080/; do sleep 2; done'
+
+    - name: Test API endpoints
+      run: |
+        # Test health check
+        curl -f http://localhost:8080/ || exit 1
+        
+        # Test Swagger endpoint
+        curl -f http://localhost:8080/swagger/v1/swagger.json || exit 1
+        
+        # Test search endpoint (should return 400 for missing query)
+        curl -w "%{http_code}" http://localhost:8080/api/search | grep -q "400" || exit 1
+
+    - name: Check container health
+      run: |
+        # Wait a bit for health check to run
+        sleep 10
+        
+        # Check if container is healthy
+        HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' ytm-test)
+        if [ "$HEALTH_STATUS" != "healthy" ]; then
+          echo "Container health status: $HEALTH_STATUS"
+          docker logs ytm-test
+          exit 1
+        fi
+
+    - name: Cleanup
+      if: always()
+      run: |
+        docker stop ytm-test || true
+        docker rm ytm-test || true
+        docker rmi youtube-music-api-proxy:test || true 

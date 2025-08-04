@@ -155,13 +155,37 @@ GET /api/library/playlists?cookies={cookies}&location={location}
 
 ### Prerequisites
 
-- .NET 8.0 SDK
+- .NET 9.0 SDK
 - Node.js (required for YouTubeSessionGenerator)
 
-### Installation
+### Option 1: Docker (Recommended)
+
+#### Quick Start with Docker Compose
 
 1. Clone the repository
-2. Navigate to the `YoutubeMusicAPIProxy` directory
+2. Navigate to the `docker` directory
+3. Run the application:
+   ```bash
+   cd docker
+   docker-compose up --build
+   ```
+
+The API will be available at `http://localhost:8080`.
+
+#### Using Docker Images
+
+```bash
+# Pull and run from Docker Hub
+docker run -d -p 8080:8080 --name ytm-api bluscream/youtube-music-api-proxy:latest
+
+# Or from GitHub Container Registry
+docker run -d -p 8080:8080 --name ytm-api ghcr.io/bluscream/youtube-music-api-proxy:latest
+```
+
+### Option 2: Local Development
+
+1. Clone the repository
+2. Navigate to the project directory
 3. Restore dependencies:
    ```bash
    dotnet restore
@@ -172,6 +196,15 @@ GET /api/library/playlists?cookies={cookies}&location={location}
    ```
 
 The API will be available at `https://localhost:5001` (or `http://localhost:5000`).
+
+### Docker Images
+
+The application is available as Docker images:
+
+- **Docker Hub:** `bluscream/youtube-music-api-proxy`
+- **GitHub Container Registry:** `ghcr.io/bluscream/youtube-music-api-proxy`
+
+For detailed Docker setup instructions, see the [docker/README.md](docker/README.md) file.
 
 ### Swagger Documentation
 
