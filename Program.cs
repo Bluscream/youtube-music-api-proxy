@@ -104,7 +104,7 @@ static void CreateSelfSignedCertificate(string certPath)
     {
         var distinguishedName = new X500DistinguishedName("CN=localhost");
         using var rsa = RSA.Create(2048);
-        var request = new CertificateRequest(distinguishedName, rsa, HashAlgorithmName.SHA256, X509SignatureGenerator.CreateForRSA(rsa, RSASignaturePadding.Pkcs1));
+        var request = new CertificateRequest(distinguishedName, rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         
         var certificate = request.CreateSelfSigned(DateTimeOffset.Now.AddDays(-1), DateTimeOffset.Now.AddYears(10));
         
