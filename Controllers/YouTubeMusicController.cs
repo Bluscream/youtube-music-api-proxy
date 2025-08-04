@@ -363,7 +363,7 @@ public class YouTubeMusicController : ControllerBase
     /// <summary>
     /// Get user's library (requires authentication)
     /// </summary>
-    /// <param name="cookies">Base64 encoded YouTube cookies for authentication (can also be set via appsettings or 'YTM_COOKIES' environment variable)</param>
+    /// <param name="cookies">Base64 encoded YouTube cookies for authentication</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
     /// <returns>User's complete library including songs, albums, artists, subscriptions, podcasts, and playlists</returns>
     /// <response code="200">Returns user's complete library with all content types</response>
@@ -398,7 +398,7 @@ public class YouTubeMusicController : ControllerBase
     /// <summary>
     /// Get user's library songs (requires authentication)
     /// </summary>
-    /// <param name="cookies">Base64 encoded YouTube cookies for authentication (can also be set via appsettings or 'YTM_COOKIES' environment variable)</param>
+    /// <param name="cookies">Base64 encoded YouTube cookies for authentication</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
     /// <returns>User's library songs</returns>
     /// <response code="200">Returns user's library songs</response>
@@ -433,7 +433,7 @@ public class YouTubeMusicController : ControllerBase
     /// <summary>
     /// Get user's library albums (requires authentication)
     /// </summary>
-    /// <param name="cookies">Base64 encoded YouTube cookies for authentication (can also be set via appsettings or 'YTM_COOKIES' environment variable)</param>
+    /// <param name="cookies">Base64 encoded YouTube cookies for authentication</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
     /// <returns>User's library albums</returns>
     /// <response code="200">Returns user's library albums</response>
@@ -468,7 +468,7 @@ public class YouTubeMusicController : ControllerBase
     /// <summary>
     /// Get user's library artists (requires authentication)
     /// </summary>
-    /// <param name="cookies">Base64 encoded YouTube cookies for authentication (can also be set via appsettings or 'YTM_COOKIES' environment variable)</param>
+    /// <param name="cookies">Base64 encoded YouTube cookies for authentication</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
     /// <returns>User's library artists</returns>
     /// <response code="200">Returns user's library artists</response>
@@ -503,7 +503,7 @@ public class YouTubeMusicController : ControllerBase
     /// <summary>
     /// Get user's library subscriptions (requires authentication)
     /// </summary>
-    /// <param name="cookies">Base64 encoded YouTube cookies for authentication (can also be set via appsettings or 'YTM_COOKIES' environment variable)</param>
+    /// <param name="cookies">Base64 encoded YouTube cookies for authentication</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
     /// <returns>User's library subscriptions</returns>
     /// <response code="200">Returns user's library subscriptions</response>
@@ -538,7 +538,7 @@ public class YouTubeMusicController : ControllerBase
     /// <summary>
     /// Get user's library podcasts (requires authentication)
     /// </summary>
-    /// <param name="cookies">Base64 encoded YouTube cookies for authentication (can also be set via appsettings or 'YTM_COOKIES' environment variable)</param>
+    /// <param name="cookies">Base64 encoded YouTube cookies for authentication</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
     /// <returns>User's library podcasts</returns>
     /// <response code="200">Returns user's library podcasts</response>
@@ -573,7 +573,7 @@ public class YouTubeMusicController : ControllerBase
     /// <summary>
     /// Get user's library playlists (requires authentication)
     /// </summary>
-    /// <param name="cookies">Base64 encoded YouTube cookies for authentication (can also be set via appsettings or 'YTM_COOKIES' environment variable)</param>
+    /// <param name="cookies">Base64 encoded YouTube cookies for authentication</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
     /// <returns>User's library playlists</returns>
     /// <response code="200">Returns user's library playlists</response>

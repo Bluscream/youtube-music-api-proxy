@@ -69,4 +69,11 @@ app.UseStaticFiles();
 app.UseAuthorization();
 app.MapControllers();
 
+// Run GetCookies on startup with print enabled
+using (var scope = app.Services.CreateScope())
+{
+    var configService = scope.ServiceProvider.GetRequiredService<IConfigurationService>();
+    configService.GetCookies(print: true);
+}
+
 app.Run(); 

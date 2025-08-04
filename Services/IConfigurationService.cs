@@ -11,8 +11,9 @@ public interface IConfigurationService
     /// Gets cookies with priority: query parameter > appsettings > environment variable
     /// </summary>
     /// <param name="queryCookies">Cookies from query parameter</param>
+    /// <param name="print">Whether to print debug information to console</param>
     /// <returns>Cookies string or null if not found</returns>
-    string? GetCookies(string? queryCookies = null);
+    string? GetCookies(string? queryCookies = null, bool print = false);
 
     /// <summary>
     /// Gets visitor data with priority: query parameter > appsettings > environment variable

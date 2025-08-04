@@ -22,7 +22,7 @@ The API supports flexible configuration with the following priority order:
 
 ### AppSettings Configuration
 
-You can configure the API using `appsettings.json`:
+You can configure the API using `appsettings.json`. String values are automatically decoded from base64 if they appear to be base64-encoded:
 
 ```json
 {
@@ -39,23 +39,29 @@ You can configure the API using `appsettings.json`:
 }
 ```
 
+**Note:** String configuration values are automatically decoded from base64 if they contain only valid base64 characters. If decoding fails, the original value is used.
+
 ### Environment Variables
 
-- `YTM_COOKIES`: Base64 encoded YouTube cookies for authentication
-- `YTM_VISITORDATA`: Visitor data for session tailoring
-- `YTM_POTOKEN`: Proof of Origin Token for attestation
-- `YTM_GEOGRAPHICAL_LOCATION`: Geographical location (defaults to "US")
-- `YTM_USER_AGENT`: Custom user agent string
+- `YTM_COOKIES`: YouTube cookies for authentication (can be base64 encoded)
+- `YTM_VISITORDATA`: Visitor data for session tailoring (can be base64 encoded)
+- `YTM_POTOKEN`: Proof of Origin Token for attestation (can be base64 encoded)
+- `YTM_GEOGRAPHICAL_LOCATION`: Geographical location (defaults to "US", can be base64 encoded)
+- `YTM_USER_AGENT`: Custom user agent string (can be base64 encoded)
 - `YTM_TIMEOUT`: Request timeout in seconds (defaults to 30)
 - `YTM_MAX_RETRIES`: Maximum retry attempts (defaults to 3)
 - `YTM_DEBUG`: Enable debug logging (true/false, defaults to false)
 
+**Note:** String environment variables are automatically decoded from base64 if they contain only valid base64 characters. If decoding fails, the original value is used.
+
 ### Query Parameters
 
-- `cookies`: Base64 encoded YouTube cookies (alternative to appsettings/environment variable)
-- `location`: Geographical location (alternative to appsettings/environment variable)
-- `visitorData`: Visitor data (alternative to appsettings/environment variable)
-- `poToken`: Proof of Origin Token (alternative to appsettings/environment variable)
+- `cookies`: YouTube cookies (alternative to appsettings/environment variable, can be base64 encoded)
+- `location`: Geographical location (alternative to appsettings/environment variable, can be base64 encoded)
+- `visitorData`: Visitor data (alternative to appsettings/environment variable, can be base64 encoded)
+- `poToken`: Proof of Origin Token (alternative to appsettings/environment variable, can be base64 encoded)
+
+**Note:** Query parameters are automatically decoded from base64 if they contain only valid base64 characters. If decoding fails, the original value is used.
 
 ## API Endpoints
 
@@ -67,8 +73,8 @@ GET /api/search?query={query}&category={category}&cookies={cookies}&location={lo
 **Parameters:**
 - `query` (required): Search query
 - `category` (optional): Search category (Songs, Videos, Albums, Artists, etc.)
-- `cookies` (optional): Base64 encoded YouTube cookies
-- `location` (optional): Geographical location
+- `cookies` (optional): YouTube cookies (can be base64 encoded)
+- `location` (optional): Geographical location (can be base64 encoded)
 
 ### Song/Video Information
 ```
@@ -77,8 +83,8 @@ GET /api/song/{id}?cookies={cookies}&location={location}
 
 **Parameters:**
 - `id` (required): YouTube video/song ID
-- `cookies` (optional): Base64 encoded YouTube cookies
-- `location` (optional): Geographical location
+- `cookies` (optional): YouTube cookies (can be base64 encoded)
+- `location` (optional): Geographical location (can be base64 encoded)
 
 **Response:** Includes song/video information plus streaming URLs
 
@@ -89,8 +95,8 @@ GET /api/stream/{id}.m4a?cookies={cookies}&location={location}
 
 **Parameters:**
 - `id` (required): YouTube video/song ID
-- `cookies` (optional): Base64 encoded YouTube cookies
-- `location` (optional): Geographical location
+- `cookies` (optional): YouTube cookies (can be base64 encoded)
+- `location` (optional): Geographical location (can be base64 encoded)
 
 **Response:** Direct audio stream
 
@@ -101,8 +107,8 @@ GET /api/album/{browseId}?cookies={cookies}&location={location}
 
 **Parameters:**
 - `browseId` (required): Album browse ID
-- `cookies` (optional): Base64 encoded YouTube cookies
-- `location` (optional): Geographical location
+- `cookies` (optional): YouTube cookies (can be base64 encoded)
+- `location` (optional): Geographical location (can be base64 encoded)
 
 ### Artist Information
 ```
@@ -111,8 +117,8 @@ GET /api/artist/{browseId}?cookies={cookies}&location={location}
 
 **Parameters:**
 - `browseId` (required): Artist browse ID
-- `cookies` (optional): Base64 encoded YouTube cookies
-- `location` (optional): Geographical location
+- `cookies` (optional): YouTube cookies (can be base64 encoded)
+- `location` (optional): Geographical location (can be base64 encoded)
 
 ### Library (Requires Authentication)
 ```
@@ -120,8 +126,8 @@ GET /api/library?cookies={cookies}&location={location}
 ```
 
 **Parameters:**
-- `cookies` (required): Base64 encoded YouTube cookies
-- `location` (optional): Geographical location
+- `cookies` (required): YouTube cookies (can be base64 encoded)
+- `location` (optional): Geographical location (can be base64 encoded)
 
 **Response:** Complete library including songs, albums, artists, subscriptions, podcasts, and playlists
 
@@ -131,8 +137,8 @@ GET /api/library/songs?cookies={cookies}&location={location}
 ```
 
 **Parameters:**
-- `cookies` (required): Base64 encoded YouTube cookies
-- `location` (optional): Geographical location
+- `cookies` (required): YouTube cookies (can be base64 encoded)
+- `location` (optional): Geographical location (can be base64 encoded)
 
 ### Library Albums (Requires Authentication)
 ```
@@ -140,8 +146,8 @@ GET /api/library/albums?cookies={cookies}&location={location}
 ```
 
 **Parameters:**
-- `cookies` (required): Base64 encoded YouTube cookies
-- `location` (optional): Geographical location
+- `cookies` (required): YouTube cookies (can be base64 encoded)
+- `location` (optional): Geographical location (can be base64 encoded)
 
 ### Library Artists (Requires Authentication)
 ```
@@ -149,8 +155,8 @@ GET /api/library/artists?cookies={cookies}&location={location}
 ```
 
 **Parameters:**
-- `cookies` (required): Base64 encoded YouTube cookies
-- `location` (optional): Geographical location
+- `cookies` (required): YouTube cookies (can be base64 encoded)
+- `location` (optional): Geographical location (can be base64 encoded)
 
 ### Library Subscriptions (Requires Authentication)
 ```
@@ -158,8 +164,8 @@ GET /api/library/subscriptions?cookies={cookies}&location={location}
 ```
 
 **Parameters:**
-- `cookies` (required): Base64 encoded YouTube cookies
-- `location` (optional): Geographical location
+- `cookies` (required): YouTube cookies (can be base64 encoded)
+- `location` (optional): Geographical location (can be base64 encoded)
 
 ### Library Podcasts (Requires Authentication)
 ```
@@ -167,8 +173,8 @@ GET /api/library/podcasts?cookies={cookies}&location={location}
 ```
 
 **Parameters:**
-- `cookies` (required): Base64 encoded YouTube cookies
-- `location` (optional): Geographical location
+- `cookies` (required): YouTube cookies (can be base64 encoded)
+- `location` (optional): Geographical location (can be base64 encoded)
 
 ### Library Playlists (Requires Authentication)
 ```
@@ -176,8 +182,8 @@ GET /api/library/playlists?cookies={cookies}&location={location}
 ```
 
 **Parameters:**
-- `cookies` (required): Base64 encoded YouTube cookies
-- `location` (optional): Geographical location
+- `cookies` (required): YouTube cookies (can be base64 encoded)
+- `location` (optional): Geographical location (can be base64 encoded)
 
 ## Setup and Running
 
@@ -283,16 +289,22 @@ For endpoints that require authentication (like accessing premium content or avo
 
 1. Log into YouTube Music in your browser
 2. Extract cookies from your browser's developer tools
-3. Base64 encode the cookie string
+3. (Optional) Base64 encode the cookie string for better security
 4. Configure using one of these methods (in order of priority):
    - **Query Parameter**: Pass as the `cookies` parameter in API requests
    - **AppSettings**: Add to `appsettings.json` under `YouTubeMusic.Cookies`
    - **Environment Variable**: Set the `YTM_COOKIES` environment variable
 
+**Note:** Cookies can be provided as plain text or base64 encoded. The API automatically detects and decodes base64 values.
+
 ### Example Configuration Methods
 
 **Query Parameter:**
 ```bash
+# Plain text cookies
+curl "https://localhost:5001/api/library?cookies=your_cookies_here"
+
+# Base64 encoded cookies (automatically decoded)
 curl "https://localhost:5001/api/library?cookies=your_base64_encoded_cookies"
 ```
 
@@ -300,13 +312,17 @@ curl "https://localhost:5001/api/library?cookies=your_base64_encoded_cookies"
 ```json
 {
     "YouTubeMusic": {
-        "Cookies": "your_base64_encoded_cookies_here"
+        "Cookies": "your_cookies_here"  // Plain text or base64 encoded
     }
 }
 ```
 
 **Environment Variable:**
 ```bash
+# Plain text cookies
+export YTM_COOKIES="your_cookies_here"
+
+# Base64 encoded cookies (automatically decoded)
 export YTM_COOKIES="your_base64_encoded_cookies"
 ```
 
