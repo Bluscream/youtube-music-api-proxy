@@ -129,27 +129,6 @@ public class ConfigurationService : IConfigurationService
     }
 
     /// <summary>
-    /// Gets API key with priority: query parameter > appsettings > environment variable
-    /// </summary>
-    public string? GetApiKey(string? queryApiKey = null)
-    {
-        // Priority 1: Query parameter
-        if (!string.IsNullOrWhiteSpace(queryApiKey))
-        {
-            return queryApiKey;
-        }
-
-        // Priority 2: Appsettings
-        if (!string.IsNullOrWhiteSpace(_config.ApiKey))
-        {
-            return _config.ApiKey;
-        }
-
-        // Priority 3: Environment variable
-        return Environment.GetEnvironmentVariable("YTM_API_KEY");
-    }
-
-    /// <summary>
     /// Gets timeout in seconds with priority: appsettings > environment variable > default
     /// </summary>
     public int GetTimeoutSeconds()

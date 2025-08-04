@@ -42,13 +42,6 @@ public interface IConfigurationService
     string GetUserAgent();
 
     /// <summary>
-    /// Gets API key with priority: query parameter > appsettings > environment variable
-    /// </summary>
-    /// <param name="queryApiKey">API key from query parameter</param>
-    /// <returns>API key string or null if not found</returns>
-    string? GetApiKey(string? queryApiKey = null);
-
-    /// <summary>
     /// Gets timeout in seconds with priority: appsettings > environment variable > default
     /// </summary>
     /// <returns>Timeout in seconds</returns>

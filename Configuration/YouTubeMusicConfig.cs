@@ -31,11 +31,6 @@ public class YouTubeMusicConfig
     public string? UserAgent { get; set; }
 
     /// <summary>
-    /// API key for additional features (from appsettings, environment variable YTM_API_KEY, or query parameter)
-    /// </summary>
-    public string? ApiKey { get; set; }
-
-    /// <summary>
     /// Request timeout in seconds (from appsettings, environment variable YTM_TIMEOUT, defaults to 30)
     /// </summary>
     public int TimeoutSeconds { get; set; } = 30;

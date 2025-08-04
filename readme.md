@@ -32,7 +32,6 @@ You can configure the API using `appsettings.json`:
         "VisitorData": "your_visitor_data_here",
         "PoToken": "your_potoken_here",
         "UserAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "ApiKey": "your_api_key_here",
         "TimeoutSeconds": 30,
         "MaxRetries": 3,
         "Debug": false
@@ -47,7 +46,6 @@ You can configure the API using `appsettings.json`:
 - `YTM_POTOKEN`: Proof of Origin Token for attestation
 - `YTM_GEOGRAPHICAL_LOCATION`: Geographical location (defaults to "US")
 - `YTM_USER_AGENT`: Custom user agent string
-- `YTM_API_KEY`: API key for additional features
 - `YTM_TIMEOUT`: Request timeout in seconds (defaults to 30)
 - `YTM_MAX_RETRIES`: Maximum retry attempts (defaults to 3)
 - `YTM_DEBUG`: Enable debug logging (true/false, defaults to false)
@@ -58,7 +56,6 @@ You can configure the API using `appsettings.json`:
 - `location`: Geographical location (alternative to appsettings/environment variable)
 - `visitorData`: Visitor data (alternative to appsettings/environment variable)
 - `poToken`: Proof of Origin Token (alternative to appsettings/environment variable)
-- `apiKey`: API key (alternative to appsettings/environment variable)
 
 ## API Endpoints
 
