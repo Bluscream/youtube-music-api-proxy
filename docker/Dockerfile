@@ -1,4 +1,4 @@
-# Multi-stage build for YouTube Music API Proxy
+﻿# Multi-stage build for YouTube Music API Proxy
 # Supports: Linux (amd64, arm64), Windows (with Docker Desktop), macOS (with Docker Desktop)
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
