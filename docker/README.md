@@ -40,19 +40,18 @@ This directory contains all Docker-related files for building, running, and publ
    .\build-and-publish-versions.ps1
    ```
 
-2. **Run release version:**
+2. **Run containers manually:**
    ```powershell
-   .\run.ps1
+   # Release version
+   docker run -d -p 8080:8080 --name ytm-api bluscream1/youtube-music-api-proxy:latest
+   
+   # Debug version
+   docker run -d -p 8080:8080 --name ytm-api-debug bluscream1/youtube-music-api-proxy:latest-debug
    ```
 
-3. **Run debug version:**
+3. **Publish to registries:**
    ```powershell
-   .\run.ps1 -ImageName "bluscream1/youtube-music-api-proxy" -Tag "latest-debug"
-   ```
-
-4. **Publish to registries:**
-   ```powershell
-   .\publish.ps1
+   .\build-and-publish-versions.ps1
    ```
 
 ## Files Overview
@@ -62,10 +61,7 @@ This directory contains all Docker-related files for building, running, and publ
 - **`.dockerignore`** - Excludes unnecessary files from Docker build context
 - **`docker-compose.yml`** - Development environment setup
 - **`docker-compose.prod.yml`** - Production environment with resource limits
-- **`build.ps1`** - PowerShell script for building images
-- **`build-and-publish-versions.ps1`** - PowerShell script for building both versions
-- **`run.ps1`** - PowerShell script for running containers
-- **`publish.ps1`** - PowerShell script for publishing to registries
+- **`build-and-publish-versions.ps1`** - PowerShell script for building and publishing both versions
 - **`README.md`** - This comprehensive guide
 
 ## Image Registries
@@ -210,9 +206,30 @@ docker push ghcr.io/bluscream/youtube-music-api-proxy:latest-debug
 .\docker\build-and-publish-versions.ps1
 ```
 
+## Manual Publishing Guide
+
+### Prerequisites
+1. **GitHub Personal Access Token** with `write:packages` permission
+2. **Docker Hub account** (optional, for Docker Hub publishing)
+
+### Publishing Steps
+```bash
+# 1. Login to GitHub Container Registry
+docker login ghcr.io
+# Username: your GitHub username
+# Password: your GitHub Personal Access Token
+
+# 2. Build and tag images
+docker build -t ghcr.io/bluscream/youtube-music-api-proxy:latest -f docker/Dockerfile .
+docker build -t ghcr.io/bluscream/youtube-music-api-proxy:latest-debug -f docker/Dockerfile.debug .
+
+# 3. Push to GitHub Container Registry
+docker push ghcr.io/bluscream/youtube-music-api-proxy:latest
+docker push ghcr.io/bluscream/youtube-music-api-proxy:latest-debug
+```
+
 ## Support
 
 For issues and questions:
 - Check the [main README](../readme.md)
-- Review the [Linux Usage Guide](LINUX_USAGE.md)
-- Check the [Publishing Guide](PUBLISH_GUIDE.md) 
+- Review the comprehensive usage examples above 
