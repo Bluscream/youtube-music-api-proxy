@@ -1,3 +1,8 @@
+// Responsive breakpoints - these values are used throughout the application
+// and are synchronized with CSS custom properties for consistent responsive behavior
+const MOBILE_BREAKPOINT = 768;      // Tablet and mobile devices
+const SMALL_MOBILE_BREAKPOINT = 480; // Small mobile devices (phones)
+
 let currentAudio = null;
 let isPlaying = false;
 let currentSongId = null;
@@ -10,6 +15,25 @@ let isMobileMenuOpen = false;
 
 // Default title for the application
 const DEFAULT_TITLE = 'YouTube Music';
+
+// Helper functions for responsive design
+function getWindowWidth() {
+    return window.innerWidth;
+}
+
+function isMobile() {
+    return getWindowWidth() <= MOBILE_BREAKPOINT;
+}
+
+function isSmallMobile() {
+    return getWindowWidth() <= SMALL_MOBILE_BREAKPOINT;
+}
+
+// Update CSS variables to match JavaScript constants
+function updateCSSBreakpoints() {
+    document.documentElement.style.setProperty('--mobile-breakpoint', `${MOBILE_BREAKPOINT}px`);
+    document.documentElement.style.setProperty('--small-mobile-breakpoint', `${SMALL_MOBILE_BREAKPOINT}px`);
+}
 
 // Notification System
 let notificationCounter = 0;
@@ -440,7 +464,7 @@ function updateActiveNavItem(clickedItem) {
     clickedItem.classList.add('active');
     
     // Close mobile menu after navigation
-    if (window.innerWidth <= 768 && isMobileMenuOpen) {
+    if (isMobile() && isMobileMenuOpen) {
         toggleMobileMenu();
     }
 }
@@ -549,7 +573,7 @@ function displayPlaylistsInSidebar() {
 
 async function loadPlaylist(playlistId, playlistTitle) {
     // Close mobile menu after playlist selection
-    if (window.innerWidth <= 768 && isMobileMenuOpen) {
+    if (isMobile() && isMobileMenuOpen) {
         toggleMobileMenu();
     }
     
@@ -723,7 +747,7 @@ function displayLibraryContent(libraryData) {
 
 async function loadAlbum(browseId, albumTitle) {
     // Close mobile menu after album selection
-    if (window.innerWidth <= 768 && isMobileMenuOpen) {
+    if (isMobile() && isMobileMenuOpen) {
         toggleMobileMenu();
     }
     
@@ -747,7 +771,7 @@ async function loadAlbum(browseId, albumTitle) {
 
 async function loadArtist(browseId, artistName) {
     // Close mobile menu after artist selection
-    if (window.innerWidth <= 768 && isMobileMenuOpen) {
+    if (isMobile() && isMobileMenuOpen) {
         toggleMobileMenu();
     }
     
@@ -872,9 +896,9 @@ function toggleAutoPlay() {
 function toggleMobileMenu() {
     const sidebar = document.getElementById('sidebar');
     const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-    
+
     isMobileMenuOpen = !isMobileMenuOpen;
-    
+
     if (isMobileMenuOpen) {
         sidebar.classList.remove('collapsed');
         mobileMenuToggle.textContent = '✕';
@@ -885,25 +909,26 @@ function toggleMobileMenu() {
 }
 
 // Close mobile menu when clicking outside
-document.addEventListener('click', function(event) {
+document.addEventListener('click', function (event) {
     const sidebar = document.getElementById('sidebar');
     const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-    
-    if (isMobileMenuOpen && 
-        !sidebar.contains(event.target) && 
+
+    if (isMobileMenuOpen &&
+        !sidebar.contains(event.target) &&
         !mobileMenuToggle.contains(event.target)) {
         toggleMobileMenu();
     }
 });
 
 // Close mobile menu when window is resized to desktop
-window.addEventListener('resize', function() {
-    if (window.innerWidth > 768 && isMobileMenuOpen) {
+window.addEventListener('resize', function () {
+    if (!isMobile() && isMobileMenuOpen) {
         toggleMobileMenu();
     }
 });
 
 // Initialize
+updateCSSBreakpoints();
 loadHome();
 loadPlaylists();
 initVolumeSlider(); 

@@ -10,6 +10,11 @@
     <link rel="apple-touch-icon" href="/favicon.ico">
     <meta name="msapplication-TileImage" content="/favicon.ico">
     <style>
+        :root {
+            --mobile-breakpoint: 768px;
+            --small-mobile-breakpoint: 480px;
+        }
+        
         * {
             margin: 0;
             padding: 0;
@@ -655,7 +660,7 @@
             background-color: #333;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: var(--mobile-breakpoint)) {
             .sidebar {
                 width: 200px;
             }
@@ -685,7 +690,7 @@
         }
 
         /* Mobile Responsive Design */
-        @media (max-width: 768px) {
+        @media (max-width: var(--mobile-breakpoint)) {
             body {
                 flex-direction: column;
             }
@@ -847,7 +852,7 @@
             }
         }
 
-        @media (max-width: 480px) {
+        @media (max-width: var(--small-mobile-breakpoint)) {
             .content-area {
                 padding: 12px;
             }
@@ -902,7 +907,8 @@
         }
 
         /* Ensure proper touch targets on mobile */
-        @media (max-width: 768px) {
+        @media (max-width: var(--mobile-breakpoint)) {
+
             .nav-item,
             .control-button,
             .library-item,
@@ -914,17 +920,17 @@
             .search-input {
                 min-height: 44px;
             }
-            
+
             /* Improve touch scrolling */
             .content-area {
                 -webkit-overflow-scrolling: touch;
             }
-            
+
             /* Prevent zoom on input focus */
             .search-input {
                 font-size: 16px;
             }
-            
+
             /* Better touch feedback */
             .result-card:active,
             .library-item:active,
@@ -933,126 +939,127 @@
                 transform: scale(0.98);
                 transition: transform 0.1s;
             }
-            
+
             /* Improve button touch targets */
             .control-button {
                 min-width: 44px;
                 min-height: 44px;
             }
         }
-        
+
         /* Additional mobile optimizations */
-        @media (max-width: 480px) {
+        @media (max-width: var(--small-mobile-breakpoint)) {
+
             /* Reduce padding for very small screens */
             .content-area {
                 padding: 8px;
             }
-            
+
             .header {
                 padding: 12px 16px;
             }
-            
+
             /* Stack player controls vertically on very small screens */
             .player-bar {
                 padding: 12px;
             }
-            
+
             .control-buttons {
                 gap: 12px;
             }
-            
+
             /* Make search results single column on very small screens */
             .search-results {
                 grid-template-columns: 1fr;
             }
-            
+
             /* Reduce font sizes for better fit */
             .welcome-title {
                 font-size: 18px;
             }
-            
+
             .welcome-subtitle {
                 font-size: 12px;
             }
-            
+
             /* Optimize library grid for very small screens */
             .library-grid {
                 gap: 12px;
             }
-            
+
             /* Make library items more compact */
             .library-item {
                 padding: 6px 8px;
             }
-            
+
             .library-item-thumbnail {
                 width: 32px;
                 height: 32px;
             }
-            
+
             /* Optimize playlist items */
             .playlist-song-item {
                 padding: 8px;
                 gap: 8px;
             }
-            
+
             .playlist-song-thumbnail {
                 width: 32px;
                 height: 32px;
             }
-            
+
             /* Hide some elements on very small screens */
             .volume-controls {
                 display: none;
             }
-            
+
             /* Make notifications more compact */
             .notification {
                 padding: 8px;
                 min-width: auto;
             }
-            
+
             .notification-title {
                 font-size: 12px;
             }
-            
+
             .notification-message {
                 font-size: 10px;
             }
         }
-        
+
         /* Landscape orientation optimizations for mobile */
-        @media (max-width: 768px) and (orientation: landscape) {
+        @media (max-width: var(--mobile-breakpoint)) and (orientation: landscape) {
             .sidebar {
                 height: 60px;
                 overflow: hidden;
             }
-            
+
             .sidebar .nav-section {
                 display: none;
             }
-            
+
             .sidebar .logo {
                 padding: 10px 24px;
                 font-size: 18px;
                 margin-bottom: 0;
             }
-            
+
             .main-content {
                 padding-bottom: 80px;
             }
-            
+
             .player-bar {
                 height: 60px;
                 padding: 8px 16px;
                 flex-direction: row;
                 gap: 16px;
             }
-            
+
             .now-playing {
                 width: 200px;
             }
-            
+
             .control-buttons {
                 gap: 16px;
             }
