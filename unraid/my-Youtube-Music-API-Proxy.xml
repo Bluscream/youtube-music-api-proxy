@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <Container version="2">
   <Name>YouTube Music API Proxy</Name>
-  <Repository>bluscream1/youtube-music-api-proxy-1</Repository>
+  <Repository>bluscream1/youtube-music-api-proxy</Repository>
   <Registry>https://hub.docker.com/r/bluscream1/youtube-music-api-proxy</Registry>
   <Network>bridge</Network>
   <Privileged>false</Privileged>
