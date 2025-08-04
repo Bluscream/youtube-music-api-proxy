@@ -3,6 +3,24 @@ let isPlaying = false;
 let currentSongId = null;
 let playlists = [];
 
+// Get all query parameters from the current URL
+function getQueryParams() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const params = {};
+    for (const [key, value] of urlParams) {
+        params[key] = value;
+    }
+    return params;
+}
+
+// Convert query parameters to URL string
+function buildQueryString(params) {
+    return Object.keys(params)
+        .filter(key => params[key] !== null && params[key] !== undefined && params[key] !== '')
+        .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
+        .join('&');
+}
+
 function handleSearch(event) {
     if (event.key === 'Enter') {
         const query = event.target.value.trim();
@@ -15,7 +33,11 @@ function handleSearch(event) {
 async function performSearch(query) {
     showLoading();
     try {
-        const response = await fetch(`/api/search?query=${encodeURIComponent(query)}`);
+        const queryParams = getQueryParams();
+        queryParams.query = query;
+        const queryString = buildQueryString(queryParams);
+
+        const response = await fetch(`/api/search?${queryString}`);
         const data = await response.json();
 
         if (response.ok) {
@@ -42,14 +64,18 @@ function displaySearchResults(results) {
     container.innerHTML = results.map(result => {
         // Get the correct ID based on result type
         let songId = result.id || result.browseId || '';
-        let title = result.title || result.name || '';
+        let title = result.title || result.name || 'Unknown Title';
         let artist = result.artist || result.author || '';
 
         // Only show playable items (songs and videos)
         const isPlayable = result.type === 'SongSearchResult' || result.type === 'VideoSearchResult';
 
+        // Safely escape quotes for onclick
+        const safeTitle = title.replace(/'/g, "\\'");
+        const safeArtist = artist.replace(/'/g, "\\'");
+
         return `
-            <div class="result-card" ${isPlayable ? `onclick="playSong('${songId}', '${title.replace(/'/g, "\\'")}', '${artist.replace(/'/g, "\\'")}')"` : ''}>
+            <div class="result-card" ${isPlayable ? `onclick="playSong('${songId}', '${safeTitle}', '${safeArtist}')"` : ''}>
                 <div class="result-thumbnail">
                     ${result.thumbnail ? `<img src="${result.thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
                 </div>
@@ -74,7 +100,11 @@ async function playSong(songId, title, artist) {
     isPlaying = true;
 
     try {
-        const audio = new Audio(`/api/stream/${songId}`);
+        const queryParams = getQueryParams();
+        const queryString = buildQueryString(queryParams);
+        const audioUrl = `/api/stream/${songId}?${queryString}`;
+        
+        const audio = new Audio(audioUrl);
         audio.addEventListener('loadeddata', () => {
             audio.play();
         });
@@ -153,13 +183,17 @@ function updateActiveNavItem(clickedItem) {
     clickedItem.classList.add('active');
 }
 
-function loadLibrary() {
-    updateActiveNavItem(event.target.closest('.nav-item'));
+function loadLibrary(event) {
+    if (event && event.target) {
+        updateActiveNavItem(event.target.closest('.nav-item'));
+    }
     loadLibraryData();
 }
 
-function loadHome() {
-    updateActiveNavItem(event.target.closest('.nav-item'));
+function loadHome(event) {
+    if (event && event.target) {
+        updateActiveNavItem(event.target.closest('.nav-item'));
+    }
     document.querySelector('.welcome-section').style.display = 'block';
     document.getElementById('searchResults').style.display = 'none';
     document.getElementById('libraryContent').style.display = 'none';
@@ -167,8 +201,10 @@ function loadHome() {
     document.getElementById('error').style.display = 'none';
 }
 
-function loadExplore() {
-    updateActiveNavItem(event.target.closest('.nav-item'));
+function loadExplore(event) {
+    if (event && event.target) {
+        updateActiveNavItem(event.target.closest('.nav-item'));
+    }
     // TODO: Implement explore loading
     document.querySelector('.welcome-section').style.display = 'block';
     document.getElementById('searchResults').style.display = 'none';
@@ -180,7 +216,10 @@ function loadExplore() {
 async function loadLibraryData() {
     showLoading();
     try {
-        const response = await fetch('/api/library');
+        const queryParams = getQueryParams();
+        const queryString = buildQueryString(queryParams);
+
+        const response = await fetch(`/api/library?${queryString}`);
         if (response.ok) {
             const data = await response.json();
             displayLibraryContent(data);
@@ -195,7 +234,10 @@ async function loadLibraryData() {
 
 async function loadPlaylists() {
     try {
-        const response = await fetch('/api/library/playlists');
+        const queryParams = getQueryParams();
+        const queryString = buildQueryString(queryParams);
+
+        const response = await fetch(`/api/library/playlists?${queryString}`);
         if (response.ok) {
             const data = await response.json();
             playlists = data.playlists || [];
@@ -212,15 +254,20 @@ function displayPlaylistsInSidebar() {
 
     if (playlists.length > 0) {
         playlistsSection.style.display = 'block';
-        playlistsList.innerHTML = playlists.map(playlist => `
-            <div class="playlist-item" onclick="loadPlaylist('${playlist.id}', '${playlist.title.replace(/'/g, "\\'")}')">
-                <div class="playlist-icon">📋</div>
-                <div style="flex: 1; overflow: hidden;">
-                    <div style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${playlist.title}</div>
-                    <div style="font-size: 12px; color: #666;">${playlist.songCount || 0} songs</div>
+        playlistsList.innerHTML = playlists.map(playlist => {
+            const title = playlist.title || 'Unknown Playlist';
+            const safeTitle = title.replace(/'/g, "\\'");
+
+            return `
+                <div class="playlist-item" onclick="loadPlaylist('${playlist.id || ''}', '${safeTitle}')">
+                    <div class="playlist-icon">📋</div>
+                    <div style="flex: 1; overflow: hidden;">
+                        <div style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${title}</div>
+                        <div style="font-size: 12px; color: #666;">${playlist.songCount || 0} songs</div>
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     } else {
         playlistsSection.style.display = 'none';
     }
@@ -229,7 +276,10 @@ function displayPlaylistsInSidebar() {
 async function loadPlaylist(playlistId, playlistTitle) {
     showLoading();
     try {
-        const response = await fetch(`/api/playlist/${playlistId}`);
+        const queryParams = getQueryParams();
+        const queryString = buildQueryString(queryParams);
+        
+        const response = await fetch(`/api/playlist/${playlistId}?${queryString}`);
         if (response.ok) {
             const data = await response.json();
             displayPlaylistContent(data, playlistTitle);
@@ -261,15 +311,22 @@ function displayPlaylistContent(playlistData, playlistTitle) {
 
     // Add playlist songs
     if (playlistData.songs && playlistData.songs.length > 0) {
-        container.innerHTML += playlistData.songs.map(song => `
-            <div class="result-card" onclick="playSong('${song.id}', '${song.title.replace(/'/g, "\\'")}', '${song.artist?.replace(/'/g, "\\'") || ''}')">
-                <div class="result-thumbnail">
-                    ${song.thumbnail ? `<img src="${song.thumbnail}" alt="${song.title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
+        container.innerHTML += playlistData.songs.map(song => {
+            const title = song.title || 'Unknown Title';
+            const artist = song.artist || '';
+            const safeTitle = title.replace(/'/g, "\\'");
+            const safeArtist = artist.replace(/'/g, "\\'");
+
+            return `
+                <div class="result-card" onclick="playSong('${song.id || ''}', '${safeTitle}', '${safeArtist}')">
+                    <div class="result-thumbnail">
+                        ${song.thumbnail ? `<img src="${song.thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
+                    </div>
+                    <div class="result-title">${title}</div>
+                    <div class="result-artist">${artist}</div>
                 </div>
-                <div class="result-title">${song.title}</div>
-                <div class="result-artist">${song.artist || ''}</div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     } else {
         container.innerHTML += '<div style="grid-column: 1 / -1; text-align: center; color: #b3b3b3;">No songs in this playlist</div>';
     }
@@ -289,17 +346,24 @@ function displayLibraryContent(libraryData) {
     // Display songs
     const songsContainer = document.getElementById('librarySongs');
     if (libraryData.songs && libraryData.songs.length > 0) {
-        songsContainer.innerHTML = libraryData.songs.slice(0, 10).map(song => `
-            <div class="library-item" onclick="playSong('${song.id}', '${song.title.replace(/'/g, "\\'")}', '${song.artist?.replace(/'/g, "\\'") || ''}')">
-                <div class="library-item-thumbnail">
-                    ${song.thumbnail ? `<img src="${song.thumbnail}" alt="${song.title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
+        songsContainer.innerHTML = libraryData.songs.slice(0, 10).map(song => {
+            const title = song.title || 'Unknown Title';
+            const artist = song.artist || '';
+            const safeTitle = title.replace(/'/g, "\\'");
+            const safeArtist = artist.replace(/'/g, "\\'");
+
+            return `
+                <div class="library-item" onclick="playSong('${song.id || ''}', '${safeTitle}', '${safeArtist}')">
+                    <div class="library-item-thumbnail">
+                        ${song.thumbnail ? `<img src="${song.thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
+                    </div>
+                    <div class="library-item-info">
+                        <div class="library-item-title">${title}</div>
+                        <div class="library-item-subtitle">${artist}</div>
+                    </div>
                 </div>
-                <div class="library-item-info">
-                    <div class="library-item-title">${song.title}</div>
-                    <div class="library-item-subtitle">${song.artist || ''}</div>
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     } else {
         songsContainer.innerHTML = '<div style="color: #666; font-style: italic;">No songs in library</div>';
     }
@@ -307,17 +371,23 @@ function displayLibraryContent(libraryData) {
     // Display albums
     const albumsContainer = document.getElementById('libraryAlbums');
     if (libraryData.albums && libraryData.albums.length > 0) {
-        albumsContainer.innerHTML = libraryData.albums.slice(0, 10).map(album => `
-            <div class="library-item" onclick="loadAlbum('${album.browseId}', '${album.title.replace(/'/g, "\\'")}')">
-                <div class="library-item-thumbnail">
-                    ${album.thumbnail ? `<img src="${album.thumbnail}" alt="${album.title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '💿'}
+        albumsContainer.innerHTML = libraryData.albums.slice(0, 10).map(album => {
+            const title = album.title || 'Unknown Album';
+            const artist = album.artist || '';
+            const safeTitle = title.replace(/'/g, "\\'");
+
+            return `
+                <div class="library-item" onclick="loadAlbum('${album.browseId || ''}', '${safeTitle}')">
+                    <div class="library-item-thumbnail">
+                        ${album.thumbnail ? `<img src="${album.thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '💿'}
+                    </div>
+                    <div class="library-item-info">
+                        <div class="library-item-title">${title}</div>
+                        <div class="library-item-subtitle">${artist}</div>
+                    </div>
                 </div>
-                <div class="library-item-info">
-                    <div class="library-item-title">${album.title}</div>
-                    <div class="library-item-subtitle">${album.artist || ''}</div>
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     } else {
         albumsContainer.innerHTML = '<div style="color: #666; font-style: italic;">No albums in library</div>';
     }
@@ -325,17 +395,23 @@ function displayLibraryContent(libraryData) {
     // Display artists
     const artistsContainer = document.getElementById('libraryArtists');
     if (libraryData.artists && libraryData.artists.length > 0) {
-        artistsContainer.innerHTML = libraryData.artists.slice(0, 10).map(artist => `
-            <div class="library-item" onclick="loadArtist('${artist.browseId}', '${artist.name.replace(/'/g, "\\'")}')">
-                <div class="library-item-thumbnail">
-                    ${artist.thumbnail ? `<img src="${artist.thumbnail}" alt="${artist.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '👤'}
+        artistsContainer.innerHTML = libraryData.artists.slice(0, 10).map(artist => {
+            const name = artist.name || 'Unknown Artist';
+            const subscribers = artist.subscribers || '';
+            const safeName = name.replace(/'/g, "\\'");
+
+            return `
+                <div class="library-item" onclick="loadArtist('${artist.browseId || ''}', '${safeName}')">
+                    <div class="library-item-thumbnail">
+                        ${artist.thumbnail ? `<img src="${artist.thumbnail}" alt="${name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '👤'}
+                    </div>
+                    <div class="library-item-info">
+                        <div class="library-item-title">${name}</div>
+                        <div class="library-item-subtitle">${subscribers}</div>
+                    </div>
                 </div>
-                <div class="library-item-info">
-                    <div class="library-item-title">${artist.name}</div>
-                    <div class="library-item-subtitle">${artist.subscribers || ''}</div>
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     } else {
         artistsContainer.innerHTML = '<div style="color: #666; font-style: italic;">No artists in library</div>';
     }
@@ -344,7 +420,10 @@ function displayLibraryContent(libraryData) {
 async function loadAlbum(browseId, albumTitle) {
     showLoading();
     try {
-        const response = await fetch(`/api/album/${browseId}`);
+        const queryParams = getQueryParams();
+        const queryString = buildQueryString(queryParams);
+        
+        const response = await fetch(`/api/album/${browseId}?${queryString}`);
         if (response.ok) {
             const data = await response.json();
             displayAlbumContent(data, albumTitle);
@@ -360,7 +439,10 @@ async function loadAlbum(browseId, albumTitle) {
 async function loadArtist(browseId, artistName) {
     showLoading();
     try {
-        const response = await fetch(`/api/artist/${browseId}`);
+        const queryParams = getQueryParams();
+        const queryString = buildQueryString(queryParams);
+        
+        const response = await fetch(`/api/artist/${browseId}?${queryString}`);
         if (response.ok) {
             const data = await response.json();
             displayArtistContent(data, artistName);
@@ -392,15 +474,22 @@ function displayAlbumContent(albumData, albumTitle) {
 
     // Add album songs
     if (albumData.songs && albumData.songs.length > 0) {
-        container.innerHTML += albumData.songs.map(song => `
-            <div class="result-card" onclick="playSong('${song.id}', '${song.title.replace(/'/g, "\\'")}', '${song.artist?.replace(/'/g, "\\'") || ''}')">
-                <div class="result-thumbnail">
-                    ${song.thumbnail ? `<img src="${song.thumbnail}" alt="${song.title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
+        container.innerHTML += albumData.songs.map(song => {
+            const title = song.title || 'Unknown Title';
+            const artist = song.artist || '';
+            const safeTitle = title.replace(/'/g, "\\'");
+            const safeArtist = artist.replace(/'/g, "\\'");
+
+            return `
+                <div class="result-card" onclick="playSong('${song.id || ''}', '${safeTitle}', '${safeArtist}')">
+                    <div class="result-thumbnail">
+                        ${song.thumbnail ? `<img src="${song.thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
+                    </div>
+                    <div class="result-title">${title}</div>
+                    <div class="result-artist">${artist}</div>
                 </div>
-                <div class="result-title">${song.title}</div>
-                <div class="result-artist">${song.artist || ''}</div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     } else {
         container.innerHTML += '<div style="grid-column: 1 / -1; text-align: center; color: #b3b3b3;">No songs in this album</div>';
     }
@@ -425,15 +514,22 @@ function displayArtistContent(artistData, artistName) {
 
     // Add artist songs
     if (artistData.songs && artistData.songs.length > 0) {
-        container.innerHTML += artistData.songs.map(song => `
-            <div class="result-card" onclick="playSong('${song.id}', '${song.title.replace(/'/g, "\\'")}', '${song.artist?.replace(/'/g, "\\'") || ''}')">
-                <div class="result-thumbnail">
-                    ${song.thumbnail ? `<img src="${song.thumbnail}" alt="${song.title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
+        container.innerHTML += artistData.songs.map(song => {
+            const title = song.title || 'Unknown Title';
+            const artist = song.artist || '';
+            const safeTitle = title.replace(/'/g, "\\'");
+            const safeArtist = artist.replace(/'/g, "\\'");
+
+            return `
+                <div class="result-card" onclick="playSong('${song.id || ''}', '${safeTitle}', '${safeArtist}')">
+                    <div class="result-thumbnail">
+                        ${song.thumbnail ? `<img src="${song.thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
+                    </div>
+                    <div class="result-title">${title}</div>
+                    <div class="result-artist">${artist}</div>
                 </div>
-                <div class="result-title">${song.title}</div>
-                <div class="result-artist">${song.artist || ''}</div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     } else {
         container.innerHTML += '<div style="grid-column: 1 / -1; text-align: center; color: #b3b3b3;">No songs by this artist</div>';
     }
