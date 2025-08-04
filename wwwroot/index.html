@@ -19,16 +19,29 @@
 </head>
 
 <body>
+    <!-- Sidebar toggle buttons outside sidebar for proper positioning -->
+    <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Toggle sidebar">◀</button>
+    <button class="mobile-menu-toggle" id="mobileMenuToggle" onclick="toggleSidebar()">☰</button>
+
     <div class="sidebar" id="sidebar">
-        <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Toggle sidebar">◀</button>
-        <button class="mobile-menu-toggle" id="mobileMenuToggle" onclick="toggleSidebar()">☰</button>
         <div class="logo">YouTube Music</div>
 
         <div class="nav-section">
-            <div class="nav-title">Library</div>
             <div class="nav-item active" onclick="loadLibrary(event)">
                 <div class="nav-icon">📚</div>
                 <span>Library</span>
+            </div>
+            <div class="nav-item" onclick="loadSongs(event)">
+                <div class="nav-icon">🎵</div>
+                <span>Songs</span>
+            </div>
+            <div class="nav-item" onclick="loadArtists(event)">
+                <div class="nav-icon">👤</div>
+                <span>Artists</span>
+            </div>
+            <div class="nav-item" onclick="loadAlbums(event)">
+                <div class="nav-icon">💿</div>
+                <span>Albums</span>
             </div>
         </div>
 
