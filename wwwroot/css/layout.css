@@ -64,6 +64,10 @@
     background-color: #0f0f0f;
     padding-bottom: 90px;
     /* Add padding to account for fixed player bar */
+    min-width: 0;
+    /* Allow content to shrink */
+    overflow-x: hidden;
+    /* Prevent horizontal scroll */
 }
 
 .header {
@@ -76,12 +80,18 @@
     position: sticky;
     top: 0;
     z-index: 100;
+    min-width: 0;
+    /* Allow header to shrink */
 }
 
 .content-area {
     flex: 1;
     padding: 24px;
     overflow-y: auto;
+    overflow-x: hidden;
+    /* Prevent horizontal scroll */
+    min-width: 0;
+    /* Allow content to shrink */
 }
 
 .welcome-section {

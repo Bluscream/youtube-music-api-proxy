@@ -81,6 +81,7 @@
 
     .main-content {
         padding-bottom: 120px;
+        /* Ensure proper spacing for mobile player bar */
     }
 
     .header {
@@ -102,6 +103,9 @@
 
     .content-area {
         padding: 16px;
+        /* Ensure content doesn't overflow */
+        max-width: 100%;
+        box-sizing: border-box;
     }
 
     .welcome-title {
@@ -115,10 +119,16 @@
     .search-results {
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
         gap: 12px;
+        /* Ensure grid doesn't overflow */
+        max-width: 100%;
+        box-sizing: border-box;
     }
 
     .result-card {
         padding: 12px;
+        /* Ensure cards don't overflow */
+        max-width: 100%;
+        box-sizing: border-box;
     }
 
     .result-thumbnail {
@@ -138,34 +148,102 @@
         font-size: 16px;
     }
 
+    /* Improved Player Bar for Mobile */
     .player-bar {
         height: auto;
+        min-height: 100px;
         left: 0;
-        padding: 16px;
+        padding: 12px 16px;
         flex-direction: column;
-        gap: 16px;
+        gap: 12px;
+        border-top: 1px solid #282828;
+        /* Ensure player bar doesn't overflow */
+        max-width: 100%;
+        box-sizing: border-box;
     }
 
     .now-playing {
         width: 100%;
-        justify-content: center;
+        justify-content: flex-start;
+        order: 1;
+    }
+
+    .now-playing-thumbnail {
+        width: 48px;
+        height: 48px;
+        margin-right: 12px;
+        flex-shrink: 0;
+    }
+
+    .now-playing-info {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .now-playing-title {
+        font-size: 14px;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 2px;
+    }
+
+    .now-playing-artist {
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .player-controls {
         width: 100%;
+        order: 2;
     }
 
     .control-buttons {
-        gap: 24px;
+        gap: 20px;
+        margin-bottom: 8px;
+        justify-content: center;
+    }
+
+    .control-button {
+        min-width: 48px;
+        min-height: 48px;
+        font-size: 20px;
+        padding: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .play-button {
+        font-size: 28px;
+        min-width: 56px;
+        min-height: 56px;
     }
 
     .progress-bar {
         max-width: none;
+        height: 6px;
+        margin: 0 8px;
     }
 
     .volume-controls {
         width: 100%;
         justify-content: center;
+        order: 3;
+        gap: 12px;
+    }
+
+    .volume-slider {
+        height: 6px;
+        max-width: 120px;
+    }
+
+    .volume-thumb {
+        width: 16px;
+        height: 16px;
     }
 
     .playlist-song-item {
@@ -213,30 +291,73 @@
         height: 80px;
     }
 
-    .control-buttons {
-        gap: 16px;
+    /* Enhanced Small Mobile Player Bar */
+    .player-bar {
+        min-height: 90px;
+        padding: 8px 12px;
+        gap: 8px;
     }
 
-    .control-button {
-        font-size: 20px;
-        padding: 6px;
-    }
-
-    .play-button {
-        font-size: 28px;
+    .now-playing {
+        order: 1;
     }
 
     .now-playing-thumbnail {
-        width: 48px;
-        height: 48px;
+        width: 40px;
+        height: 40px;
+        margin-right: 8px;
     }
 
     .now-playing-title {
-        font-size: 12px;
+        font-size: 13px;
+        line-height: 1.2;
     }
 
     .now-playing-artist {
-        font-size: 10px;
+        font-size: 11px;
+        line-height: 1.2;
+    }
+
+    .player-controls {
+        order: 2;
+    }
+
+    .control-buttons {
+        gap: 16px;
+        margin-bottom: 6px;
+    }
+
+    .control-button {
+        min-width: 44px;
+        min-height: 44px;
+        font-size: 18px;
+        padding: 10px;
+    }
+
+    .play-button {
+        font-size: 24px;
+        min-width: 52px;
+        min-height: 52px;
+    }
+
+    .progress-bar {
+        height: 5px;
+        margin: 0 4px;
+    }
+
+    .volume-controls {
+        order: 3;
+        gap: 8px;
+    }
+
+    .volume-slider {
+        max-width: 100px;
+        height: 5px;
+    }
+
+    .volume-thumb {
+        width: 14px;
+        height: 14px;
     }
 }
 
@@ -279,6 +400,17 @@
         min-width: 44px;
         min-height: 44px;
     }
+
+    /* Enhanced touch feedback for player controls */
+    .control-button:active {
+        background-color: #404040;
+        transform: scale(0.95);
+    }
+
+    .progress-bar:active,
+    .volume-slider:active {
+        opacity: 0.8;
+    }
 }
 
 /* Additional mobile optimizations */
@@ -295,7 +427,7 @@
 
     /* Stack player controls vertically on very small screens */
     .player-bar {
-        padding: 12px;
+        padding: 8px;
     }
 
     .control-buttons {
@@ -342,7 +474,7 @@
         height: 32px;
     }
 
-    /* Hide some elements on very small screens */
+    /* Hide volume controls on very small screens to save space */
     .volume-controls {
         display: none;
     }
@@ -383,18 +515,117 @@
         padding-bottom: 80px;
     }
 
+    /* Landscape Player Bar - More compact horizontal layout */
     .player-bar {
         height: 60px;
         padding: 8px 16px;
         flex-direction: row;
         gap: 16px;
+        align-items: center;
     }
 
     .now-playing {
         width: 200px;
+        order: 1;
+    }
+
+    .now-playing-thumbnail {
+        width: 44px;
+        height: 44px;
+        margin-right: 10px;
+    }
+
+    .now-playing-title {
+        font-size: 13px;
+    }
+
+    .now-playing-artist {
+        font-size: 11px;
+    }
+
+    .player-controls {
+        order: 2;
+        flex: 1;
     }
 
     .control-buttons {
         gap: 16px;
+        margin-bottom: 4px;
+    }
+
+    .control-button {
+        min-width: 40px;
+        min-height: 40px;
+        font-size: 18px;
+        padding: 8px;
+    }
+
+    .play-button {
+        font-size: 22px;
+        min-width: 48px;
+        min-height: 48px;
+    }
+
+    .progress-bar {
+        height: 4px;
+        margin: 0 8px;
+    }
+
+    .volume-controls {
+        order: 3;
+        width: 120px;
+    }
+
+    .volume-slider {
+        max-width: 80px;
+        height: 4px;
+    }
+
+    .volume-thumb {
+        width: 12px;
+        height: 12px;
+    }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 360px) {
+    .player-bar {
+        padding: 6px 8px;
+        gap: 6px;
+    }
+
+    .now-playing-thumbnail {
+        width: 36px;
+        height: 36px;
+        margin-right: 6px;
+    }
+
+    .now-playing-title {
+        font-size: 12px;
+    }
+
+    .now-playing-artist {
+        font-size: 10px;
+    }
+
+    .control-buttons {
+        gap: 12px;
+    }
+
+    .control-button {
+        min-width: 40px;
+        min-height: 40px;
+        font-size: 16px;
+        padding: 8px;
+    }
+
+    .play-button {
+        font-size: 20px;
+        min-width: 48px;
+        min-height: 48px;
+    }
+
+    .progress-bar {
+        height: 4px;
     }
 }

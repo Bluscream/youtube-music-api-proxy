@@ -2,6 +2,8 @@
     flex: 1;
     max-width: 600px;
     position: relative;
+    min-width: 0;
+    /* Allow container to shrink */
 }
 
 .search-input {
@@ -14,6 +16,8 @@
     color: #ffffff;
     font-size: 16px;
     outline: none;
+    box-sizing: border-box;
+    /* Ensure padding is included in width */
 }
 
 .search-input::placeholder {
@@ -26,6 +30,8 @@
     top: 50%;
     transform: translateY(-50%);
     color: #b3b3b3;
+    z-index: 1;
+    /* Ensure icon stays above input */
 }
 
 .search-results {
@@ -33,6 +39,9 @@
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 16px;
     margin-top: 24px;
+    width: 100%;
+    /* Ensure full width */
+    box-sizing: border-box;
 }
 
 .result-card {
@@ -41,6 +50,8 @@
     padding: 16px;
     cursor: pointer;
     transition: background-color 0.2s;
+    box-sizing: border-box;
+    /* Ensure padding is included in width */
 }
 
 .result-card:hover {
@@ -64,9 +75,13 @@
     font-weight: 500;
     margin-bottom: 4px;
     color: #ffffff;
+    word-wrap: break-word;
+    /* Allow long titles to wrap */
 }
 
 .result-artist {
     font-size: 12px;
     color: #b3b3b3;
+    word-wrap: break-word;
+    /* Allow long artist names to wrap */
 }

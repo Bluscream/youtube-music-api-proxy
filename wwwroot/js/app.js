@@ -35,6 +35,168 @@ function updateCSSBreakpoints() {
     document.documentElement.style.setProperty('--small-mobile-breakpoint', `${SMALL_MOBILE_BREAKPOINT}px`);
 }
 
+// Mobile-specific touch handling
+function addMobileTouchHandlers() {
+    // Add touch feedback for control buttons
+    const controlButtons = document.querySelectorAll('.control-button');
+    controlButtons.forEach(button => {
+        button.addEventListener('touchstart', function (e) {
+            this.style.transform = 'scale(0.95)';
+            this.style.backgroundColor = '#404040';
+        });
+
+        button.addEventListener('touchend', function (e) {
+            this.style.transform = 'scale(1)';
+            this.style.backgroundColor = '';
+        });
+
+        button.addEventListener('touchcancel', function (e) {
+            this.style.transform = 'scale(1)';
+            this.style.backgroundColor = '';
+        });
+    });
+
+    // Improve progress bar touch handling
+    const progressBar = document.querySelector('.progress-bar');
+    if (progressBar) {
+        progressBar.addEventListener('touchstart', function (e) {
+            e.preventDefault();
+            const rect = this.getBoundingClientRect();
+            const touch = e.touches[0];
+            const clickX = touch.clientX - rect.left;
+            const percentage = (clickX / rect.width) * 100;
+
+            if (currentAudio) {
+                const newTime = (percentage / 100) * currentAudio.duration;
+                currentAudio.currentTime = newTime;
+                updateProgressBar();
+            }
+        });
+    }
+
+    // Improve volume slider touch handling
+    const volumeSlider = document.getElementById('volumeSlider');
+    if (volumeSlider) {
+        volumeSlider.addEventListener('touchstart', function (e) {
+            e.preventDefault();
+            const rect = this.getBoundingClientRect();
+            const touch = e.touches[0];
+            const clickX = touch.clientX - rect.left;
+            const percentage = Math.max(0, Math.min(100, (clickX / rect.width) * 100));
+
+            if (currentAudio) {
+                currentAudio.volume = percentage / 100;
+                updateVolumeDisplay();
+            }
+        });
+    }
+}
+
+// Enhanced mobile menu functionality
+function toggleMobileMenu() {
+    const sidebar = document.getElementById('sidebar');
+    const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+
+    isMobileMenuOpen = !isMobileMenuOpen;
+
+    if (isMobileMenuOpen) {
+        sidebar.classList.remove('collapsed');
+        mobileMenuToggle.textContent = '✕';
+        // Add backdrop for mobile menu
+        addMobileMenuBackdrop();
+    } else {
+        sidebar.classList.add('collapsed');
+        mobileMenuToggle.textContent = '☰';
+        removeMobileMenuBackdrop();
+    }
+}
+
+function addMobileMenuBackdrop() {
+    if (!document.getElementById('mobileMenuBackdrop')) {
+        const backdrop = document.createElement('div');
+        backdrop.id = 'mobileMenuBackdrop';
+        backdrop.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 199;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        `;
+        document.body.appendChild(backdrop);
+
+        // Animate backdrop in
+        setTimeout(() => {
+            backdrop.style.opacity = '1';
+        }, 10);
+
+        // Close menu when backdrop is clicked
+        backdrop.addEventListener('click', toggleMobileMenu);
+    }
+}
+
+function removeMobileMenuBackdrop() {
+    const backdrop = document.getElementById('mobileMenuBackdrop');
+    if (backdrop) {
+        backdrop.style.opacity = '0';
+        setTimeout(() => {
+            if (backdrop.parentNode) {
+                backdrop.parentNode.removeChild(backdrop);
+            }
+        }, 300);
+    }
+}
+
+// Enhanced player controls for mobile
+function enhancePlayerControls() {
+    // Add swipe gestures for next/previous on mobile
+    if (isMobile()) {
+        let startX = 0;
+        let startY = 0;
+        let isSwiping = false;
+
+        const playerBar = document.querySelector('.player-bar');
+        if (playerBar) {
+            playerBar.addEventListener('touchstart', function (e) {
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                isSwiping = false;
+            });
+
+            playerBar.addEventListener('touchmove', function (e) {
+                if (!isSwiping) {
+                    const deltaX = Math.abs(e.touches[0].clientX - startX);
+                    const deltaY = Math.abs(e.touches[0].clientY - startY);
+
+                    if (deltaX > deltaY && deltaX > 50) {
+                        isSwiping = true;
+                    }
+                }
+            });
+
+            playerBar.addEventListener('touchend', function (e) {
+                if (isSwiping) {
+                    const deltaX = e.changedTouches[0].clientX - startX;
+                    const minSwipeDistance = 100;
+
+                    if (Math.abs(deltaX) > minSwipeDistance) {
+                        if (deltaX > 0) {
+                            // Swipe right - previous song
+                            playPreviousSong();
+                        } else {
+                            // Swipe left - next song
+                            playNextSong();
+                        }
+                    }
+                }
+            });
+        }
+    }
+}
+
 // Notification System
 let notificationCounter = 0;
 
@@ -892,22 +1054,6 @@ function toggleAutoPlay() {
     }
 }
 
-// Mobile menu functionality
-function toggleMobileMenu() {
-    const sidebar = document.getElementById('sidebar');
-    const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-
-    isMobileMenuOpen = !isMobileMenuOpen;
-
-    if (isMobileMenuOpen) {
-        sidebar.classList.remove('collapsed');
-        mobileMenuToggle.textContent = '✕';
-    } else {
-        sidebar.classList.add('collapsed');
-        mobileMenuToggle.textContent = '☰';
-    }
-}
-
 // Close mobile menu when clicking outside
 document.addEventListener('click', function (event) {
     const sidebar = document.getElementById('sidebar');
@@ -931,4 +1077,8 @@ window.addEventListener('resize', function () {
 updateCSSBreakpoints();
 loadHome();
 loadPlaylists();
-initVolumeSlider(); 
+initVolumeSlider();
+
+// Initialize mobile enhancements
+addMobileTouchHandlers();
+enhancePlayerControls(); 
