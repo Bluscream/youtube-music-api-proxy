@@ -261,7 +261,7 @@ public class YouTubeMusicController : ControllerBase
             
             // Validate and log the audio URL
             var audioUrl = audioStream.Url;
-            _logger.LogDebug("Audio stream URL: {Url}", audioUrl);
+            _logger.LogDebug("Audio stream URL (encoded): {Url}", audioUrl);
             
             if (string.IsNullOrWhiteSpace(audioUrl))
             {
@@ -269,9 +269,21 @@ public class YouTubeMusicController : ControllerBase
                 return StatusCode(500, new ErrorResponse { Error = "Audio stream URL is missing" });
             }
             
+            // Decode the URL if it's percent-encoded
+            try
+            {
+                audioUrl = Uri.UnescapeDataString(audioUrl);
+                _logger.LogDebug("Audio stream URL (decoded): {Url}", audioUrl);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to decode audio stream URL: {Url}", audioUrl);
+                // Continue with the original URL if decoding fails
+            }
+            
             if (!Uri.IsWellFormedUriString(audioUrl, UriKind.Absolute))
             {
-                _logger.LogWarning("Audio stream URL is not absolute: {Url}", audioUrl);
+                _logger.LogWarning("Audio stream URL is not absolute after decoding: {Url}", audioUrl);
                 return StatusCode(500, new ErrorResponse { Error = "Invalid audio stream URL format" });
             }
             
