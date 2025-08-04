@@ -1,7 +1,6 @@
 // Responsive breakpoints - these values are used throughout the application
 // and are synchronized with CSS custom properties for consistent responsive behavior
 const MOBILE_BREAKPOINT = 768;      // Tablet and mobile devices
-const SMALL_MOBILE_BREAKPOINT = 480; // Small mobile devices (phones)
 const SIDEBAR_COLLAPSE_BREAKPOINT = 1024; // Desktop breakpoint for sidebar collapse
 
 let currentAudio = null;
@@ -27,10 +26,6 @@ function isMobile() {
     return getWindowWidth() <= MOBILE_BREAKPOINT;
 }
 
-function isSmallMobile() {
-    return getWindowWidth() <= SMALL_MOBILE_BREAKPOINT;s
-}
-
 function shouldCollapseSidebar() {
     return getWindowWidth() <= SIDEBAR_COLLAPSE_BREAKPOINT;
 }
@@ -38,7 +33,6 @@ function shouldCollapseSidebar() {
 // Update CSS variables to match JavaScript constants
 function updateCSSBreakpoints() {
     document.documentElement.style.setProperty('--mobile-breakpoint', `${MOBILE_BREAKPOINT}px`);
-    document.documentElement.style.setProperty('--small-mobile-breakpoint', `${SMALL_MOBILE_BREAKPOINT}px`);
     document.documentElement.style.setProperty('--sidebar-collapse-breakpoint', `${SIDEBAR_COLLAPSE_BREAKPOINT}px`);
 }
 
