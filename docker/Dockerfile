@@ -8,7 +8,7 @@ ARG BUILD_CONFIGURATION=Release
 
 # Copy csproj and restore dependencies
 COPY ["YoutubeMusicAPIProxy.csproj", "./"]
-RUN dotnet clean
+# RUN dotnet clean
 RUN dotnet restore "YoutubeMusicAPIProxy.csproj"
 
 # Copy everything else and build
@@ -50,9 +50,6 @@ RUN apt-get update && apt-get install -y \
 
 # Copy published app
 COPY --from=publish /app/publish .
-
-# Clean up build artifacts
-RUN dotnet clean
 
 # Create non-root user
 RUN groupadd -r appuser && useradd -r -g appuser appuser
