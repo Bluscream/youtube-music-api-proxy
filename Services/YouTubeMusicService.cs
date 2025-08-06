@@ -344,15 +344,59 @@ public class YouTubeMusicService : IYouTubeMusicService
             if (completedTask == lyricsTask)
             {
                 lyrics = await lyricsTask;
+                
+                // If lyrics service returned null due to client-side errors, create error response
+                if (lyrics == null)
+                {
+                    lyrics = new LyricsApiResponse
+                    {
+                        Success = false,
+                        Error = new LyricsErrorResponse
+                        {
+                            Error = true,
+                            Code = 500,
+                            Reason = $"Lyrics request failed for videoId: {id} - client-side error",
+                            VideoId = id,
+                            Url = $"https://api-lyrics.simpmusic.org/v1/{id}"
+                        }
+                    };
+                    _logger.LogDebug("Lyrics service returned null for videoId: {Id} - creating error response", id);
+                }
             }
             else
             {
-                // Timeout occurred - don't include lyrics in response
+                // Timeout occurred - create error response
+                lyrics = new LyricsApiResponse
+                {
+                    Success = false,
+                    Error = new LyricsErrorResponse
+                    {
+                        Error = true,
+                        Code = 500,
+                        Reason = $"Lyrics response took too long for videoId: {id}",
+                        Timeout = TimeSpan.FromSeconds(1),
+                        VideoId = id,
+                        Url = $"https://api-lyrics.simpmusic.org/v1/{id}"
+                    }
+                };
                 _logger.LogDebug("Lyrics request timed out for videoId: {Id}", id);
             }
         }
         catch (Exception ex)
         {
+            // Exception occurred - create error response
+            lyrics = new LyricsApiResponse
+            {
+                Success = false,
+                Error = new LyricsErrorResponse
+                {
+                    Error = true,
+                    Code = 500,
+                    Reason = $"Lyrics request failed for videoId: {id} - {ex.Message}",
+                    VideoId = id,
+                    Url = $"https://api-lyrics.simpmusic.org/v1/{id}"
+                }
+            };
             _logger.LogWarning(ex, "Error during lyrics fetch for song/video {Id}", id);
         }
 
