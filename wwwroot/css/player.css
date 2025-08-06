@@ -1,0 +1,256 @@
+.player-bar {
+    height: 90px;
+    background-color: #181818;
+    border-top: 1px solid #282828;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    position: fixed;
+    bottom: 0;
+    left: 240px;
+    /* Account for sidebar width */
+    right: 0;
+    z-index: 1000;
+    /* Ensure smooth transitions */
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+    /* Ensure padding is included in width */
+}
+
+.now-playing {
+    display: flex;
+    align-items: center;
+    width: 300px;
+    min-width: 0;
+    /* Allow shrinking */
+    flex-shrink: 0;
+    /* Prevent excessive shrinking */
+}
+
+.now-playing-thumbnail {
+    width: 56px;
+    height: 56px;
+    background-color: #333;
+    border-radius: 4px;
+    margin-right: 12px;
+    flex-shrink: 0;
+    /* Ensure image fits properly */
+    overflow: hidden;
+}
+
+.now-playing-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.now-playing-info {
+    flex: 1;
+    min-width: 0;
+    /* Allow text truncation */
+}
+
+.now-playing-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #ffffff;
+    margin-bottom: 4px;
+    /* Ensure text truncation works */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.now-playing-artist {
+    font-size: 12px;
+    color: #b3b3b3;
+    /* Ensure text truncation works */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.player-controls {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 0;
+    /* Allow shrinking */
+}
+
+.control-buttons {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 8px;
+}
+
+.control-button {
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    /* Ensure proper touch targets */
+    min-width: 40px;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    /* Prevent button shrinking */
+}
+
+.control-button:hover {
+    background-color: #333;
+    transform: scale(1.05);
+}
+
+.control-button:active {
+    transform: scale(0.95);
+    background-color: #404040;
+}
+
+.play-button {
+    font-size: 32px;
+    min-width: 48px;
+    min-height: 48px;
+}
+
+.progress-bar {
+    width: 100%;
+    max-width: 400px;
+    height: 4px;
+    background-color: #4f4f4f;
+    border-radius: 2px;
+    cursor: pointer;
+    position: relative;
+    transition: height 0.2s ease;
+}
+
+.progress-bar:hover {
+    height: 6px;
+}
+
+.progress-fill {
+    height: 100%;
+    background-color: #1db954;
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.1s;
+}
+
+.volume-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 200px;
+    min-width: 0;
+    /* Allow shrinking */
+    flex-shrink: 0;
+    /* Prevent excessive shrinking */
+}
+
+.volume-icon {
+    color: #b3b3b3;
+    font-size: 16px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    flex-shrink: 0;
+    /* Prevent icon shrinking */
+}
+
+.volume-icon:hover {
+    color: #ffffff;
+}
+
+.volume-slider-container {
+    flex: 1;
+    position: relative;
+    min-width: 0;
+    /* Allow shrinking */
+}
+
+.volume-slider {
+    width: 100%;
+    height: 4px;
+    background-color: #4f4f4f;
+    border-radius: 2px;
+    cursor: pointer;
+    position: relative;
+    transition: height 0.2s ease;
+}
+
+.volume-slider:hover {
+    height: 6px;
+}
+
+.volume-fill {
+    height: 100%;
+    background-color: #1db954;
+    border-radius: 2px;
+    width: 50%;
+    transition: width 0.1s;
+}
+
+.volume-thumb {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 12px;
+    height: 12px;
+    background-color: #ffffff;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    opacity: 0;
+}
+
+.volume-slider:hover .volume-thumb {
+    opacity: 1;
+}
+
+/* Mobile-specific player improvements */
+@media (max-width: 768px) {
+    .player-bar {
+        left: 0;
+        padding: 12px 16px;
+    }
+
+    .now-playing {
+        width: auto;
+        flex: 1;
+    }
+
+    .volume-controls {
+        width: auto;
+        flex-shrink: 0;
+    }
+}
+
+/* Ensure proper spacing for mobile */
+@media (max-width: 480px) {
+    .player-bar {
+        padding: 8px 12px;
+    }
+
+    .control-buttons {
+        gap: 12px;
+    }
+
+    .control-button {
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    .play-button {
+        min-width: 52px;
+        min-height: 52px;
+    }
+}
