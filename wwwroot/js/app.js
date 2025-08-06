@@ -99,6 +99,59 @@ function setupMediaKeyListeners() {
     });
 }
 
+// Function to stop all audio elements in the document
+function stopAllAudio() {
+    // Stop the current audio
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+        currentAudio = null;
+    }
+    
+    // Stop all other audio elements that might be playing
+    const allAudioElements = document.querySelectorAll('audio');
+    allAudioElements.forEach(audio => {
+        if (audio !== currentAudio) {
+            audio.pause();
+            audio.currentTime = 0;
+        }
+    });
+    
+    // Stop any video elements that might have audio
+    const allVideoElements = document.querySelectorAll('video');
+    allVideoElements.forEach(video => {
+        if (video.audioTracks && video.audioTracks.length > 0) {
+            video.pause();
+            video.currentTime = 0;
+        }
+    });
+    
+    // Also stop any HTML5 audio elements that might be created dynamically
+    if (window.AudioContext || window.webkitAudioContext) {
+        // Stop any active audio contexts
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioContext.state === 'running') {
+                audioContext.suspend();
+            }
+        } catch (e) {
+            // Ignore errors if audio context is not available
+        }
+    }
+    
+    // Force stop any media elements that might be playing in the background
+    // This handles cases where audio might be playing from other sources
+    const mediaElements = document.querySelectorAll('audio, video');
+    mediaElements.forEach(media => {
+        if (!media.paused) {
+            media.pause();
+            media.currentTime = 0;
+        }
+    });
+    
+    console.log('Stopped all audio playback');
+}
+
 // Function to handle automatic playlist advancement on error
 function handlePlaybackError(title, artist) {
     // Clear any existing error recovery timeout
@@ -652,10 +705,8 @@ async function playSong(songId, title, artist, thumbnail = null, playlistId = nu
         errorRecoveryTimeout = null;
     }
 
-    if (currentAudio) {
-        currentAudio.pause();
-        currentAudio = null;
-    }
+    // Stop all audio playback before starting new song
+    stopAllAudio();
 
     currentSongId = songId;
     currentSongIndex = songIndex;
@@ -1771,6 +1822,14 @@ setupMediaKeyListeners();
 addMobileTouchHandlers();
 enhancePlayerControls();
 
+// Stop any existing audio when page loads
+stopAllAudio();
+
+// Stop audio when page is about to unload
+window.addEventListener('beforeunload', () => {
+    stopAllAudio();
+});
+
 // Add event listeners for navigation items
 document.addEventListener('DOMContentLoaded', function () {
     const libraryNavItem = document.getElementById('libraryNavItem');
@@ -1816,3 +1875,4 @@ window.loadPlaylist = loadPlaylist;
 window.loadAlbum = loadAlbum;
 window.loadArtist = loadArtist;
 window.removeNotification = removeNotification;
+window.stopAllAudio = stopAllAudio;
