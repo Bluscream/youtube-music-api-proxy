@@ -9,7 +9,8 @@
     position: fixed;
     top: 0;
     right: 0;
-    height: 100vh;
+    height: calc(100vh - 90px);
+    /* Reduce height to account for player bar */
     z-index: 150;
     display: flex;
     flex-direction: column;
@@ -17,8 +18,6 @@
     overflow: hidden;
     resize: horizontal;
     overflow-x: hidden;
-    padding-bottom: 90px !important;
-    /* Add padding to prevent player overflow */
 }
 
 .right-sidebar-resize-handle {
@@ -400,7 +399,8 @@
         position: fixed;
         top: 0;
         right: 0;
-        height: 100vh;
+        height: calc(100vh - 90px);
+        /* Reduce height to account for player bar */
         width: 280px;
         transform: translateX(100%);
         z-index: 300;
