@@ -107,7 +107,7 @@ function stopAllAudio() {
         currentAudio.currentTime = 0;
         currentAudio = null;
     }
-    
+
     // Stop all other audio elements that might be playing
     const allAudioElements = document.querySelectorAll('audio');
     allAudioElements.forEach(audio => {
@@ -116,7 +116,7 @@ function stopAllAudio() {
             audio.currentTime = 0;
         }
     });
-    
+
     // Stop any video elements that might have audio
     const allVideoElements = document.querySelectorAll('video');
     allVideoElements.forEach(video => {
@@ -125,7 +125,7 @@ function stopAllAudio() {
             video.currentTime = 0;
         }
     });
-    
+
     // Also stop any HTML5 audio elements that might be created dynamically
     if (window.AudioContext || window.webkitAudioContext) {
         // Stop any active audio contexts
@@ -138,7 +138,7 @@ function stopAllAudio() {
             // Ignore errors if audio context is not available
         }
     }
-    
+
     // Force stop any media elements that might be playing in the background
     // This handles cases where audio might be playing from other sources
     const mediaElements = document.querySelectorAll('audio, video');
@@ -148,7 +148,7 @@ function stopAllAudio() {
             media.currentTime = 0;
         }
     });
-    
+
     console.log('Stopped all audio playback');
 }
 
