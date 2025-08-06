@@ -48,4 +48,12 @@ public static class YouTubeMusicConfigSources
     public static readonly ConfigurationSource<int> TimeoutSeconds = new("YTM_TIMEOUT", 30, false);
     public static readonly ConfigurationSource<int> MaxRetries = new("YTM_MAX_RETRIES", 3, false);
     public static readonly ConfigurationSource<bool> Debug = new("YTM_DEBUG", false, false);
+}
+
+/// <summary>
+/// Static configuration sources for Lyrics API
+/// </summary>
+public static class LyricsConfigSources
+{
+    public static readonly ConfigurationSource<bool> AddToSongResponse = new("LYRICS_ADD_TO_SONG_RESPONSE", true, false);
 } 

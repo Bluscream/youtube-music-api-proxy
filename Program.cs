@@ -1,30 +1,21 @@
 using Microsoft.OpenApi.Models;
 using YoutubeMusicAPIProxy.Services;
 using YoutubeMusicAPIProxy.Configuration;
-using System.Security.Cryptography.X509Certificates;
-using System.Security.Cryptography;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Create self-signed certificate on first start
-var certPath = Path.Combine(AppContext.BaseDirectory, "dev-cert.pfx");
-if (!File.Exists(certPath))
-{
-    CreateSelfSignedCertificate(certPath);
-}
-
-// Configure Kestrel with HTTPS
-builder.WebHost.ConfigureKestrel(serverOptions =>
-{
-    serverOptions.ListenAnyIP(80); // HTTP port
-    serverOptions.ListenAnyIP(443, listenOptions =>
-    {
-        listenOptions.UseHttps(certPath, "dev123");
-    });
-});
+// Configure URLs from configuration
+var httpPort = builder.Configuration.GetValue<int>("HttpPort", 80);
+var httpsPort = builder.Configuration.GetValue<int>("HttpsPort", 443);
+builder.WebHost.UseUrls($"http://localhost:{httpPort}", $"https://localhost:{httpsPort}");
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+    });
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -64,6 +55,7 @@ builder.Services.AddSwaggerGen(c =>
 
 // Add configuration
 builder.Services.Configure<YouTubeMusicConfig>(builder.Configuration.GetSection("YouTubeMusic"));
+builder.Services.Configure<LyricsConfig>(builder.Configuration.GetSection("Lyrics"));
 
 // Add services
 builder.Services.AddScoped<IYouTubeMusicService, YouTubeMusicService>();
@@ -96,27 +88,4 @@ using (var scope = app.Services.CreateScope())
     configService.GetCookies(print: true);
 }
 
-app.Run();
-
-// Method to create self-signed certificate
-static void CreateSelfSignedCertificate(string certPath)
-{
-    try
-    {
-        var distinguishedName = new X500DistinguishedName("CN=localhost");
-        using var rsa = RSA.Create(2048);
-        var request = new CertificateRequest(distinguishedName, rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-        
-        var certificate = request.CreateSelfSigned(DateTimeOffset.Now.AddDays(-1), DateTimeOffset.Now.AddYears(10));
-        
-        var pfxBytes = certificate.Export(X509ContentType.Pfx, "dev123");
-        File.WriteAllBytes(certPath, pfxBytes);
-        
-        Console.WriteLine($"Self-signed certificate created at: {certPath}");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Failed to create self-signed certificate: {ex.Message}");
-        throw;
-    }
-} 
+app.Run(); 

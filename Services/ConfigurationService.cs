@@ -8,8 +8,11 @@ namespace YoutubeMusicAPIProxy.Services;
 /// </summary>
 public class ConfigurationService : BaseConfigurationService, IConfigurationService
 {
-    public ConfigurationService(IOptions<YouTubeMusicConfig> config) : base(config.Value)
+    private readonly LyricsConfig _lyricsConfig;
+
+    public ConfigurationService(IOptions<YouTubeMusicConfig> config, IOptions<LyricsConfig> lyricsConfig) : base(config.Value)
     {
+        _lyricsConfig = lyricsConfig.Value;
     }
 
     /// <summary>
@@ -74,5 +77,13 @@ public class ConfigurationService : BaseConfigurationService, IConfigurationServ
     public bool GetDebug(bool print = false)
     {
         return GetBoolValue(_config.Debug, YouTubeMusicConfigSources.Debug, print);
+    }
+
+    /// <summary>
+    /// Gets whether to add lyrics to song responses with priority: appsettings > environment variable > default
+    /// </summary>
+    public bool GetAddLyricsToSongResponse(bool print = false)
+    {
+        return GetBoolValue(_lyricsConfig.AddToSongResponse, LyricsConfigSources.AddToSongResponse, print);
     }
 } 

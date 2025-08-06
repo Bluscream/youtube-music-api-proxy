@@ -7,6 +7,7 @@ A .NET API wrapper around YouTubeMusicAPI for accessing YouTube Music data and s
 - 🔍 **Search**: Search for songs, videos, albums, artists, and playlists
 - 🎵 **Streaming**: Direct audio streaming from YouTube Music
 - 📚 **Library Access**: Access your personal music library (with authentication)
+- 🎤 **Lyrics Support**: Automatic lyrics fetching for songs (configurable
 - 🔐 **Authentication**: Support for YouTube cookies authentication
 - 🐳 **Docker Support**: Ready-to-use Docker containers
 - 📖 **API Documentation**: Built-in Swagger/OpenAPI documentation
@@ -55,6 +56,8 @@ curl "https://localhost:443/api/search?query=despacito&category=Videos"
 curl "https://localhost:443/api/song/dQw4w9WgXcQ"
 ```
 
+The song information endpoint includes lyrics data by default. You can disable lyrics fetching via configuration.
+
 ### Stream Audio
 ```bash
 curl "https://localhost:443/api/stream/dQw4w9WgXcQ" -o audio.m4a
@@ -73,6 +76,34 @@ curl "https://localhost:443/api/library/playlists?cookies=$COOKIES"
 
 ## Configuration
 
+### HTTP/HTTPS Ports
+
+The application supports both HTTP and HTTPS with configurable ports:
+
+```json
+{
+  "HttpPort": 80,
+  "HttpsPort": 443
+}
+```
+
+You can also set these via environment variables:
+```bash
+export ASPNETCORE_URLS="http://localhost:80;https://localhost:443"
+```
+
+### HTTPS Development Certificate
+
+For local development, ASP.NET Core uses a built-in development certificate:
+
+```bash
+# Trust the development certificate (run once)
+dotnet dev-certs https --trust
+
+# Or use the provided script
+./tools/setup-https.ps1
+```
+
 ### Environment Variables
 
 ```bash
@@ -87,12 +118,17 @@ export YTM_VISITORDATA=your_visitor_data_here
 
 # Set proof of origin token
 export YTM_POTOKEN=your_proof_of_origin_token_here
+
+# Disable lyrics in song responses
+export LYRICS_ADD_TO_SONG_RESPONSE=false
 ```
 
 ### Configuration File
 
 ```json
 {
+  "HttpPort": 80,
+  "HttpsPort": 443,
   "YouTubeMusic": {
     "GeographicalLocation": "US",
     "Cookies": null,
@@ -102,9 +138,44 @@ export YTM_POTOKEN=your_proof_of_origin_token_here
     "TimeoutSeconds": 30,
     "MaxRetries": 3,
     "Debug": false
+  },
+  "Lyrics": {
+    "AddToSongResponse": true
   }
 }
 ```
+
+### Lyrics Configuration
+
+The API automatically fetches lyrics for songs when using the `/api/song/{id}` endpoint. You can control this behavior:
+
+**Enable lyrics (default):**
+```json
+{
+  "Lyrics": {
+    "AddToSongResponse": true
+  }
+}
+```
+
+**Disable lyrics:**
+```json
+{
+  "Lyrics": {
+    "AddToSongResponse": false
+  }
+}
+```
+
+**Via environment variable:**
+```bash
+export LYRICS_ADD_TO_SONG_RESPONSE=false
+```
+
+When lyrics are disabled:
+- No lyrics API calls are made
+- The `lyrics` field in song responses will be `null`
+- Performance is improved by avoiding unnecessary API calls
 
 ## Docker Deployment
 
@@ -130,6 +201,7 @@ docker run -d -p 80:80 -p 443:443 --name ytm-api bluscream/youtube-music-api-pro
 docker run -d -p 80:80 -p 443:443 \
   -e YTM_GEOGRAPHICAL_LOCATION=US \
   -e YTM_COOKIES=your_cookies_here \
+  -e LYRICS_ADD_TO_SONG_RESPONSE=false \
   --name ytm-api bluscream/youtube-music-api-proxy:latest
 ```
 
@@ -248,5 +320,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Acknowledgments
 
 - [YouTubeMusicAPI](https://github.com/kuylar/YouTubeMusicAPI) - The underlying library
+- [SimpMusic Lyrics API](https://api-lyrics.simpmusic.org/) - Lyrics data source
 - [.NET](https://dotnet.microsoft.com/) - The framework
 - [Docker](https://www.docker.com/) - Containerization platform

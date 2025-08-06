@@ -66,4 +66,11 @@ public interface IConfigurationService
     /// <param name="print">Whether to print debug information to console</param>
     /// <returns>Debug flag</returns>
     bool GetDebug(bool print = false);
+
+    /// <summary>
+    /// Gets whether to add lyrics to song responses with priority: appsettings > environment variable > default
+    /// </summary>
+    /// <param name="print">Whether to print debug information to console</param>
+    /// <returns>Whether to add lyrics to song responses</returns>
+    bool GetAddLyricsToSongResponse(bool print = false);
 } 
