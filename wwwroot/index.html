@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>YouTube Music</title>
+    <title>YT Music</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
     <link rel="apple-touch-icon" href="/favicon.ico">
@@ -19,29 +19,28 @@
 </head>
 
 <body>
-    <!-- Sidebar toggle buttons outside sidebar for proper positioning -->
-    <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Toggle sidebar">◀</button>
-    <button class="mobile-menu-toggle" id="mobileMenuToggle" onclick="toggleSidebar()">☰</button>
-
     <div class="sidebar" id="sidebar">
-        <div class="logo">YouTube Music</div>
+        <div class="logo">
+            <img src="/yt-music-icon.png" alt="YT Music" class="logo-icon">
+            <span class="logo-text">YT Music</span>
+        </div>
 
         <div class="nav-section">
             <div class="nav-item active" id="libraryNavItem">
                 <div class="nav-icon">📚</div>
-                <span>Library</span>
+                <span class="nav-text">Library</span>
             </div>
             <div class="nav-item" id="songsNavItem">
                 <div class="nav-icon">🎵</div>
-                <span>Songs</span>
+                <span class="nav-text">Songs</span>
             </div>
             <div class="nav-item" id="artistsNavItem">
                 <div class="nav-icon">👤</div>
-                <span>Artists</span>
+                <span class="nav-text">Artists</span>
             </div>
             <div class="nav-item" id="albumsNavItem">
                 <div class="nav-icon">💿</div>
-                <span>Albums</span>
+                <span class="nav-text">Albums</span>
             </div>
         </div>
 
@@ -54,14 +53,17 @@
     <div class="main-content" id="mainContent">
         <div class="header">
             <div class="search-container">
+                <button class="hamburger-menu" id="hamburgerMenu" onclick="toggleSidebar()"
+                    title="Toggle sidebar">☰</button>
                 <div class="search-icon">🔍</div>
-                <input type="text" class="search-input" id="searchInput" placeholder="Search for songs, artists, or albums">
+                <input type="text" class="search-input" id="searchInput"
+                    placeholder="Search for songs, artists, or albums">
             </div>
         </div>
 
         <div class="content-area">
             <div class="welcome-section">
-                <div class="welcome-title">Welcome to YouTube Music</div>
+                <div class="welcome-title">Welcome to YT Music</div>
                 <div class="welcome-subtitle">Search for your favorite music or browse your library</div>
             </div>
 

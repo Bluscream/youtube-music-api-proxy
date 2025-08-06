@@ -29,3 +29,68 @@ body {
     padding: 40px;
     color: #ff4444;
 }
+
+/* Custom scrollbar styling for dark theme */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0f0f0f;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #404040;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #606060;
+}
+
+::-webkit-scrollbar-corner {
+    background: #0f0f0f;
+}
+
+/* Firefox scrollbar styling */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #404040 #0f0f0f;
+}
+
+/* Specific scrollbar styling for sidebar */
+.sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: #0f0f0f;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: #282828;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: #404040;
+}
+
+/* Content area scrollbar */
+.content-area::-webkit-scrollbar {
+    width: 8px;
+}
+
+.content-area::-webkit-scrollbar-track {
+    background: #0f0f0f;
+}
+
+.content-area::-webkit-scrollbar-thumb {
+    background: #404040;
+}
+
+.content-area::-webkit-scrollbar-thumb:hover {
+    background: #606060;
+}

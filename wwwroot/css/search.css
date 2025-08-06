@@ -4,10 +4,14 @@
     position: relative;
     min-width: 0;
     /* Allow container to shrink */
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    /* Add gap between hamburger and search input */
 }
 
 .search-input {
-    width: 100%;
+    flex: 1;
     height: 40px;
     background-color: #282828;
     border: none;
@@ -18,6 +22,8 @@
     outline: none;
     box-sizing: border-box;
     /* Ensure padding is included in width */
+    position: relative;
+    /* For search icon positioning */
 }
 
 .search-input::placeholder {
@@ -32,6 +38,8 @@
     color: #b3b3b3;
     z-index: 1;
     /* Ensure icon stays above input */
+    pointer-events: none;
+    /* Allow clicks to pass through to input */
 }
 
 .search-results {
