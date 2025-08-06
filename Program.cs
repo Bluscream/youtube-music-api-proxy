@@ -75,12 +75,21 @@ static void CreateSelfSignedCertificate(string certPath)
         using var rsa = RSA.Create(2048);
         var request = new CertificateRequest(distinguishedName, rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         
+        // Add Subject Alternative Names for multiple domains
+        var sanBuilder = new SubjectAlternativeNameBuilder();
+        sanBuilder.AddDnsName("localhost");
+        sanBuilder.AddDnsName("ytm.local");
+        sanBuilder.AddDnsName("ytm.vpn");
+        sanBuilder.AddDnsName("ytm.remote");
+        request.CertificateExtensions.Add(sanBuilder.Build());
+        
         var certificate = request.CreateSelfSigned(DateTimeOffset.Now.AddDays(-1), DateTimeOffset.Now.AddYears(10));
         
         var pfxBytes = certificate.Export(X509ContentType.Pfx, "dev123");
         File.WriteAllBytes(certPath, pfxBytes);
         
         Console.WriteLine($"Self-signed certificate created at: {certPath}");
+        Console.WriteLine("Certificate covers: localhost, ytm.local, ytm.vpn, ytm.remote");
     }
     catch (Exception ex)
     {
