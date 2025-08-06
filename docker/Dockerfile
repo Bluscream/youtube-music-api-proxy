@@ -17,12 +17,9 @@ RUN dotnet build "YoutubeMusicAPIProxy.csproj" -c ${BUILD_CONFIGURATION} -o /app
 # Publish
 FROM build AS publish
 RUN dotnet publish "YoutubeMusicAPIProxy.csproj" -c ${BUILD_CONFIGURATION} -o /app/publish /p:UseAppHost=false \
-    /p:OptimizeImplicitlyTriggeredBuild=true \
-    /p:EnableCompressionInSingleFile=true \
     /p:DebugType=None \
     /p:DebugSymbols=false \
     /p:PublishTrimmed=true \
-    /p:TrimMode=link \
     /p:InvariantGlobalization=true
 
 # Runtime stage

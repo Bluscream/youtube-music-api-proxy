@@ -587,6 +587,68 @@ function buildQueryString(params) {
         .join('&');
 }
 
+// Update URL with new parameters
+function updateURL(params) {
+    const url = new URL(window.location);
+    Object.keys(params).forEach(key => {
+        if (params[key] === null || params[key] === undefined || params[key] === '') {
+            url.searchParams.delete(key);
+        } else {
+            url.searchParams.set(key, params[key]);
+        }
+    });
+    window.history.pushState({}, '', url);
+}
+
+// Load content from URL parameters on page load
+async function loadFromURL() {
+    const params = getQueryParams();
+
+    if (params.playlist) {
+        // Load playlist from URL parameter
+        try {
+            const response = await fetch(`/api/playlist/${params.playlist}?${buildQueryString(params)}`);
+            if (response.ok) {
+                const data = await response.json();
+                const playlistTitle = data.name || data.title || 'Playlist';
+                displayPlaylistContent(data, playlistTitle);
+
+                // Set current playlist
+                currentPlaylist = params.playlist;
+                highlightCurrentPlaylist();
+
+                // If song parameter is also present, play that specific song
+                if (params.song) {
+                    const songIndex = currentPlaylistSongs.findIndex(song => song.id === params.song);
+                    if (songIndex !== -1) {
+                        const song = currentPlaylistSongs[songIndex];
+                        const title = song.name || song.title || 'Unknown Title';
+                        const artist = song.artists && song.artists.length > 0 ? song.artists[0].name : '';
+                        const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : '';
+                        playSong(song.id || '', title, artist, thumbnail, currentPlaylist, songIndex);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error loading playlist from URL:', error);
+        }
+    } else if (params.song) {
+        // Load and play specific song from URL parameter
+        try {
+            const response = await fetch(`/api/song/${params.song}?${buildQueryString(params)}`);
+            if (response.ok) {
+                const data = await response.json();
+                const title = data.name || data.title || 'Unknown Title';
+                const artist = data.artists && data.artists.length > 0 ? data.artists[0].name : '';
+                const thumbnail = data.thumbnails && data.thumbnails.length > 0 ? data.thumbnails[0].url : '';
+                playSong(params.song, title, artist, thumbnail, null, -1);
+            }
+        } catch (error) {
+            console.error('Error loading song from URL:', error);
+        }
+    }
+}
+
 function handleSearch(event) {
     if (event.key === 'Enter') {
         const query = event.target.value.trim();
@@ -707,6 +769,17 @@ async function playSong(songId, title, artist, thumbnail = null, playlistId = nu
 
     // Stop all audio playback before starting new song
     stopAllAudio();
+
+    // Update URL with song parameter
+    const urlParams = {};
+    if (playlistId) {
+        urlParams.playlist = playlistId;
+        urlParams.song = songId;
+    } else {
+        urlParams.song = songId;
+        urlParams.playlist = null;
+    }
+    updateURL(urlParams);
 
     currentSongId = songId;
     currentSongIndex = songIndex;
@@ -1045,6 +1118,8 @@ function loadLibrary(event) {
     if (event && event.target) {
         updateActiveNavItem(event.target.closest('.nav-item'));
     }
+    // Clear URL parameters when going to library
+    updateURL({ playlist: null, song: null });
     loadLibraryData();
 }
 
@@ -1052,6 +1127,8 @@ function loadSongs(event) {
     if (event && event.target) {
         updateActiveNavItem(event.target.closest('.nav-item'));
     }
+    // Clear URL parameters when going to songs
+    updateURL({ playlist: null, song: null });
     loadSongsData();
 }
 
@@ -1059,6 +1136,8 @@ function loadArtists(event) {
     if (event && event.target) {
         updateActiveNavItem(event.target.closest('.nav-item'));
     }
+    // Clear URL parameters when going to artists
+    updateURL({ playlist: null, song: null });
     loadArtistsData();
 }
 
@@ -1066,6 +1145,8 @@ function loadAlbums(event) {
     if (event && event.target) {
         updateActiveNavItem(event.target.closest('.nav-item'));
     }
+    // Clear URL parameters when going to albums
+    updateURL({ playlist: null, song: null });
     loadAlbumsData();
 }
 
@@ -1073,6 +1154,9 @@ function loadHome(event) {
     if (event && event.target) {
         updateActiveNavItem(event.target.closest('.nav-item'));
     }
+    // Clear URL parameters when going to home
+    updateURL({ playlist: null, song: null });
+
     document.querySelector('.welcome-section').style.display = 'block';
     document.getElementById('searchResults').style.display = 'none';
     document.getElementById('libraryContent').style.display = 'none';
@@ -1084,6 +1168,9 @@ function loadExplore(event) {
     if (event && event.target) {
         updateActiveNavItem(event.target.closest('.nav-item'));
     }
+    // Clear URL parameters when going to explore
+    updateURL({ playlist: null, song: null });
+
     // TODO: Implement explore loading
     document.querySelector('.welcome-section').style.display = 'block';
     document.getElementById('searchResults').style.display = 'none';
@@ -1232,6 +1319,9 @@ async function loadPlaylist(playlistId, playlistTitle) {
     if (shouldCollapseSidebar() && isMobileMenuOpen) {
         toggleSidebar();
     }
+
+    // Update URL with playlist parameter
+    updateURL({ playlist: playlistId, song: null });
 
     showLoading();
     try {
@@ -1811,9 +1901,14 @@ updateCSSBreakpoints();
 
 // Initialize other components
 loadHome();
-loadPlaylists();
 initVolumeSlider();
 updateRepeatShuffleDisplay();
+
+// Load playlists and then check URL parameters
+loadPlaylists().then(() => {
+    // Load content from URL parameters if present
+    loadFromURL();
+});
 
 // Initialize media key listeners
 setupMediaKeyListeners();
@@ -1876,3 +1971,4 @@ window.loadAlbum = loadAlbum;
 window.loadArtist = loadArtist;
 window.removeNotification = removeNotification;
 window.stopAllAudio = stopAllAudio;
+window.loadFromURL = loadFromURL;
