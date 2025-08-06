@@ -6,7 +6,7 @@
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <WarningsAsErrors />
     <NoWarn>$(NoWarn);CS1591;CS8618;IDE0051;IDE0052</NoWarn>
-    <Version>1.0.4.1</Version>
+    <Version>1.0.4.2</Version>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="YouTubeMusicAPI" Version="3.0.0" />

@@ -23,16 +23,11 @@ RUN dotnet publish "YoutubeMusicAPIProxy.csproj" -c ${BUILD_CONFIGURATION} -o /a
     /p:DebugSymbols=false \
     /p:PublishTrimmed=true \
     /p:TrimMode=link \
-    /p:EnableUnsafeBinaryFormatterSerialization=false \
-    /p:EnableUnsafeUTF7Encoding=false \
-    /p:EventSourceSupport=false \
-    /p:HttpActivityPropagationSupport=false \
-    /p:InvariantGlobalization=true \
-    /p:MetadataUpdaterSupport=false
+    /p:InvariantGlobalization=true
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
-LABEL org.opencontainers.image.source https://github.com/bluscream/youtube-music-api-proxy
+LABEL org.opencontainers.image.source=https://github.com/bluscream/youtube-music-api-proxy
 WORKDIR /app
 
 # Build arguments
