@@ -52,15 +52,18 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy HTTPS certificates from build stage
-COPY --from=build /root/.dotnet/corefx/cryptography/x509stores/my /root/.dotnet/corefx/cryptography/x509stores/my
+# Create non-root user first
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# Copy HTTPS certificates from build stage and set proper permissions
+COPY --from=build /root/.dotnet/corefx/cryptography/x509stores/my /home/appuser/.dotnet/corefx/cryptography/x509stores/my
+RUN chown -R appuser:appuser /home/appuser/.dotnet
 
 # Copy published app
 COPY --from=publish /app/publish .
-
-# Create non-root user
-RUN groupadd -r appuser && useradd -r -g appuser appuser
 RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
 USER appuser
 
 # Expose ports
