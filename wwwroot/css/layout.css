@@ -491,12 +491,13 @@
     width: 0;
 }
 
-/* Keep toggle button visible when sidebar is collapsed */
-.right-sidebar.collapsed .right-sidebar-toggle {
-    position: fixed;
-    top: 20px;
+/* Toggle button positioning for different right sidebar states */
+.right-sidebar:not(.collapsed)~.right-sidebar-toggle {
+    right: 320px;
+}
+
+.right-sidebar.collapsed~.right-sidebar-toggle {
     right: 20px;
-    z-index: 1001;
 }
 
 .right-sidebar-header {
@@ -539,6 +540,9 @@
 }
 
 .right-sidebar-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
     width: 24px;
     height: 24px;
     background-color: #181818;
@@ -549,9 +553,9 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    z-index: 1001;
     transition: all 0.2s ease;
     font-size: 12px;
-    flex-shrink: 0;
 }
 
 .right-sidebar-toggle:hover {
@@ -636,6 +640,10 @@
     .player-bar:not(.right-sidebar-collapsed) {
         right: 280px;
     }
+
+    .right-sidebar:not(.collapsed)~.right-sidebar-toggle {
+        right: 300px;
+    }
 }
 
 @media (max-width: 1000px) {
@@ -649,6 +657,10 @@
 
     .player-bar:not(.right-sidebar-collapsed) {
         right: 260px;
+    }
+
+    .right-sidebar:not(.collapsed)~.right-sidebar-toggle {
+        right: 280px;
     }
 }
 
