@@ -60,7 +60,7 @@ USER appuser
 EXPOSE 80 443
 
 # Set environment variables based on build configuration
-ENV ASPNETCORE_URLS=http://+:80;https://+:443
+# ENV ASPNETCORE_URLS=http://+:80;https://+:443
 ENV ASPNETCORE_ENVIRONMENT=${BUILD_CONFIGURATION}
 
 # Health check

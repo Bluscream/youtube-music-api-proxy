@@ -1900,15 +1900,22 @@ function updateRepeatShuffleDisplay() {
 updateCSSBreakpoints();
 
 // Initialize other components
-loadHome();
 initVolumeSlider();
 updateRepeatShuffleDisplay();
 
-// Load playlists and then check URL parameters
-loadPlaylists().then(() => {
-    // Load content from URL parameters if present
-    loadFromURL();
-});
+// Check if there are URL parameters to load from
+const params = getQueryParams();
+if (params.playlist || params.song) {
+    // Load playlists first, then load from URL parameters
+    loadPlaylists().then(() => {
+        loadFromURL();
+    });
+} else {
+    // No URL parameters, load home page
+    loadHome();
+    // Load playlists in background
+    loadPlaylists();
+}
 
 // Initialize media key listeners
 setupMediaKeyListeners();
