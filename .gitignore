@@ -455,4 +455,4 @@ appsettings.Production.json
 *.pfx
 *.key 
 lib/
-references/
+.references/
