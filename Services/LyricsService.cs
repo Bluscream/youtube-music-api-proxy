@@ -54,10 +54,25 @@ public class LyricsService : ILyricsService
 
             if (lyricsResponse?.Success == true && lyricsResponse.Data?.Count > 0)
             {
-                // Return the first (and usually best) lyrics entry
-                var lyrics = lyricsResponse.Data[0];
-                _logger.LogDebug("Successfully retrieved lyrics for videoId: {VideoId}", videoId);
-                return lyrics;
+                // Select the most complete lyrics entry
+                var bestLyrics = lyricsResponse.Data
+                    .Where(lyric => !string.IsNullOrWhiteSpace(lyric.PlainLyric))
+                    .OrderByDescending(lyric => lyric.PlainLyric.Length)
+                    .ThenByDescending(lyric => lyric.SyncedLyrics?.Length ?? 0)
+                    .FirstOrDefault();
+
+                if (bestLyrics != null)
+                {
+                    _logger.LogDebug("Successfully retrieved lyrics for videoId: {VideoId} (selected from {Count} options)", 
+                        videoId, lyricsResponse.Data.Count);
+                    return bestLyrics;
+                }
+                else
+                {
+                    _logger.LogDebug("No valid lyrics found in {Count} entries for videoId: {VideoId}", 
+                        lyricsResponse.Data.Count, videoId);
+                    return null;
+                }
             }
             else if (lyricsResponse?.Error != null)
             {
