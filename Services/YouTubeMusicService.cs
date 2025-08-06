@@ -338,7 +338,7 @@ public class YouTubeMusicService : IYouTubeMusicService
 
     private async Task<LyricsApiResponse?> GetLyricsWithTimeoutAsync(string videoId)
     {
-        const int timeoutSeconds = 1;
+        const int timeoutSeconds = 2;
         
         try
         {
