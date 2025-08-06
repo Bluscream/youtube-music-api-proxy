@@ -14,7 +14,7 @@
     transition: all 0.3s ease;
     /* Start with expanded state */
     width: calc(100vw - 240px);
-    padding-right: 300px;
+    padding-right: var(--right-sidebar-width, 300px);
     /* Default right sidebar width */
 }
 
@@ -98,7 +98,7 @@
 
 /* Adjust player bar for right sidebar */
 .player-bar {
-    right: 300px;
+    right: var(--right-sidebar-width, 300px);
     transition: all 0.3s ease;
 }
 

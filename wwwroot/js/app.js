@@ -297,11 +297,13 @@ class SidebarManager {
 
     toggleMobileMenu() {
         this.isMobileMenuOpen = !this.isMobileMenuOpen;
+        this.saveState();
         this.updateLayout();
     }
 
     closeMobileMenu() {
         this.isMobileMenuOpen = false;
+        this.saveState();
         this.updateLayout();
     }
 
@@ -431,28 +433,37 @@ class SidebarManager {
             localStorage.setItem('sidebarState', JSON.stringify({
                 state: this.currentState
             }));
+        } else {
+            // Save mobile state
+            localStorage.setItem('sidebarState', JSON.stringify({
+                state: this.currentState,
+                isMobileMenuOpen: this.isMobileMenuOpen
+            }));
         }
     }
 
     restoreState() {
-        if (this.isMobile) {
-            // Mobile always starts with collapsed sidebar
-            this.currentState = 'collapsed';
-            this.isMobileMenuOpen = false;
-        } else {
-            // Desktop restores saved state
-            try {
-                const savedState = localStorage.getItem('sidebarState');
-                if (savedState) {
-                    const state = JSON.parse(savedState);
-                    this.currentState = state.state || 'expanded';
-                } else {
-                    this.currentState = 'expanded'; // Default to expanded on desktop
-                }
-            } catch (error) {
-                console.error('Error restoring sidebar state:', error);
+        try {
+            const savedState = localStorage.getItem('sidebarState');
+            if (savedState) {
+                const state = JSON.parse(savedState);
+                this.currentState = state.state || 'expanded';
+                this.isMobileMenuOpen = state.isMobileMenuOpen || false;
+            } else {
+                // Default states
                 this.currentState = 'expanded';
+                this.isMobileMenuOpen = false;
             }
+        } catch (error) {
+            console.error('Error restoring sidebar state:', error);
+            this.currentState = 'expanded';
+            this.isMobileMenuOpen = false;
+        }
+
+        // Override for mobile if transitioning to mobile
+        if (this.isMobile) {
+            this.currentState = 'collapsed';
+            // Keep the mobile menu state from saved data
         }
     }
 }
@@ -543,7 +554,9 @@ function addMobileTouchHandlers() {
 
             if (currentAudio) {
                 currentAudio.volume = percentage / 100;
+                currentVolume = percentage / 100;
                 updateVolumeDisplay();
+                saveVolume(); // Save volume on touch
             }
         });
     }
@@ -1375,6 +1388,27 @@ function seek(event) {
 let isDraggingVolume = false;
 let currentVolume = 0.5;
 
+// Volume persistence functions
+function saveVolume() {
+    localStorage.setItem('playerVolume', currentVolume.toString());
+}
+
+function restoreVolume() {
+    try {
+        const savedVolume = localStorage.getItem('playerVolume');
+        if (savedVolume !== null) {
+            currentVolume = parseFloat(savedVolume);
+            // Ensure volume is within valid range
+            currentVolume = Math.max(0, Math.min(1, currentVolume));
+        } else {
+            currentVolume = 0.5; // Default volume
+        }
+    } catch (error) {
+        console.error('Error restoring volume:', error);
+        currentVolume = 0.5; // Default volume on error
+    }
+}
+
 function setVolume(event) {
     if (currentAudio) {
         const rect = event.target.getBoundingClientRect();
@@ -1383,6 +1417,7 @@ function setVolume(event) {
         currentAudio.volume = volume;
         currentVolume = volume;
         updateVolumeDisplay();
+        saveVolume(); // Save volume when changed
 
         // Show volume notification for significant changes
         if (volume === 0) {
@@ -1415,6 +1450,9 @@ function initVolumeSlider() {
     const volumeThumb = document.getElementById('volumeThumb');
 
     if (!volumeSlider || !volumeThumb) return;
+
+    // Restore saved volume
+    restoreVolume();
 
     // Set initial volume
     updateVolumeDisplay();
@@ -1450,6 +1488,9 @@ function initVolumeSlider() {
     });
 
     document.addEventListener('mouseup', () => {
+        if (isDraggingVolume) {
+            saveVolume(); // Save volume when dragging ends
+        }
         isDraggingVolume = false;
     });
 }
@@ -2363,6 +2404,9 @@ class RightSidebarManager {
         this.currentTab = 'info';
         this.isMobile = false;
         this.isMobileOpen = false;
+        this.sidebarWidth = 300; // Default width
+        this.minWidth = 200;
+        this.maxWidth = 600;
         this.init();
     }
 
@@ -2375,6 +2419,23 @@ class RightSidebarManager {
 
     updateBreakpoint() {
         this.isMobile = window.innerWidth <= SIDEBAR_COLLAPSE_BREAKPOINT;
+        this.updateWidthConstraints();
+    }
+
+    updateWidthConstraints() {
+        if (window.innerWidth <= 1000) {
+            this.minWidth = 200;
+            this.maxWidth = 400;
+        } else if (window.innerWidth <= 1200) {
+            this.minWidth = 200;
+            this.maxWidth = 500;
+        } else {
+            this.minWidth = 200;
+            this.maxWidth = 600;
+        }
+
+        // Ensure current width is within constraints
+        this.sidebarWidth = Math.max(this.minWidth, Math.min(this.maxWidth, this.sidebarWidth));
     }
 
     setupEventListeners() {
@@ -2422,6 +2483,80 @@ class RightSidebarManager {
                 this.switchTab('lyrics');
             }
         });
+
+        // Setup resize handle functionality
+        this.setupResizeHandle();
+    }
+
+    setupResizeHandle() {
+        const resizeHandle = document.getElementById('rightSidebarResizeHandle');
+        const rightSidebar = document.getElementById('rightSidebar');
+
+        if (!resizeHandle || !rightSidebar) return;
+
+        let isResizing = false;
+        let startX = 0;
+        let startWidth = 0;
+
+        const startResize = (e) => {
+            if (this.isMobile || this.isCollapsed) return;
+
+            isResizing = true;
+            startX = e.clientX || e.touches[0].clientX;
+            startWidth = this.sidebarWidth;
+
+            resizeHandle.classList.add('resizing');
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+
+            e.preventDefault();
+        };
+
+        const doResize = (e) => {
+            if (!isResizing) return;
+
+            const currentX = e.clientX || e.touches[0].clientX;
+            const deltaX = startX - currentX;
+            let newWidth = startWidth + deltaX;
+
+            // Apply min/max constraints
+            newWidth = Math.max(this.minWidth, Math.min(this.maxWidth, newWidth));
+
+            this.sidebarWidth = newWidth;
+            this.updateSidebarWidth();
+
+            e.preventDefault();
+        };
+
+        const stopResize = () => {
+            if (!isResizing) return;
+
+            isResizing = false;
+            resizeHandle.classList.remove('resizing');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+
+            // Save the new width
+            this.saveState();
+        };
+
+        // Mouse events
+        resizeHandle.addEventListener('mousedown', startResize);
+        document.addEventListener('mousemove', doResize);
+        document.addEventListener('mouseup', stopResize);
+
+        // Touch events for mobile
+        resizeHandle.addEventListener('touchstart', startResize);
+        document.addEventListener('touchmove', doResize);
+        document.addEventListener('touchend', stopResize);
+    }
+
+    updateSidebarWidth() {
+        const rightSidebar = document.getElementById('rightSidebar');
+        if (rightSidebar) {
+            rightSidebar.style.width = `${this.sidebarWidth}px`;
+            document.documentElement.style.setProperty('--right-sidebar-width', `${this.sidebarWidth}px`);
+        }
     }
 
     handleBreakpointChange() {
@@ -2481,6 +2616,9 @@ class RightSidebarManager {
         if (playerBar) {
             playerBar.classList.remove('right-sidebar-collapsed');
         }
+
+        // Update sidebar width
+        this.updateSidebarWidth();
 
         if (this.isMobile) {
             // Mobile layout
@@ -2603,7 +2741,8 @@ class RightSidebarManager {
         if (!this.isMobile) {
             localStorage.setItem('rightSidebarState', JSON.stringify({
                 isCollapsed: this.isCollapsed,
-                currentTab: this.currentTab
+                currentTab: this.currentTab,
+                sidebarWidth: this.sidebarWidth
             }));
         }
     }
@@ -2621,14 +2760,17 @@ class RightSidebarManager {
                     const state = JSON.parse(savedState);
                     this.isCollapsed = state.isCollapsed || false;
                     this.currentTab = state.currentTab || 'info';
+                    this.sidebarWidth = state.sidebarWidth || 300;
                 } else {
                     this.isCollapsed = false; // Default to expanded on desktop
                     this.currentTab = 'info';
+                    this.sidebarWidth = 300;
                 }
             } catch (error) {
                 console.error('Error restoring right sidebar state:', error);
                 this.isCollapsed = false;
                 this.currentTab = 'info';
+                this.sidebarWidth = 300;
             }
         }
     }

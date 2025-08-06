@@ -2,6 +2,8 @@
 
 .right-sidebar {
     width: 300px;
+    min-width: 200px;
+    max-width: 50vw;
     background-color: #0f0f0f;
     border-left: 1px solid #282828;
     position: fixed;
@@ -13,6 +15,27 @@
     flex-direction: column;
     transition: all 0.3s ease;
     overflow: hidden;
+    resize: horizontal;
+    overflow-x: hidden;
+    padding-bottom: 90px !important;
+    /* Add padding to prevent player overflow */
+}
+
+.right-sidebar-resize-handle {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 4px;
+    height: 100%;
+    background-color: transparent;
+    cursor: col-resize;
+    z-index: 160;
+    transition: background-color 0.2s ease;
+}
+
+.right-sidebar-resize-handle:hover,
+.right-sidebar-resize-handle.resizing {
+    background-color: #1db954;
 }
 
 .right-sidebar.collapsed {
@@ -22,7 +45,7 @@
 
 /* Toggle button positioning for different right sidebar states */
 .right-sidebar:not(.collapsed)~.right-sidebar-toggle {
-    right: 320px;
+    right: calc(var(--right-sidebar-width, 300px) + 20px);
 }
 
 .right-sidebar.collapsed~.right-sidebar-toggle {
@@ -351,20 +374,24 @@
 @media (max-width: 1200px) {
     .right-sidebar {
         width: 280px;
+        min-width: 200px;
+        max-width: 500px;
     }
 
     .right-sidebar:not(.collapsed)~.right-sidebar-toggle {
-        right: 300px;
+        right: calc(var(--right-sidebar-width, 280px) + 20px);
     }
 }
 
 @media (max-width: 1000px) {
     .right-sidebar {
         width: 260px;
+        min-width: 200px;
+        max-width: 400px;
     }
 
     .right-sidebar:not(.collapsed)~.right-sidebar-toggle {
-        right: 280px;
+        right: calc(var(--right-sidebar-width, 260px) + 20px);
     }
 }
 
