@@ -2,8 +2,17 @@ using Microsoft.OpenApi.Models;
 using YoutubeMusicAPIProxy.Services;
 using YoutubeMusicAPIProxy.Configuration;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure embedded static files
+builder.Services.Configure<StaticFileOptions>(options =>
+{
+    var assembly = typeof(Program).Assembly;
+    var embeddedProvider = new EmbeddedFileProvider(assembly, "YoutubeMusicAPIProxy.wwwroot");
+    options.FileProvider = embeddedProvider;
+});
 
 // Configure URLs from configuration
 var httpPort = builder.Configuration.GetValue<int>("HttpPort", 80);
