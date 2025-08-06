@@ -14,14 +14,9 @@ public class SongVideoInfoResponse : SongVideoInfo
     public StreamingData? StreamingData { get; set; }
 
     /// <summary>
-    /// Lyrics data if available
+    /// Raw lyrics API response - contains data, error, or processing information
     /// </summary>
-    public LyricsData? Lyrics { get; set; }
-
-    /// <summary>
-    /// Lyrics error information if lyrics request failed
-    /// </summary>
-    public LyricsErrorResponse? LyricsError { get; set; }
+    public LyricsApiResponse? Lyrics { get; set; }
 
     /// <summary>
     /// Constructor for SongVideoInfoResponse
@@ -29,8 +24,7 @@ public class SongVideoInfoResponse : SongVideoInfo
     public SongVideoInfoResponse(
         SongVideoInfo songVideoInfo,
         StreamingData? streamingData = null,
-        LyricsData? lyrics = null,
-        LyricsErrorResponse? lyricsError = null) 
+        LyricsApiResponse? lyrics = null) 
         : base(
             songVideoInfo.Name,
             songVideoInfo.Id,
@@ -56,6 +50,5 @@ public class SongVideoInfoResponse : SongVideoInfo
     {
         StreamingData = streamingData;
         Lyrics = lyrics;
-        LyricsError = lyricsError;
     }
 } 

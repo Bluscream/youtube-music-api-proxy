@@ -12,6 +12,6 @@ public interface ILyricsService
     /// </summary>
     /// <param name="videoId">YouTube video ID</param>
     /// <param name="timeout">Timeout duration (default: 1 second)</param>
-    /// <returns>Lyrics data or null if timeout/error</returns>
-    Task<LyricsData?> GetLyricsAsync(string videoId, TimeSpan timeout = default);
+    /// <returns>Raw lyrics API response or null if timeout/client error</returns>
+    Task<LyricsApiResponse?> GetLyricsAsync(string videoId, TimeSpan timeout = default);
 }

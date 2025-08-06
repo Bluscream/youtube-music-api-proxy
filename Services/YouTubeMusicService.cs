@@ -334,8 +334,7 @@ public class YouTubeMusicService : IYouTubeMusicService
         });
 
         // Wait for lyrics with timeout
-        LyricsData? lyrics = null;
-        LyricsErrorResponse? lyricsError = null;
+        LyricsApiResponse? lyrics = null;
         
         try
         {
@@ -348,16 +347,7 @@ public class YouTubeMusicService : IYouTubeMusicService
             }
             else
             {
-                // Timeout occurred, create error response
-                lyricsError = new LyricsErrorResponse
-                {
-                    Error = true,
-                    Code = 500,
-                    Reason = $"Lyrics response took too long for videoId: {id}",
-                    Timeout = TimeSpan.FromSeconds(1),
-                    VideoId = id,
-                    Url = $"https://api-lyrics.simpmusic.org/v1/{id}"
-                };
+                // Timeout occurred - don't include lyrics in response
                 _logger.LogDebug("Lyrics request timed out for videoId: {Id}", id);
             }
         }
@@ -366,7 +356,7 @@ public class YouTubeMusicService : IYouTubeMusicService
             _logger.LogWarning(ex, "Error during lyrics fetch for song/video {Id}", id);
         }
 
-        return new SongVideoInfoResponse(songVideoInfo, streamingData, lyrics, lyricsError);
+        return new SongVideoInfoResponse(songVideoInfo, streamingData, lyrics);
     }
 
     public async Task<StreamingData> GetStreamingDataAsync(

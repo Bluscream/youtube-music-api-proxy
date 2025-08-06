@@ -24,8 +24,8 @@ public class LyricsService : ILyricsService
     /// </summary>
     /// <param name="videoId">YouTube video ID</param>
     /// <param name="timeout">Timeout duration (default: 1 second)</param>
-    /// <returns>Lyrics data or null if timeout/error</returns>
-    public async Task<LyricsData?> GetLyricsAsync(string videoId, TimeSpan timeout = default)
+    /// <returns>Raw lyrics API response or null if timeout/client error</returns>
+    public async Task<LyricsApiResponse?> GetLyricsAsync(string videoId, TimeSpan timeout = default)
     {
         if (timeout == default)
         {
@@ -52,43 +52,14 @@ public class LyricsService : ILyricsService
             var content = await response.Content.ReadAsStringAsync(cts.Token);
             var lyricsResponse = JsonSerializer.Deserialize<LyricsApiResponse>(content);
 
-            if (lyricsResponse?.Success == true && lyricsResponse.Data?.Count > 0)
+            if (lyricsResponse != null)
             {
-                // Select the most complete lyrics entry
-                var bestLyrics = lyricsResponse.Data
-                    .Where(lyric => !string.IsNullOrWhiteSpace(lyric.PlainLyric))
-                    .OrderByDescending(lyric => lyric.PlainLyric.Length)
-                    .ThenByDescending(lyric => lyric.SyncedLyrics?.Length ?? 0)
-                    .FirstOrDefault();
-
-                if (bestLyrics != null)
-                {
-                    _logger.LogDebug("Successfully retrieved lyrics for videoId: {VideoId} (selected from {Count} options)", 
-                        videoId, lyricsResponse.Data.Count);
-                    return bestLyrics;
-                }
-                else
-                {
-                    _logger.LogDebug("No valid lyrics found in {Count} entries for videoId: {VideoId}", 
-                        lyricsResponse.Data.Count, videoId);
-                    return null;
-                }
-            }
-            else if (lyricsResponse?.Error != null)
-            {
-                _logger.LogWarning("Lyrics API error for videoId: {VideoId}: {Error}", 
-                    videoId, lyricsResponse.Error.Reason);
-                return null;
-            }
-            else if (lyricsResponse?.Processing != null)
-            {
-                _logger.LogDebug("Lyrics API processing for videoId: {VideoId}: {Message}", 
-                    videoId, lyricsResponse.Processing.Message);
-                return null;
+                _logger.LogDebug("Successfully retrieved lyrics response for videoId: {VideoId}", videoId);
+                return lyricsResponse;
             }
             else
             {
-                _logger.LogDebug("No lyrics found for videoId: {VideoId}", videoId);
+                _logger.LogDebug("No lyrics response found for videoId: {VideoId}", videoId);
                 return null;
             }
         }
