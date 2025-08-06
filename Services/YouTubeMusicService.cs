@@ -322,88 +322,11 @@ public class YouTubeMusicService : IYouTubeMusicService
             _logger.LogWarning(ex, "Failed to get streaming data for song/video {Id}", id);
         }
 
-        // Check if lyrics should be included in the response
+        // Get lyrics if enabled
         LyricsApiResponse? lyrics = null;
         if (_configService.GetAddLyricsToSongResponse())
         {
-            // Start lyrics fetch asynchronously with 1 second timeout
-            var lyricsTask = Task.Run(async () =>
-            {
-                try
-                {
-                    return await _lyricsService.GetLyricsAsync(id, TimeSpan.FromSeconds(1));
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to get lyrics for song/video {Id}", id);
-                    return null;
-                }
-            });
-
-            // Wait for lyrics with timeout
-            try
-            {
-                var timeoutTask = Task.Delay(TimeSpan.FromSeconds(1));
-                var completedTask = await Task.WhenAny(lyricsTask, timeoutTask);
-                
-                if (completedTask == lyricsTask)
-                {
-                    lyrics = await lyricsTask;
-                    
-                    // If lyrics service returned null due to client-side errors, create error response
-                    if (lyrics == null)
-                    {
-                        lyrics = new LyricsApiResponse
-                        {
-                            Success = false,
-                            Error = new LyricsErrorResponse
-                            {
-                                Error = true,
-                                Code = 500,
-                                Reason = $"Lyrics request failed for videoId: {id} - client-side error",
-                                VideoId = id,
-                                Url = $"https://api-lyrics.simpmusic.org/v1/{id}"
-                            }
-                        };
-                        _logger.LogDebug("Lyrics service returned null for videoId: {Id} - creating error response", id);
-                    }
-                }
-                else
-                {
-                    // Timeout occurred - create error response
-                    lyrics = new LyricsApiResponse
-                    {
-                        Success = false,
-                        Error = new LyricsErrorResponse
-                        {
-                            Error = true,
-                            Code = 500,
-                            Reason = $"Lyrics response took too long for videoId: {id}",
-                            Timeout = TimeSpan.FromSeconds(1),
-                            VideoId = id,
-                            Url = $"https://api-lyrics.simpmusic.org/v1/{id}"
-                        }
-                    };
-                    _logger.LogDebug("Lyrics request timed out for videoId: {Id}", id);
-                }
-            }
-            catch (Exception ex)
-            {
-                // Exception occurred - create error response
-                lyrics = new LyricsApiResponse
-                {
-                    Success = false,
-                    Error = new LyricsErrorResponse
-                    {
-                        Error = true,
-                        Code = 500,
-                        Reason = $"Lyrics request failed for videoId: {id} - {ex.Message}",
-                        VideoId = id,
-                        Url = $"https://api-lyrics.simpmusic.org/v1/{id}"
-                    }
-                };
-                _logger.LogWarning(ex, "Error during lyrics fetch for song/video {Id}", id);
-            }
+            lyrics = await GetLyricsWithTimeoutAsync(id);
         }
         else
         {
@@ -411,6 +334,63 @@ public class YouTubeMusicService : IYouTubeMusicService
         }
 
         return new SongVideoInfoResponse(songVideoInfo, streamingData, lyrics);
+    }
+
+    private async Task<LyricsApiResponse?> GetLyricsWithTimeoutAsync(string videoId)
+    {
+        const int timeoutSeconds = 1;
+        
+        try
+        {
+            var lyricsTask = _lyricsService.GetLyricsAsync(videoId, TimeSpan.FromSeconds(timeoutSeconds));
+            var timeoutTask = Task.Delay(TimeSpan.FromSeconds(timeoutSeconds));
+            
+            var completedTask = await Task.WhenAny(lyricsTask, timeoutTask);
+            
+            if (completedTask == lyricsTask)
+            {
+                var lyrics = await lyricsTask;
+                
+                // If lyrics service returned null due to client-side errors, create error response
+                if (lyrics == null)
+                {
+                    _logger.LogDebug("Lyrics service returned null for videoId: {Id} - creating error response", videoId);
+                    return CreateLyricsErrorResponse(videoId, "Lyrics request failed for videoId: {0} - client-side error");
+                }
+                
+                return lyrics;
+            }
+            else
+            {
+                // Timeout occurred
+                _logger.LogDebug("Lyrics request timed out for videoId: {Id}", videoId);
+                return CreateLyricsErrorResponse(videoId, "Lyrics response took too long for videoId: {0}", timeout: TimeSpan.FromSeconds(timeoutSeconds));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error during lyrics fetch for song/video {Id}", videoId);
+            return CreateLyricsErrorResponse(videoId, "Lyrics request failed for videoId: {0} - {1}", ex.Message);
+        }
+    }
+
+    private static LyricsApiResponse CreateLyricsErrorResponse(string videoId, string reasonFormat, string? additionalInfo = null, TimeSpan? timeout = null)
+    {
+        var reason = string.Format(reasonFormat, videoId, additionalInfo).TrimEnd();
+        
+        return new LyricsApiResponse
+        {
+            Success = false,
+            Error = new LyricsErrorResponse
+            {
+                Error = true,
+                Code = 500,
+                Reason = reason,
+                VideoId = videoId,
+                Url = $"https://api-lyrics.simpmusic.org/v1/{videoId}",
+                Timeout = timeout
+            }
+        };
     }
 
     public async Task<StreamingData> GetStreamingDataAsync(
