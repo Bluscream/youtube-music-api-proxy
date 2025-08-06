@@ -2071,3 +2071,293 @@ window.loadArtist = loadArtist;
 window.removeNotification = removeNotification;
 window.stopAllAudio = stopAllAudio;
 window.loadFromURL = loadFromURL;
+
+// Right Sidebar Manager
+class RightSidebarManager {
+    constructor() {
+        this.isCollapsed = false;
+        this.currentTab = 'info';
+        this.isMobile = false;
+        this.isMobileOpen = false;
+        this.init();
+    }
+
+    init() {
+        this.updateBreakpoint();
+        this.setupEventListeners();
+        this.restoreState();
+        this.updateLayout();
+    }
+
+    updateBreakpoint() {
+        this.isMobile = window.innerWidth <= SIDEBAR_COLLAPSE_BREAKPOINT;
+    }
+
+    setupEventListeners() {
+        // Window resize handler
+        window.addEventListener('resize', () => {
+            const wasMobile = this.isMobile;
+            this.updateBreakpoint();
+
+            if (wasMobile !== this.isMobile) {
+                this.handleBreakpointChange();
+            }
+
+            this.updateLayout();
+        });
+
+        // Close mobile sidebar when clicking outside
+        document.addEventListener('click', (event) => {
+            if (this.isMobile && this.isMobileOpen) {
+                const rightSidebar = document.getElementById('rightSidebar');
+                if (rightSidebar && !rightSidebar.contains(event.target)) {
+                    this.closeMobileSidebar();
+                }
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (event) => {
+            if (this.isMobile) return;
+
+            // Ctrl/Cmd + Shift + R to toggle right sidebar
+            if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'R') {
+                event.preventDefault();
+                this.toggle();
+            }
+
+            // Ctrl/Cmd + Shift + 1 for Info tab
+            if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === '1') {
+                event.preventDefault();
+                this.switchTab('info');
+            }
+
+            // Ctrl/Cmd + Shift + 2 for Lyrics tab
+            if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === '2') {
+                event.preventDefault();
+                this.switchTab('lyrics');
+            }
+        });
+    }
+
+    handleBreakpointChange() {
+        if (this.isMobile) {
+            // Transitioning to mobile - collapse sidebar
+            this.isCollapsed = true;
+            this.isMobileOpen = false;
+            this.saveState();
+        } else {
+            // Transitioning to desktop - restore saved state
+            this.restoreState();
+        }
+    }
+
+    toggle() {
+        if (this.isMobile) {
+            this.toggleMobileSidebar();
+        } else {
+            this.isCollapsed = !this.isCollapsed;
+            this.saveState();
+            this.updateLayout();
+        }
+    }
+
+    toggleMobileSidebar() {
+        this.isMobileOpen = !this.isMobileOpen;
+        this.updateLayout();
+    }
+
+    closeMobileSidebar() {
+        this.isMobileOpen = false;
+        this.updateLayout();
+    }
+
+    switchTab(tabName) {
+        if (['info', 'lyrics'].includes(tabName)) {
+            this.currentTab = tabName;
+            this.saveState();
+            this.updateLayout();
+        }
+    }
+
+    updateLayout() {
+        const rightSidebar = document.getElementById('rightSidebar');
+        const mainContent = document.getElementById('mainContent');
+        const playerBar = document.querySelector('.player-bar');
+        const rightSidebarToggle = document.getElementById('rightSidebarToggle');
+        const rightSidebarMobileToggle = document.getElementById('rightSidebarMobileToggle');
+
+        if (!rightSidebar) return;
+
+        // Remove all state classes
+        rightSidebar.classList.remove('collapsed', 'mobile-open');
+        if (mainContent) {
+            mainContent.classList.remove('right-sidebar-collapsed');
+        }
+        if (playerBar) {
+            playerBar.classList.remove('right-sidebar-collapsed');
+        }
+
+        if (this.isMobile) {
+            // Mobile layout
+            if (rightSidebarToggle) {
+                rightSidebarToggle.style.display = 'none';
+            }
+            if (rightSidebarMobileToggle) {
+                rightSidebarMobileToggle.style.display = 'flex';
+            }
+
+            if (this.isMobileOpen) {
+                rightSidebar.classList.add('mobile-open');
+                this.addMobileBackdrop();
+            } else {
+                rightSidebar.classList.add('collapsed');
+                this.removeMobileBackdrop();
+            }
+
+            // Mobile sidebar should not affect main content layout
+            if (mainContent) {
+                mainContent.classList.remove('right-sidebar-collapsed');
+            }
+            if (playerBar) {
+                playerBar.classList.remove('right-sidebar-collapsed');
+            }
+        } else {
+            // Desktop layout
+            if (rightSidebarToggle) {
+                rightSidebarToggle.style.display = 'flex';
+            }
+            if (rightSidebarMobileToggle) {
+                rightSidebarMobileToggle.style.display = 'none';
+            }
+            this.removeMobileBackdrop();
+
+            if (this.isCollapsed) {
+                rightSidebar.classList.add('collapsed');
+                if (mainContent) {
+                    mainContent.classList.add('right-sidebar-collapsed');
+                }
+                if (playerBar) {
+                    playerBar.classList.add('right-sidebar-collapsed');
+                }
+            }
+
+            this.updateToggleButton();
+        }
+
+        this.updateTabs();
+    }
+
+    updateToggleButton() {
+        const rightSidebarToggle = document.getElementById('rightSidebarToggle');
+        if (!rightSidebarToggle) return;
+
+        if (this.isCollapsed) {
+            rightSidebarToggle.textContent = '◀';
+            rightSidebarToggle.title = 'Expand right sidebar';
+        } else {
+            rightSidebarToggle.textContent = '▶';
+            rightSidebarToggle.title = 'Collapse right sidebar';
+        }
+    }
+
+    updateTabs() {
+        const infoTab = document.getElementById('infoTab');
+        const lyricsTab = document.getElementById('lyricsTab');
+        const infoPanel = document.getElementById('infoPanel');
+        const lyricsPanel = document.getElementById('lyricsPanel');
+
+        // Update tab states
+        if (infoTab) {
+            infoTab.classList.toggle('active', this.currentTab === 'info');
+        }
+        if (lyricsTab) {
+            lyricsTab.classList.toggle('active', this.currentTab === 'lyrics');
+        }
+
+        // Update panel states
+        if (infoPanel) {
+            infoPanel.classList.toggle('active', this.currentTab === 'info');
+        }
+        if (lyricsPanel) {
+            lyricsPanel.classList.toggle('active', this.currentTab === 'lyrics');
+        }
+    }
+
+    addMobileBackdrop() {
+        if (!document.getElementById('rightSidebarBackdrop')) {
+            const backdrop = document.createElement('div');
+            backdrop.id = 'rightSidebarBackdrop';
+            backdrop.className = 'right-sidebar-backdrop';
+            document.body.appendChild(backdrop);
+
+            // Animate backdrop in
+            setTimeout(() => {
+                backdrop.classList.add('active');
+            }, 10);
+
+            // Close sidebar when backdrop is clicked
+            backdrop.addEventListener('click', () => {
+                this.closeMobileSidebar();
+            });
+        }
+    }
+
+    removeMobileBackdrop() {
+        const backdrop = document.getElementById('rightSidebarBackdrop');
+        if (backdrop) {
+            backdrop.classList.remove('active');
+            setTimeout(() => {
+                if (backdrop.parentNode) {
+                    backdrop.parentNode.removeChild(backdrop);
+                }
+            }, 300);
+        }
+    }
+
+    saveState() {
+        if (!this.isMobile) {
+            localStorage.setItem('rightSidebarState', JSON.stringify({
+                isCollapsed: this.isCollapsed,
+                currentTab: this.currentTab
+            }));
+        }
+    }
+
+    restoreState() {
+        if (this.isMobile) {
+            // Mobile always starts with collapsed sidebar
+            this.isCollapsed = true;
+            this.isMobileOpen = false;
+        } else {
+            // Desktop restores saved state
+            try {
+                const savedState = localStorage.getItem('rightSidebarState');
+                if (savedState) {
+                    const state = JSON.parse(savedState);
+                    this.isCollapsed = state.isCollapsed || false;
+                    this.currentTab = state.currentTab || 'info';
+                } else {
+                    this.isCollapsed = false; // Default to expanded on desktop
+                    this.currentTab = 'info';
+                }
+            } catch (error) {
+                console.error('Error restoring right sidebar state:', error);
+                this.isCollapsed = false;
+                this.currentTab = 'info';
+            }
+        }
+    }
+}
+
+// Initialize right sidebar manager
+const rightSidebarManager = new RightSidebarManager();
+
+// Global functions for onclick handlers
+function toggleRightSidebar() {
+    rightSidebarManager.toggle();
+}
+
+function switchRightSidebarTab(tabName) {
+    rightSidebarManager.switchTab(tabName);
+}

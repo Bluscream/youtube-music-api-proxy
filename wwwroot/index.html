@@ -63,6 +63,8 @@
                 <input type="text" class="search-input" id="searchInput"
                     placeholder="Search for songs, artists, or albums">
             </div>
+            <button class="right-sidebar-mobile-toggle" id="rightSidebarMobileToggle" onclick="toggleRightSidebar()"
+                title="Toggle right sidebar">ℹ️</button>
         </div>
 
         <div class="content-area">
@@ -93,6 +95,42 @@
             </div>
             <div class="loading" id="loading">Loading...</div>
             <div class="error" id="error"></div>
+        </div>
+    </div>
+
+    <!-- Right Sidebar -->
+    <div class="right-sidebar" id="rightSidebar">
+        <div class="right-sidebar-header">
+            <div class="right-sidebar-tabs">
+                <div class="right-sidebar-tab active" id="infoTab" onclick="switchRightSidebarTab('info')">
+                    <span class="tab-text">Info</span>
+                </div>
+                <div class="right-sidebar-tab" id="lyricsTab" onclick="switchRightSidebarTab('lyrics')">
+                    <span class="tab-text">Lyrics</span>
+                </div>
+            </div>
+            <button class="right-sidebar-toggle" id="rightSidebarToggle" onclick="toggleRightSidebar()"
+                title="Toggle right sidebar">▶</button>
+        </div>
+
+        <div class="right-sidebar-content">
+            <div class="right-sidebar-panel active" id="infoPanel">
+                <div class="panel-content">
+                    <div class="info-placeholder">
+                        <div class="placeholder-icon">ℹ️</div>
+                        <div class="placeholder-text">Song information will appear here</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-sidebar-panel" id="lyricsPanel">
+                <div class="panel-content">
+                    <div class="lyrics-placeholder">
+                        <div class="placeholder-icon">🎵</div>
+                        <div class="placeholder-text">Lyrics will appear here</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
