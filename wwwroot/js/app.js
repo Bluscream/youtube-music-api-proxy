@@ -1203,10 +1203,10 @@ function updateLyricsPanel(songInfo) {
 
         panelContent.innerHTML = `
             <div class="lyrics-container">
-                <div class="lyrics-header">
+                <!--div class="lyrics-header">
                     <h3 class="lyrics-title">${title}</h3>
                     <p class="lyrics-artist">${artistNames}</p>
-                </div>
+                </div-->
                 <div class="lyrics-content">
                     <pre class="lyrics-text">${lyricsText}</pre>
                 </div>
