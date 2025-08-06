@@ -249,7 +249,6 @@ class SidebarManager {
                 }
             });
         }
-
     }
 
     handleBreakpointChange() {
@@ -318,13 +317,17 @@ class SidebarManager {
 
         if (this.isMobile) {
             // Mobile layout
+            sidebarToggle.style.display = 'none';
+            mobileMenuToggle.style.display = 'flex';
             if (hamburgerMenu) hamburgerMenu.style.display = 'none';
 
             if (this.isMobileMenuOpen) {
                 sidebar.classList.add('mobile-open');
+                mobileMenuToggle.textContent = '✕';
                 this.addMobileBackdrop();
             } else {
                 sidebar.classList.add('collapsed');
+                mobileMenuToggle.textContent = '☰';
                 this.removeMobileBackdrop();
             }
 
@@ -335,6 +338,8 @@ class SidebarManager {
             }
         } else {
             // Desktop layout
+            sidebarToggle.style.display = 'flex';
+            mobileMenuToggle.style.display = 'none';
             this.removeMobileBackdrop();
 
             // Apply current state
@@ -348,6 +353,9 @@ class SidebarManager {
             if (hamburgerMenu) {
                 hamburgerMenu.style.display = this.currentState === 'collapsed' ? 'block' : 'none';
             }
+
+            // Update toggle button
+            this.updateToggleButton();
         }
     }
 

@@ -29,8 +29,6 @@
     }
 }
 
-
-
 /* Desktop sidebar toggle button */
 @media (min-width: calc(var(--sidebar-collapse-breakpoint) + 1px)) {
     .sidebar-toggle {

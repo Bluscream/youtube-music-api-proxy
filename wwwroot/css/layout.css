@@ -191,155 +191,6 @@
     overflow: hidden;
 }
 
-
-
-.main-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    background-color: #0f0f0f;
-    padding-bottom: 90px;
-    /* Add padding to account for fixed player bar */
-    min-width: 0;
-    /* Allow content to shrink */
-    overflow-x: hidden;
-    /* Prevent horizontal scroll */
-    transition: all 0.3s ease;
-    margin-left: 240px;
-    /* Start with expanded state */
-    width: calc(100vw - 240px);
-}
-
-/* Adjust main content for different sidebar states */
-.main-content.sidebar-expanded {
-    margin-left: 240px;
-    width: calc(100vw - 240px);
-}
-
-.main-content.sidebar-icon {
-    margin-left: 60px;
-    width: calc(100vw - 60px);
-}
-
-.main-content.sidebar-collapsed {
-    margin-left: 0;
-    width: 100vw;
-}
-
-.main-content.sidebar-full {
-    margin-left: 0;
-    width: 100vw;
-}
-
-
-
-.header {
-    height: 64px;
-    background-color: #0f0f0f;
-    border-bottom: 1px solid #282828;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 24px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    min-width: 0;
-    /* Allow header to shrink */
-}
-
-.content-area {
-    flex: 1;
-    padding: 24px;
-    overflow-y: auto;
-    overflow-x: hidden;
-    /* Prevent horizontal scroll */
-    min-width: 0;
-    /* Allow content to shrink */
-}
-
-.welcome-section {
-    text-align: center;
-    margin-bottom: 40px;
-}
-
-.welcome-title {
-    font-size: 32px;
-    font-weight: bold;
-    margin-bottom: 16px;
-    color: #ffffff;
-}
-
-.welcome-subtitle {
-    font-size: 16px;
-    color: #b3b3b3;
-    margin-bottom: 32px;
-}
-
-
-
-/* Hamburger menu button in search bar */
-.hamburger-menu {
-    display: none;
-    background: none;
-    border: none;
-    color: #ffffff;
-    font-size: 18px;
-    cursor: pointer;
-    padding: 8px;
-    border-radius: 4px;
-    transition: all 0.2s ease;
-    flex-shrink: 0;
-    /* Prevent shrinking */
-    order: -1;
-    /* Ensure it's first in the flex container */
-}
-
-.hamburger-menu:hover {
-    background-color: #282828;
-}
-
-/* Show hamburger menu when sidebar is collapsed */
-.main-content.sidebar-collapsed .hamburger-menu {
-    display: block;
-}
-
-/* Responsive adjustments */
-@media (max-width: 800px) {
-
-    .sidebar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        height: 100vh;
-        transform: translateX(-100%);
-    }
-
-    .sidebar.mobile-open {
-        transform: translateX(0);
-    }
-
-    .sidebar.full {
-        width: 100vw;
-        height: 100vh;
-        z-index: 1000;
-    }
-
-    .main-content {
-        margin-left: 0;
-        width: 100vw;
-    }
-
-    .hamburger-menu {
-        display: none !important;
-    }
-
-    /* Ensure player bar is full width on mobile */
-    .player-bar {
-        left: 0 !important;
-    }
-}
-
 /* Sidebar toggle button */
 .sidebar-toggle {
     position: fixed;
@@ -405,6 +256,44 @@
     border-color: #282828;
 }
 
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #0f0f0f;
+    padding-bottom: 90px;
+    /* Add padding to account for fixed player bar */
+    min-width: 0;
+    /* Allow content to shrink */
+    overflow-x: hidden;
+    /* Prevent horizontal scroll */
+    transition: all 0.3s ease;
+    margin-left: 240px;
+    /* Start with expanded state */
+    width: calc(100vw - 240px);
+}
+
+/* Adjust main content for different sidebar states */
+.main-content.sidebar-expanded {
+    margin-left: 240px;
+    width: calc(100vw - 240px);
+}
+
+.main-content.sidebar-icon {
+    margin-left: 60px;
+    width: calc(100vw - 60px);
+}
+
+.main-content.sidebar-collapsed {
+    margin-left: 0;
+    width: 100vw;
+}
+
+.main-content.sidebar-full {
+    margin-left: 0;
+    width: 100vw;
+}
+
 /* Ensure toggle button is visible when sidebar is collapsed */
 .sidebar.collapsed~.sidebar-toggle {
     left: 20px;
@@ -413,6 +302,49 @@
 /* Alternative positioning for when sidebar is collapsed */
 .sidebar.collapsed+.main-content .sidebar-toggle {
     left: 20px;
+}
+
+.header {
+    height: 64px;
+    background-color: #0f0f0f;
+    border-bottom: 1px solid #282828;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 24px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    min-width: 0;
+    /* Allow header to shrink */
+}
+
+.content-area {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* Prevent horizontal scroll */
+    min-width: 0;
+    /* Allow content to shrink */
+}
+
+.welcome-section {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.welcome-title {
+    font-size: 32px;
+    font-weight: bold;
+    margin-bottom: 16px;
+    color: #ffffff;
+}
+
+.welcome-subtitle {
+    font-size: 16px;
+    color: #b3b3b3;
+    margin-bottom: 32px;
 }
 
 /* Mobile menu toggle button */
@@ -439,4 +371,73 @@
 .mobile-menu-toggle:hover {
     background-color: #282828;
     transform: scale(1.1);
+}
+
+/* Hamburger menu button in search bar */
+.hamburger-menu {
+    display: none;
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    /* Prevent shrinking */
+    order: -1;
+    /* Ensure it's first in the flex container */
+}
+
+.hamburger-menu:hover {
+    background-color: #282828;
+}
+
+/* Show hamburger menu when sidebar is collapsed */
+.main-content.sidebar-collapsed .hamburger-menu {
+    display: block;
+}
+
+/* Responsive adjustments */
+@media (max-width: 800px) {
+    .sidebar-toggle {
+        display: none;
+    }
+
+    .mobile-menu-toggle {
+        display: flex;
+    }
+
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        transform: translateX(-100%);
+    }
+
+    .sidebar.mobile-open {
+        transform: translateX(0);
+    }
+
+    .sidebar.full {
+        width: 100vw;
+        height: 100vh;
+        z-index: 1000;
+    }
+
+    .main-content {
+        margin-left: 0;
+        width: 100vw;
+    }
+
+    .hamburger-menu {
+        display: none !important;
+    }
+
+    /* Ensure player bar is full width on mobile */
+    .player-bar {
+        left: 0 !important;
+    }
 }
