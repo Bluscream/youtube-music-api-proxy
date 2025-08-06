@@ -16,7 +16,19 @@ RUN dotnet build "YoutubeMusicAPIProxy.csproj" -c ${BUILD_CONFIGURATION} -o /app
 
 # Publish
 FROM build AS publish
-RUN dotnet publish "YoutubeMusicAPIProxy.csproj" -c ${BUILD_CONFIGURATION} -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "YoutubeMusicAPIProxy.csproj" -c ${BUILD_CONFIGURATION} -o /app/publish /p:UseAppHost=false \
+    /p:OptimizeImplicitlyTriggeredBuild=true \
+    /p:EnableCompressionInSingleFile=true \
+    /p:DebugType=None \
+    /p:DebugSymbols=false \
+    /p:PublishTrimmed=true \
+    /p:TrimMode=link \
+    /p:EnableUnsafeBinaryFormatterSerialization=false \
+    /p:EnableUnsafeUTF7Encoding=false \
+    /p:EventSourceSupport=false \
+    /p:HttpActivityPropagationSupport=false \
+    /p:InvariantGlobalization=true \
+    /p:MetadataUpdaterSupport=false
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
@@ -36,6 +48,9 @@ RUN apt-get update && apt-get install -y \
 
 # Copy published app
 COPY --from=publish /app/publish .
+
+# Clean up build artifacts
+RUN dotnet clean
 
 # Create non-root user
 RUN groupadd -r appuser && useradd -r -g appuser appuser
