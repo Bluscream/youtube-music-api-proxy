@@ -21,6 +21,7 @@ public class YouTubeMusicService : IYouTubeMusicService
     private readonly IOptions<YouTubeMusicConfig> _config;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<YouTubeMusicService> _logger;
+    private readonly ILyricsService _lyricsService;
     
     // Cache for generated session data to avoid regenerating on every request
     private readonly Dictionary<string, (string VisitorData, string PoToken, DateTime Expiry)> _sessionCache = new();
@@ -29,11 +30,13 @@ public class YouTubeMusicService : IYouTubeMusicService
     public YouTubeMusicService(
         IOptions<YouTubeMusicConfig> config,
         IHttpClientFactory httpClientFactory,
-        ILogger<YouTubeMusicService> logger)
+        ILogger<YouTubeMusicService> logger,
+        ILyricsService lyricsService)
     {
         _config = config;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
+        _lyricsService = lyricsService;
     }
 
     /// <summary>
@@ -316,7 +319,54 @@ public class YouTubeMusicService : IYouTubeMusicService
             _logger.LogWarning(ex, "Failed to get streaming data for song/video {Id}", id);
         }
 
-        return new SongVideoInfoResponse(songVideoInfo, streamingData);
+        // Start lyrics fetch asynchronously with 1 second timeout
+        var lyricsTask = Task.Run(async () =>
+        {
+            try
+            {
+                return await _lyricsService.GetLyricsAsync(id, TimeSpan.FromSeconds(1));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to get lyrics for song/video {Id}", id);
+                return null;
+            }
+        });
+
+        // Wait for lyrics with timeout
+        LyricsData? lyrics = null;
+        LyricsErrorResponse? lyricsError = null;
+        
+        try
+        {
+            var timeoutTask = Task.Delay(TimeSpan.FromSeconds(1));
+            var completedTask = await Task.WhenAny(lyricsTask, timeoutTask);
+            
+            if (completedTask == lyricsTask)
+            {
+                lyrics = await lyricsTask;
+            }
+            else
+            {
+                // Timeout occurred, create error response
+                lyricsError = new LyricsErrorResponse
+                {
+                    Error = true,
+                    Code = 500,
+                    Reason = $"Lyrics response took too long for videoId: {id}",
+                    Timeout = TimeSpan.FromSeconds(1),
+                    VideoId = id,
+                    Url = $"https://api-lyrics.simpmusic.org/v1/{id}"
+                };
+                _logger.LogDebug("Lyrics request timed out for videoId: {Id}", id);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error during lyrics fetch for song/video {Id}", id);
+        }
+
+        return new SongVideoInfoResponse(songVideoInfo, streamingData, lyrics, lyricsError);
     }
 
     public async Task<StreamingData> GetStreamingDataAsync(

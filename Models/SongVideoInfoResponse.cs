@@ -4,7 +4,7 @@ using YouTubeMusicAPI.Models.Streaming;
 namespace YoutubeMusicAPIProxy.Models;
 
 /// <summary>
-/// Extended song/video information response including streaming URLs
+/// Extended song/video information response including streaming URLs and lyrics
 /// </summary>
 public class SongVideoInfoResponse : SongVideoInfo
 {
@@ -14,11 +14,23 @@ public class SongVideoInfoResponse : SongVideoInfo
     public StreamingData? StreamingData { get; set; }
 
     /// <summary>
+    /// Lyrics data if available
+    /// </summary>
+    public LyricsData? Lyrics { get; set; }
+
+    /// <summary>
+    /// Lyrics error information if lyrics request failed
+    /// </summary>
+    public LyricsErrorResponse? LyricsError { get; set; }
+
+    /// <summary>
     /// Constructor for SongVideoInfoResponse
     /// </summary>
     public SongVideoInfoResponse(
         SongVideoInfo songVideoInfo,
-        StreamingData? streamingData = null) 
+        StreamingData? streamingData = null,
+        LyricsData? lyrics = null,
+        LyricsErrorResponse? lyricsError = null) 
         : base(
             songVideoInfo.Name,
             songVideoInfo.Id,
@@ -43,5 +55,7 @@ public class SongVideoInfoResponse : SongVideoInfo
             songVideoInfo.Tags)
     {
         StreamingData = streamingData;
+        Lyrics = lyrics;
+        LyricsError = lyricsError;
     }
 } 

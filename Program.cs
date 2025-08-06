@@ -68,6 +68,7 @@ builder.Services.Configure<YouTubeMusicConfig>(builder.Configuration.GetSection(
 // Add services
 builder.Services.AddScoped<IYouTubeMusicService, YouTubeMusicService>();
 builder.Services.AddScoped<IConfigurationService, ConfigurationService>();
+builder.Services.AddScoped<ILyricsService, LyricsService>();
 builder.Services.AddHttpClient();
 
 var app = builder.Build();
