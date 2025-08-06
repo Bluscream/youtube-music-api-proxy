@@ -23,6 +23,9 @@ let shuffledPlaylistOrder = [];
 // Default title for the application
 const DEFAULT_TITLE = 'YouTube Music';
 
+// Global variables for current song info
+let currentSongInfo = null;
+
 // Media key event handling
 function setupMediaKeyListeners() {
     // Handle media key events
@@ -148,6 +151,10 @@ function stopAllAudio() {
             media.currentTime = 0;
         }
     });
+
+    // Clear song info when stopping audio
+    currentSongInfo = null;
+    clearInfoPanel();
 
     console.log('Stopped all audio playback');
 }
@@ -918,6 +925,9 @@ async function playSong(songId, title, artist, thumbnail = null, playlistId = nu
         thumbnailElement.innerHTML = '🎵';
     }
 
+    // Fetch detailed song information for the Info tab
+    fetchSongInfo(songId);
+
     try {
         const queryParams = getQueryParams();
         const queryString = buildQueryString(queryParams);
@@ -1011,6 +1021,9 @@ async function playSong(songId, title, artist, thumbnail = null, playlistId = nu
             if (autoPlayEnabled && currentPlaylist && currentPlaylistSongs.length > 0) {
                 playNextSong();
             } else {
+                // Clear song info when no more songs to play
+                currentSongInfo = null;
+                clearInfoPanel();
                 showInfoNotification('Song finished playing');
             }
         });
@@ -1023,6 +1036,271 @@ async function playSong(songId, title, artist, thumbnail = null, playlistId = nu
         // Reset document title on error
         document.title = DEFAULT_TITLE;
         showErrorNotification(`Failed to load "${title}" by ${artist}. Please check your connection and try again.`);
+    }
+}
+
+// Function to fetch detailed song information
+async function fetchSongInfo(songId) {
+    try {
+        const queryParams = getQueryParams();
+        const queryString = buildQueryString(queryParams);
+        const response = await fetch(`/api/song/${songId}?${queryString}`);
+
+        if (response.ok) {
+            const songInfo = await response.json();
+            currentSongInfo = songInfo;
+            updateInfoPanel(songInfo);
+            updateLyricsPanel(songInfo);
+        } else {
+            console.warn('Failed to fetch song info:', response.status);
+            // Show basic info if detailed fetch fails
+            updateInfoPanelWithBasicInfo();
+        }
+    } catch (error) {
+        console.error('Error fetching song info:', error);
+        // Show basic info if fetch fails
+        updateInfoPanelWithBasicInfo();
+    }
+}
+
+// Function to update the Info panel with detailed song information
+function updateInfoPanel(songInfo) {
+    const infoPanel = document.getElementById('infoPanel');
+    if (!infoPanel) return;
+
+    const panelContent = infoPanel.querySelector('.panel-content');
+    if (!panelContent) return;
+
+    // Format duration
+    const duration = songInfo.duration || '';
+    const formattedDuration = duration ? formatDuration(duration) : 'Unknown';
+
+    // Format view count
+    const viewsCount = songInfo.viewsCount || 0;
+    const formattedViews = viewsCount > 0 ? formatNumber(viewsCount) : 'Unknown';
+
+    // Format publish date
+    const publishedAt = songInfo.publishedAt || '';
+    const formattedDate = publishedAt ? formatDate(publishedAt) : 'Unknown';
+
+    // Get artist names
+    const artists = songInfo.artists || [];
+    const artistNames = artists.length > 0 ? artists.map(artist => artist.name || artist).join(', ') : 'Unknown Artist';
+
+    // Get album name
+    const album = songInfo.album || songInfo.albumName || 'Unknown Album';
+    const albumName = typeof album === 'object' ? album.name : album;
+
+    // Get description (truncate if too long)
+    const description = songInfo.description || '';
+    const truncatedDescription = description.length > 300 ? description.substring(0, 300) + '...' : description;
+
+    // Get thumbnail - try to get the highest quality thumbnail
+    const thumbnails = songInfo.thumbnails || [];
+    let thumbnail = '';
+    if (thumbnails.length > 0) {
+        // Sort by width to get the highest quality thumbnail
+        const sortedThumbnails = thumbnails.sort((a, b) => (b.width || 0) - (a.width || 0));
+        thumbnail = sortedThumbnails[0].url;
+    }
+
+    // Check if lyrics are available
+    const hasLyrics = songInfo.lyrics && songInfo.lyrics.data && songInfo.lyrics.data.length > 0;
+
+    panelContent.innerHTML = `
+        <div class="song-info-container">
+            ${thumbnail ? `
+                <div class="song-info-thumbnail">
+                    <img src="${thumbnail}" alt="${songInfo.name || songInfo.title || 'Song'}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
+                </div>
+            ` : ''}
+            
+            <div class="song-info-details">
+                <h3 class="song-info-title">${songInfo.name || songInfo.title || 'Unknown Title'}</h3>
+                <p class="song-info-artist">${artistNames}</p>
+                
+                ${albumName && albumName !== 'Unknown Album' ? `
+                    <div class="song-info-section">
+                        <h4>Album</h4>
+                        <p>${albumName}</p>
+                    </div>
+                ` : ''}
+                
+                <div class="song-info-section">
+                    <h4>Duration</h4>
+                    <p>${formattedDuration}</p>
+                </div>
+                
+                ${viewsCount > 0 ? `
+                    <div class="song-info-section">
+                        <h4>Views</h4>
+                        <p>${formattedViews}</p>
+                    </div>
+                ` : ''}
+                
+                ${publishedAt ? `
+                    <div class="song-info-section">
+                        <h4>Published</h4>
+                        <p>${formattedDate}</p>
+                    </div>
+                ` : ''}
+                
+                ${truncatedDescription ? `
+                    <div class="song-info-section">
+                        <h4>Description</h4>
+                        <p class="song-info-description">${truncatedDescription}</p>
+                    </div>
+                ` : ''}
+                
+                ${songInfo.tags && songInfo.tags.length > 0 ? `
+                    <div class="song-info-section">
+                        <h4>Tags</h4>
+                        <div class="song-info-tags">
+                            ${songInfo.tags.slice(0, 10).map(tag => `<span class="tag">${tag}</span>`).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+                
+
+            </div>
+        </div>
+    `;
+}
+
+// Function to update the Lyrics panel with song lyrics
+function updateLyricsPanel(songInfo) {
+    const lyricsPanel = document.getElementById('lyricsPanel');
+    if (!lyricsPanel) return;
+
+    const panelContent = lyricsPanel.querySelector('.panel-content');
+    if (!panelContent) return;
+
+    // Check if lyrics are available
+    const hasLyrics = songInfo.lyrics && songInfo.lyrics.data && songInfo.lyrics.data.length > 0;
+
+    if (hasLyrics) {
+        // Get lyrics text
+        const lyricsText = songInfo.lyrics.data;
+
+        // Get song title and artist for header
+        const title = songInfo.name || songInfo.title || 'Unknown Title';
+        const artists = songInfo.artists || [];
+        const artistNames = artists.length > 0 ? artists.map(artist => artist.name || artist).join(', ') : 'Unknown Artist';
+
+        panelContent.innerHTML = `
+            <div class="lyrics-container">
+                <div class="lyrics-header">
+                    <h3 class="lyrics-title">${title}</h3>
+                    <p class="lyrics-artist">${artistNames}</p>
+                </div>
+                <div class="lyrics-content">
+                    <pre class="lyrics-text">${lyricsText}</pre>
+                </div>
+            </div>
+        `;
+    } else {
+        // Show placeholder when no lyrics available
+        panelContent.innerHTML = `
+            <div class="lyrics-placeholder">
+                <div class="placeholder-icon">🎵</div>
+                <div class="placeholder-text">No lyrics available for this song</div>
+            </div>
+        `;
+    }
+}
+
+// Function to update Info panel with basic information when detailed fetch fails
+function updateInfoPanelWithBasicInfo() {
+    const infoPanel = document.getElementById('infoPanel');
+    if (!infoPanel) return;
+
+    const panelContent = infoPanel.querySelector('.panel-content');
+    if (!panelContent) return;
+
+    const title = document.getElementById('nowPlayingTitle').textContent;
+    const artist = document.getElementById('nowPlayingArtist').textContent;
+
+    panelContent.innerHTML = `
+        <div class="song-info-container">
+            <div class="song-info-details">
+                <h3 class="song-info-title">${title}</h3>
+                <p class="song-info-artist">${artist}</p>
+                
+                <div class="song-info-section">
+                    <p style="color: #666; font-style: italic;">Detailed information unavailable</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Function to clear the Info panel and show placeholder
+function clearInfoPanel() {
+    const infoPanel = document.getElementById('infoPanel');
+    if (!infoPanel) return;
+
+    const panelContent = infoPanel.querySelector('.panel-content');
+    if (!panelContent) return;
+
+    panelContent.innerHTML = `
+        <div class="info-placeholder">
+            <div class="placeholder-icon">ℹ️</div>
+            <div class="placeholder-text">Song information will appear here</div>
+        </div>
+    `;
+}
+
+// Helper function to format duration
+function formatDuration(duration) {
+    if (!duration) return 'Unknown';
+
+    // If it's already formatted (HH:MM:SS), return as is
+    if (typeof duration === 'string' && duration.includes(':')) {
+        // Remove milliseconds if present (e.g., "00:03:17.3600000" -> "00:03:17")
+        return duration.split('.')[0];
+    }
+
+    // If it's a number (seconds), convert to HH:MM:SS
+    if (typeof duration === 'number') {
+        const hours = Math.floor(duration / 3600);
+        const minutes = Math.floor((duration % 3600) / 60);
+        const seconds = Math.floor(duration % 60);
+
+        if (hours > 0) {
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        } else {
+            return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+    }
+
+    return duration;
+}
+
+// Helper function to format numbers (e.g., 1000000 -> 1M)
+function formatNumber(num) {
+    if (num >= 1000000000) {
+        return (num / 1000000000).toFixed(1) + 'B';
+    } else if (num >= 1000000) {
+        return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+        return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+}
+
+// Helper function to format date
+function formatDate(dateString) {
+    if (!dateString) return 'Unknown';
+
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    } catch (error) {
+        return dateString;
     }
 }
 
@@ -2071,6 +2349,11 @@ window.loadArtist = loadArtist;
 window.removeNotification = removeNotification;
 window.stopAllAudio = stopAllAudio;
 window.loadFromURL = loadFromURL;
+window.fetchSongInfo = fetchSongInfo;
+window.updateInfoPanel = updateInfoPanel;
+window.updateLyricsPanel = updateLyricsPanel;
+window.updateInfoPanelWithBasicInfo = updateInfoPanelWithBasicInfo;
+window.clearInfoPanel = clearInfoPanel;
 
 // Right Sidebar Manager
 class RightSidebarManager {
