@@ -15,6 +15,10 @@ RUN dotnet restore "YoutubeMusicAPIProxy.csproj"
 COPY . .
 RUN dotnet build "YoutubeMusicAPIProxy.csproj" -c ${BUILD_CONFIGURATION} -o /app/build
 
+# Generate HTTPS development certificate in build stage
+RUN dotnet dev-certs https --clean && \
+    dotnet dev-certs https
+
 # Publish
 FROM build AS publish
 RUN dotnet publish "YoutubeMusicAPIProxy.csproj" -c ${BUILD_CONFIGURATION} -o /app/publish \
@@ -48,9 +52,8 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Generate and trust HTTPS development certificate
-RUN dotnet dev-certs https --clean && \
-    dotnet dev-certs https --trust
+# Copy HTTPS certificates from build stage
+COPY --from=build /root/.dotnet/corefx/cryptography/x509stores/my /root/.dotnet/corefx/cryptography/x509stores/my
 
 # Copy published app
 COPY --from=publish /app/publish .
@@ -66,8 +69,6 @@ EXPOSE 80 443
 # Set environment variables for container deployment
 ENV ASPNETCORE_URLS=http://+:80;https://+:443
 ENV ASPNETCORE_ENVIRONMENT=${BUILD_CONFIGURATION}
-ENV ASPNETCORE_Kestrel__Certificates__Default__Password=""
-ENV ASPNETCORE_Kestrel__Certificates__Default__Path=""
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

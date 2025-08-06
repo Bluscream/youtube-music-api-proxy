@@ -12,16 +12,12 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:80;https://+:443
-      - ASPNETCORE_Kestrel__Certificates__Default__Password=""
-      - ASPNETCORE_Kestrel__Certificates__Default__Path=""
       - YTM_GEOGRAPHICAL_LOCATION=US
       # Set these environment variables for production
       # - YTM_COOKIES=your_base64_encoded_cookies_here
       # - YTM_VISITORDATA=your_visitor_data_here
       # - YTM_POTOKEN=your_proof_of_origin_token_here
     volumes:
-      # Mount certificates directory for HTTPS
-      - ~/.aspnet/https:/root/.aspnet/https:ro
       # Optional: Mount logs directory for production
       - ./logs:/app/logs
     restart: unless-stopped
