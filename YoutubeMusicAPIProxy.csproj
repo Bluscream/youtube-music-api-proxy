@@ -33,4 +33,11 @@
     <TrimmerPreserveType Include="Microsoft.OpenApi.Models.SecuritySchemeType" />
     <TrimmerPreserveType Include="Microsoft.OpenApi.Models.ReferenceType" />
   </ItemGroup>
+  <!-- Exclude lib/** from build, publish, and packing in all possible ways -->
+  <ItemGroup>
+    <None Remove="references\**" />
+    <Content Remove="references\**" />
+    <Compile Remove="references\**" />
+    <EmbeddedResource Remove="references\**" />
+  </ItemGroup>
 </Project>

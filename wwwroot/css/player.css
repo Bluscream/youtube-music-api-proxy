@@ -7,7 +7,7 @@
     padding: 0 24px;
     position: fixed;
     bottom: 0;
-    left: 240px;
+    left: 0;
     /* Account for sidebar width */
     right: 0;
     z-index: 1000;
