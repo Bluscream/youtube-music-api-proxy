@@ -20,8 +20,6 @@
 
 <body>
     <!-- Sidebar toggle buttons outside sidebar for proper positioning -->
-    <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Toggle sidebar">◀</button>
-    <button class="mobile-menu-toggle" id="mobileMenuToggle" onclick="toggleSidebar()">☰</button>
 
     <div class="sidebar" id="sidebar">
         <div class="logo">
@@ -56,9 +54,11 @@
 
     <div class="main-content" id="mainContent">
         <div class="header">
+            <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Toggle sidebar"
+                style="align-self: left;">◀</button>
+            <button class="mobile-menu-toggle" id="mobileMenuToggle" onclick="toggleSidebar()"
+                style="align-self: left;">☰</button>
             <div class="search-container">
-                <button class="hamburger-menu" id="hamburgerMenu" onclick="toggleSidebar()"
-                    title="Toggle sidebar">☰</button>
                 <div class="search-icon">🔍</div>
                 <input type="text" class="search-input" id="searchInput"
                     placeholder="Search for songs, artists, or albums">

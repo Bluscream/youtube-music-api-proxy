@@ -1,0 +1,1 @@
+Invoke-WebRequest -Uri "https://localhost/index.html?playlist=PLZcTzTcUhr8VCHVm_M_rq6ppG_SDzthMU&song=ipzIYkVthno" -OutFile "test_output.html"; Get-Content "test_output.html" | Out-Host

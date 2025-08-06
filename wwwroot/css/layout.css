@@ -268,14 +268,12 @@
     overflow-x: hidden;
     /* Prevent horizontal scroll */
     transition: all 0.3s ease;
-    margin-left: 240px;
     /* Start with expanded state */
     width: calc(100vw - 240px);
 }
 
 /* Adjust main content for different sidebar states */
 .main-content.sidebar-expanded {
-    margin-left: 240px;
     width: calc(100vw - 240px);
 }
 
