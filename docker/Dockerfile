@@ -24,13 +24,13 @@ RUN dotnet publish "YoutubeMusicAPIProxy.csproj" -c ${BUILD_CONFIGURATION} -o /a
     /p:DebugType=None \
     /p:DebugSymbols=false \
     /p:PublishTrimmed=true \
-    /p:TrimMode=link \
     /p:EnableUnsafeBinaryFormatterSerialization=false \
     /p:EnableUnsafeUTF7Encoding=false \
     /p:EventSourceSupport=false \
     /p:HttpActivityPropagationSupport=false \
     /p:InvariantGlobalization=true \
     /p:MetadataUpdaterSupport=false
+    # /p:TrimMode=partial
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
