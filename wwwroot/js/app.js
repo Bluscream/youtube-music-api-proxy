@@ -12,6 +12,7 @@ let currentSongIndex = -1;
 let autoPlayEnabled = true;
 let isMobileMenuOpen = false;
 let isSidebarCollapsed = false;
+let errorRecoveryTimeout = null; // For automatic playlist advancement on error
 
 // Repeat and shuffle modes
 let repeatMode = 'none'; // 'none', 'one', 'all'
@@ -21,6 +22,100 @@ let shuffledPlaylistOrder = [];
 
 // Default title for the application
 const DEFAULT_TITLE = 'YouTube Music';
+
+// Media key event handling
+function setupMediaKeyListeners() {
+    // Handle media key events
+    navigator.mediaSession.setActionHandler('play', () => {
+        if (currentAudio && !isPlaying) {
+            togglePlay();
+        }
+    });
+
+    navigator.mediaSession.setActionHandler('pause', () => {
+        if (currentAudio && isPlaying) {
+            togglePlay();
+        }
+    });
+
+    navigator.mediaSession.setActionHandler('previoustrack', () => {
+        if (currentPlaylist && currentPlaylistSongs.length > 0) {
+            playPreviousSong();
+        }
+    });
+
+    navigator.mediaSession.setActionHandler('nexttrack', () => {
+        if (currentPlaylist && currentPlaylistSongs.length > 0) {
+            playNextSong();
+        }
+    });
+
+    navigator.mediaSession.setActionHandler('seekto', (details) => {
+        if (currentAudio && details.seekTime !== undefined) {
+            currentAudio.currentTime = details.seekTime;
+        }
+    });
+
+    navigator.mediaSession.setActionHandler('stop', () => {
+        if (currentAudio) {
+            currentAudio.pause();
+            currentAudio.currentTime = 0;
+            isPlaying = false;
+            document.getElementById('playButton').textContent = '▶';
+            document.title = DEFAULT_TITLE;
+            if (navigator.mediaSession) {
+                navigator.mediaSession.playbackState = 'none';
+            }
+        }
+    });
+
+    // Handle keyboard media keys
+    document.addEventListener('keydown', (event) => {
+        // Only handle media keys when the app is focused
+        if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+            return; // Don't interfere with text input
+        }
+
+        switch (event.code) {
+            case 'MediaPlayPause':
+                event.preventDefault();
+                if (currentAudio) {
+                    togglePlay();
+                }
+                break;
+            case 'MediaTrackNext':
+                event.preventDefault();
+                if (currentPlaylist && currentPlaylistSongs.length > 0) {
+                    playNextSong();
+                }
+                break;
+            case 'MediaTrackPrevious':
+                event.preventDefault();
+                if (currentPlaylist && currentPlaylistSongs.length > 0) {
+                    playPreviousSong();
+                }
+                break;
+        }
+    });
+}
+
+// Function to handle automatic playlist advancement on error
+function handlePlaybackError(title, artist) {
+    // Clear any existing error recovery timeout
+    if (errorRecoveryTimeout) {
+        clearTimeout(errorRecoveryTimeout);
+        errorRecoveryTimeout = null;
+    }
+
+    // If we're in a playlist, automatically advance to next song after 3 seconds
+    if (currentPlaylist && currentPlaylistSongs.length > 0) {
+        errorRecoveryTimeout = setTimeout(() => {
+            console.log(`Auto-advancing playlist due to playback error: ${title}`);
+            playNextSong();
+            errorRecoveryTimeout = null;
+        }, 3000);
+    }
+}
 
 // Sidebar state management
 class SidebarManager {
@@ -551,6 +646,12 @@ function highlightCurrentPlaylist() {
 }
 
 async function playSong(songId, title, artist, thumbnail = null, playlistId = null, songIndex = -1) {
+    // Clear any existing error recovery timeout
+    if (errorRecoveryTimeout) {
+        clearTimeout(errorRecoveryTimeout);
+        errorRecoveryTimeout = null;
+    }
+
     if (currentAudio) {
         currentAudio.pause();
         currentAudio = null;
@@ -562,6 +663,11 @@ async function playSong(songId, title, artist, thumbnail = null, playlistId = nu
     document.getElementById('nowPlayingArtist').textContent = artist;
     document.getElementById('playButton').textContent = '⏸';
     isPlaying = true;
+
+    // Update media session state
+    if (navigator.mediaSession) {
+        navigator.mediaSession.playbackState = 'playing';
+    }
 
     // Reset repeat and shuffle if playing from search results (no playlist)
     if (!playlistId) {
@@ -612,6 +718,7 @@ async function playSong(songId, title, artist, thumbnail = null, playlistId = nu
             // Reset document title on error
             document.title = DEFAULT_TITLE;
             showErrorNotification(`Failed to play "${title}" by ${artist}. The song may be unavailable or restricted.`);
+            handlePlaybackError(title, artist);
         });
 
         audio.addEventListener('abort', () => {
@@ -631,7 +738,17 @@ async function playSong(songId, title, artist, thumbnail = null, playlistId = nu
                 // Reset document title on play error
                 document.title = DEFAULT_TITLE;
                 showErrorNotification(`Failed to start playback of "${title}". Please try again.`);
+                handlePlaybackError(title, artist);
             }).then(() => {
+                // Update media session metadata for system media controls
+                if (navigator.mediaSession) {
+                    navigator.mediaSession.metadata = new MediaMetadata({
+                        title: title,
+                        artist: artist,
+                        album: 'YouTube Music',
+                        artwork: thumbnail ? [{ src: thumbnail, sizes: '300x300', type: 'image/jpeg' }] : []
+                    });
+                }
                 // showSuccessNotification(`Now playing: "${title}" by ${artist}`);
             });
         });
@@ -639,6 +756,15 @@ async function playSong(songId, title, artist, thumbnail = null, playlistId = nu
         audio.addEventListener('timeupdate', () => {
             const progress = (audio.currentTime / audio.duration) * 100;
             document.getElementById('progressFill').style.width = progress + '%';
+
+            // Update media session position state
+            if (navigator.mediaSession && audio.duration) {
+                navigator.mediaSession.setPositionState({
+                    duration: audio.duration,
+                    position: audio.currentTime,
+                    playbackRate: audio.playbackRate
+                });
+            }
         });
 
         audio.addEventListener('ended', () => {
@@ -647,6 +773,11 @@ async function playSong(songId, title, artist, thumbnail = null, playlistId = nu
 
             // Reset document title when song ends
             document.title = DEFAULT_TITLE;
+
+            // Update media session state
+            if (navigator.mediaSession) {
+                navigator.mediaSession.playbackState = 'none';
+            }
 
             // Handle repeat one mode
             if (repeatMode === 'one') {
@@ -717,6 +848,10 @@ function togglePlay() {
             isPlaying = false;
             // Reset document title when paused
             document.title = DEFAULT_TITLE;
+            // Update media session state
+            if (navigator.mediaSession) {
+                navigator.mediaSession.playbackState = 'paused';
+            }
         } else {
             currentAudio.play();
             document.getElementById('playButton').textContent = '⏸';
@@ -725,6 +860,10 @@ function togglePlay() {
             const title = document.getElementById('nowPlayingTitle').textContent;
             const artist = document.getElementById('nowPlayingArtist').textContent;
             document.title = `${title} by ${artist}`;
+            // Update media session state
+            if (navigator.mediaSession) {
+                navigator.mediaSession.playbackState = 'playing';
+            }
         }
     }
 }
@@ -1624,6 +1763,9 @@ loadHome();
 loadPlaylists();
 initVolumeSlider();
 updateRepeatShuffleDisplay();
+
+// Initialize media key listeners
+setupMediaKeyListeners();
 
 // Initialize mobile enhancements
 addMobileTouchHandlers();
