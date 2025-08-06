@@ -208,8 +208,9 @@ class SidebarManager {
         document.addEventListener('click', (event) => {
             if (this.isMobile && this.isMobileMenuOpen) {
                 const sidebar = document.getElementById('sidebar');
+                const mobileMenuToggle = document.getElementById('mobileMenuToggle');
 
-                if (!sidebar.contains(event.target)) {
+                if (!sidebar.contains(event.target) && !mobileMenuToggle.contains(event.target)) {
                     this.closeMobileMenu();
                 }
             }
@@ -236,6 +237,18 @@ class SidebarManager {
             }
         });
 
+        // Double-click sidebar toggle to enter full screen
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('dblclick', (event) => {
+                event.preventDefault();
+                if (this.currentState === 'full') {
+                    this.setState('expanded');
+                } else {
+                    this.setState('full');
+                }
+            });
+        }
 
     }
 
@@ -289,6 +302,8 @@ class SidebarManager {
     updateLayout() {
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('mainContent');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
         const hamburgerMenu = document.getElementById('hamburgerMenu');
         const playerBar = document.querySelector('.player-bar');
 
@@ -336,7 +351,24 @@ class SidebarManager {
         }
     }
 
+    updateToggleButton() {
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        if (!sidebarToggle) return;
 
+        const buttonConfig = {
+            full: { text: '✕', title: 'Exit full screen', left: '20px' },
+            expanded: { text: '◀', title: 'Collapse to icons', left: '260px' },
+            icon: { text: '◀', title: 'Collapse sidebar', left: '80px' },
+            collapsed: { text: '▶', title: 'Expand sidebar', left: '20px' }
+        };
+
+        const config = buttonConfig[this.currentState];
+        if (config) {
+            sidebarToggle.textContent = config.text;
+            sidebarToggle.title = config.title;
+            sidebarToggle.style.left = config.left;
+        }
+    }
 
     addMobileBackdrop() {
         if (!document.getElementById('mobileMenuBackdrop')) {

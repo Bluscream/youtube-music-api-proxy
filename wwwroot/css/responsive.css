@@ -31,6 +31,14 @@
 
 
 
+/* Desktop sidebar toggle button */
+@media (min-width: calc(var(--sidebar-collapse-breakpoint) + 1px)) {
+    .sidebar-toggle {
+        display: flex !important;
+        left: 20px;
+    }
+}
+
 /* Mobile Responsive Design */
 @media (max-width: var(--sidebar-collapse-breakpoint)) {
     body {
@@ -57,7 +65,33 @@
         transform: translateX(0);
     }
 
+    .sidebar-toggle {
+        display: none !important;
+    }
 
+    .mobile-menu-toggle {
+        display: flex !important;
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        width: 40px;
+        height: 40px;
+        background-color: #181818;
+        border: 1px solid #282828;
+        border-radius: 50%;
+        color: #ffffff;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 201;
+        transition: all 0.2s ease;
+        font-size: 16px;
+    }
+
+    .mobile-menu-toggle:hover {
+        background-color: #282828;
+        transform: scale(1.1);
+    }
 
     .logo {
         padding: 20px 24px;

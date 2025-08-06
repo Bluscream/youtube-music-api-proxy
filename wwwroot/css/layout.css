@@ -339,3 +339,104 @@
         left: 0 !important;
     }
 }
+
+/* Sidebar toggle button */
+.sidebar-toggle {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    width: 24px;
+    height: 24px;
+    background-color: #181818;
+    border: 1px solid #282828;
+    border-radius: 50%;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1001;
+    transition: all 0.2s ease;
+    font-size: 12px;
+}
+
+.sidebar-toggle:hover {
+    background-color: #282828;
+    transform: scale(1.1);
+}
+
+/* Toggle button positioning for different states */
+.sidebar.expanded~.sidebar-toggle {
+    left: 260px;
+}
+
+.sidebar.icon~.sidebar-toggle {
+    left: 80px;
+}
+
+.sidebar.collapsed~.sidebar-toggle {
+    left: 20px;
+}
+
+.sidebar.full~.sidebar-toggle {
+    display: none;
+}
+
+/* Add hover effects for toggle button */
+.sidebar-toggle:hover {
+    background-color: #282828;
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Different colors for different states */
+.sidebar.expanded~.sidebar-toggle {
+    background-color: #181818;
+    border-color: #404040;
+}
+
+.sidebar.icon~.sidebar-toggle {
+    background-color: #1a1a1a;
+    border-color: #404040;
+}
+
+.sidebar.collapsed~.sidebar-toggle {
+    background-color: #0f0f0f;
+    border-color: #282828;
+}
+
+/* Ensure toggle button is visible when sidebar is collapsed */
+.sidebar.collapsed~.sidebar-toggle {
+    left: 20px;
+}
+
+/* Alternative positioning for when sidebar is collapsed */
+.sidebar.collapsed+.main-content .sidebar-toggle {
+    left: 20px;
+}
+
+/* Mobile menu toggle button */
+.mobile-menu-toggle {
+    display: none;
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    width: 40px;
+    height: 40px;
+    background-color: #181818;
+    border: 1px solid #282828;
+    border-radius: 50%;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 201;
+    transition: all 0.2s ease;
+    font-size: 16px;
+}
+
+.mobile-menu-toggle:hover {
+    background-color: #282828;
+    transform: scale(1.1);
+}
