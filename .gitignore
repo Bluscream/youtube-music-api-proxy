@@ -454,3 +454,4 @@ appsettings.Development.json
 appsettings.Production.json
 *.pfx
 *.key 
+lib/YouTubeMusicAPI
