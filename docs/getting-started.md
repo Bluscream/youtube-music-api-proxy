@@ -133,7 +133,7 @@ Once the API is running, visit the root URL to access **Swagger documentation**:
 ```
 YoutubeMusicAPIProxy/
 ├── Controllers/          # API controllers
-│   └── YouTubeMusicController.cs
+│   └── ApiController.cs
 ├── Models/              # Response models
 │   ├── ApiResponse.cs
 │   └── SongVideoInfoResponse.cs

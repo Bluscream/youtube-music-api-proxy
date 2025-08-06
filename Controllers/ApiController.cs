@@ -15,16 +15,16 @@ namespace YoutubeMusicAPIProxy.Controllers;
 [ApiController]
 [Route("api")]
 [Produces("application/json")]
-public class YouTubeMusicController : ControllerBase
+public class ApiController : ControllerBase
 {
     private readonly IYouTubeMusicService _service;
     private readonly IConfigurationService _configService;
-    private readonly ILogger<YouTubeMusicController> _logger;
+    private readonly ILogger<ApiController> _logger;
 
-    public YouTubeMusicController(
+    public ApiController(
         IYouTubeMusicService service,
         IConfigurationService configService,
-        ILogger<YouTubeMusicController> logger)
+        ILogger<ApiController> logger)
     {
         _service = service;
         _configService = configService;
