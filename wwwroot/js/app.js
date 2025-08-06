@@ -1179,8 +1179,9 @@ function updateLyricsPanel(songInfo) {
     const hasLyrics = songInfo.lyrics && songInfo.lyrics.data && songInfo.lyrics.data.length > 0;
 
     if (hasLyrics) {
-        // Get lyrics text
-        const lyricsText = songInfo.lyrics.data;
+        // Get lyrics text from the first lyric entry
+        const firstLyric = songInfo.lyrics.data[0];
+        const lyricsText = firstLyric.plainLyric || '';
 
         // Get song title and artist for header
         const title = songInfo.name || songInfo.title || 'Unknown Title';
