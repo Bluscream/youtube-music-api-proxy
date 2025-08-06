@@ -1153,9 +1153,9 @@ function loadAlbums(event) {
 function loadHome(event) {
     if (event && event.target) {
         updateActiveNavItem(event.target.closest('.nav-item'));
+        // Only clear URL parameters when explicitly navigating to home
+        updateURL({ playlist: null, song: null });
     }
-    // Clear URL parameters when going to home
-    updateURL({ playlist: null, song: null });
 
     document.querySelector('.welcome-section').style.display = 'block';
     document.getElementById('searchResults').style.display = 'none';
