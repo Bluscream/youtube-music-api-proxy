@@ -3,6 +3,8 @@ using YoutubeMusicAPIProxy.Services;
 using YoutubeMusicAPIProxy.Configuration;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.FileProviders;
+using System.Security.Cryptography.X509Certificates;
+using System.Security.Cryptography;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,11 +22,71 @@ if (string.IsNullOrEmpty(urls))
 {
     var httpPort = builder.Configuration.GetValue<int>("HttpPort", 80);
     var httpsPort = builder.Configuration.GetValue<int>("HttpsPort", 443);
-    builder.WebHost.UseUrls($"http://localhost:{httpPort}", $"https://localhost:{httpsPort}");
+    
+    // Configure Kestrel with HTTPS fallback
+    builder.WebHost.ConfigureKestrel(serverOptions =>
+    {
+        serverOptions.ListenAnyIP(httpPort); // HTTP port
+        
+        // Try to use default HTTPS configuration, fallback to custom certificate if needed
+        try
+        {
+            serverOptions.ListenAnyIP(httpsPort, listenOptions =>
+            {
+                listenOptions.UseHttps();
+            });
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("Unable to configure HTTPS endpoint") || ex.Message.Contains("No server certificate was specified"))
+        {
+            Console.WriteLine("Default HTTPS certificate not available, using custom self-signed certificate...");
+            
+            // Use existing certificate or create new one as fallback
+            var certPath = Path.Combine(AppContext.BaseDirectory, "dev-cert.pfx");
+            if (!File.Exists(certPath))
+            {
+                Console.WriteLine("Creating new self-signed certificate...");
+                CreateSelfSignedCertificate(certPath);
+            }
+            else
+            {
+                Console.WriteLine("Using existing self-signed certificate...");
+            }
+            
+            serverOptions.ListenAnyIP(httpsPort, listenOptions =>
+            {
+                listenOptions.UseHttps(certPath, "dev123");
+            });
+            
+            Console.WriteLine($"Using custom self-signed certificate at: {certPath}");
+        }
+    });
 }
 else
 {
     builder.WebHost.UseUrls(urls);
+}
+
+// Method to create self-signed certificate
+static void CreateSelfSignedCertificate(string certPath)
+{
+    try
+    {
+        var distinguishedName = new X500DistinguishedName("CN=localhost");
+        using var rsa = RSA.Create(2048);
+        var request = new CertificateRequest(distinguishedName, rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        
+        var certificate = request.CreateSelfSigned(DateTimeOffset.Now.AddDays(-1), DateTimeOffset.Now.AddYears(10));
+        
+        var pfxBytes = certificate.Export(X509ContentType.Pfx, "dev123");
+        File.WriteAllBytes(certPath, pfxBytes);
+        
+        Console.WriteLine($"Self-signed certificate created at: {certPath}");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Failed to create self-signed certificate: {ex.Message}");
+        throw;
+    }
 }
 
 // Add services to the container.
