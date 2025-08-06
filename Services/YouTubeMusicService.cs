@@ -21,6 +21,10 @@ public class YouTubeMusicService : IYouTubeMusicService
     private readonly IOptions<YouTubeMusicConfig> _config;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<YouTubeMusicService> _logger;
+    
+    // Cache for generated session data to avoid regenerating on every request
+    private readonly Dictionary<string, (string VisitorData, string PoToken, DateTime Expiry)> _sessionCache = new();
+    private readonly object _sessionCacheLock = new object();
 
     public YouTubeMusicService(
         IOptions<YouTubeMusicConfig> config,
@@ -73,41 +77,19 @@ public class YouTubeMusicService : IYouTubeMusicService
         var finalVisitorData = visitorData ?? config.VisitorData;
         var finalPoToken = poToken ?? config.PoToken;
 
-        // Generate session data if needed
+        // Generate session data if needed using cached data when possible
         if (cookieCollection != null && (string.IsNullOrEmpty(finalVisitorData) || string.IsNullOrEmpty(finalPoToken)))
         {
-            try
+            var (cachedVisitorData, cachedPoToken) = await GetOrGenerateSessionDataAsync(cookieCollection);
+            
+            if (string.IsNullOrEmpty(finalVisitorData))
             {
-                var httpClient = _httpClientFactory.CreateClient();
-                var cookieString = string.Join("; ", cookieCollection.Select(c => $"{c.Name}={c.Value}"));
-                
-                // Only add cookie header if we have actual cookies
-                if (!string.IsNullOrEmpty(cookieString))
-                {
-                    httpClient.DefaultRequestHeaders.Add("Cookie", cookieString);
-                }
-
-                using var jsEnvironment = new NodeEnvironment();
-                var sessionCreator = new YouTubeSessionCreator(new()
-                {
-                    Logger = _logger,
-                    HttpClient = httpClient,
-                    JsEnvironment = jsEnvironment
-                });
-
-                if (string.IsNullOrEmpty(finalVisitorData))
-                {
-                    finalVisitorData = await sessionCreator.VisitorDataAsync();
-                }
-
-                if (string.IsNullOrEmpty(finalPoToken))
-                {
-                    finalPoToken = await sessionCreator.ProofOfOriginTokenAsync(finalVisitorData);
-                }
+                finalVisitorData = cachedVisitorData;
             }
-            catch (Exception ex)
+            
+            if (string.IsNullOrEmpty(finalPoToken))
             {
-                _logger.LogWarning(ex, "Failed to generate session data");
+                finalPoToken = cachedPoToken;
             }
         }
 
@@ -118,6 +100,126 @@ public class YouTubeMusicService : IYouTubeMusicService
             finalPoToken,
             cookieCollection,
             _httpClientFactory.CreateClient());
+    }
+
+    /// <summary>
+    /// Get or generate session data (visitor data and proof of origin token) with caching
+    /// </summary>
+    private async Task<(string VisitorData, string PoToken)> GetOrGenerateSessionDataAsync(IEnumerable<Cookie> cookieCollection)
+    {
+        // Create a cache key based on the cookie collection
+        var cookieKey = string.Join("|", cookieCollection.Select(c => $"{c.Name}={c.Value}").OrderBy(s => s));
+        
+        lock (_sessionCacheLock)
+        {
+            // Check if we have valid cached session data
+            if (_sessionCache.TryGetValue(cookieKey, out var cachedData) && cachedData.Expiry > DateTime.UtcNow)
+            {
+                _logger.LogDebug("Using cached session data");
+                return (cachedData.VisitorData, cachedData.PoToken);
+            }
+            
+            // Remove expired entries
+            var expiredKeys = _sessionCache.Keys.Where(k => _sessionCache[k].Expiry <= DateTime.UtcNow).ToList();
+            foreach (var key in expiredKeys)
+            {
+                _sessionCache.Remove(key);
+            }
+        }
+
+        // Generate new session data
+        _logger.LogInformation("Generating new session data using YouTubeSessionGenerator");
+        
+        try
+        {
+            var httpClient = _httpClientFactory.CreateClient();
+            var cookieString = string.Join("; ", cookieCollection.Select(c => $"{c.Name}={c.Value}"));
+            
+            // Only add cookie header if we have actual cookies
+            if (!string.IsNullOrEmpty(cookieString))
+            {
+                httpClient.DefaultRequestHeaders.Add("Cookie", cookieString);
+            }
+
+            using var jsEnvironment = new NodeEnvironment();
+            var sessionCreator = new YouTubeSessionCreator(new()
+            {
+                Logger = _logger,
+                HttpClient = httpClient,
+                JsEnvironment = jsEnvironment
+            });
+
+            // Generate visitor data
+            var visitorData = await sessionCreator.VisitorDataAsync();
+            _logger.LogDebug("Generated visitor data: {VisitorData}", visitorData?.Substring(0, Math.Min(50, visitorData?.Length ?? 0)));
+
+            // Generate proof of origin token
+            var poToken = await sessionCreator.ProofOfOriginTokenAsync(visitorData ?? string.Empty);
+            _logger.LogDebug("Generated PoToken: {PoToken}", poToken?.Substring(0, Math.Min(50, poToken?.Length ?? 0)));
+
+            // Cache the session data for 1 hour
+            var expiry = DateTime.UtcNow.AddHours(1);
+            
+            lock (_sessionCacheLock)
+            {
+                _sessionCache[cookieKey] = (visitorData ?? string.Empty, poToken ?? string.Empty, expiry);
+            }
+
+            _logger.LogInformation("Successfully generated and cached session data");
+            return (visitorData ?? string.Empty, poToken ?? string.Empty);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to generate session data using YouTubeSessionGenerator");
+            
+            // Provide more specific error messages based on the exception type
+            if (ex.Message.Contains("Sign in to confirm you're not a bot"))
+            {
+                throw new InvalidOperationException("YouTube requires authentication. Please provide valid YouTube cookies to access this content.", ex);
+            }
+            else if (ex.Message.Contains("network") || ex.Message.Contains("timeout"))
+            {
+                throw new InvalidOperationException("Network error while generating session data. Please check your internet connection and try again.", ex);
+            }
+            else
+            {
+                throw new InvalidOperationException("Failed to generate YouTube session data. This may be due to network issues, invalid cookies, or YouTube's anti-bot measures.", ex);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Clear the session cache (useful for testing or when cookies change)
+    /// </summary>
+    public void ClearSessionCache()
+    {
+        lock (_sessionCacheLock)
+        {
+            _sessionCache.Clear();
+            _logger.LogInformation("Session cache cleared");
+        }
+    }
+
+    /// <summary>
+    /// Get session cache statistics
+    /// </summary>
+    public object GetSessionCacheStats()
+    {
+        lock (_sessionCacheLock)
+        {
+            var now = DateTime.UtcNow;
+            var totalEntries = _sessionCache.Count;
+            var validEntries = _sessionCache.Count(kvp => kvp.Value.Expiry > now);
+            var expiredEntries = totalEntries - validEntries;
+            
+            return new
+            {
+                totalEntries,
+                validEntries,
+                expiredEntries,
+                cacheSize = _sessionCache.Count
+            };
+        }
     }
 
     /// <summary>

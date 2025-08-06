@@ -1,16 +1,17 @@
 <?xml version="1.0"?>
-<Container version="2">
+<Container>
   <Name>YouTube Music API Proxy</Name>
-  <Repository>bluscream1/youtube-music-api-proxy</Repository>
-  <Registry>https://hub.docker.com/r/bluscream1/youtube-music-api-proxy</Registry>
+  <Repository>bluscream/youtube-music-api-proxy:latest</Repository>
+  <Registry>https://hub.docker.com/r/bluscream/youtube-music-api-proxy</Registry>
   <Network>bridge</Network>
+  <MyIP />
+  <Shell>sh</Shell>
   <Privileged>false</Privileged>
-  <Support>https://github.com/Bluscream/youtube-music-api-proxy</Support>
+  <Support>https://github.com/Bluscream/youtube-music-api-proxy/issues</Support>
   <Project>https://github.com/Bluscream/youtube-music-api-proxy</Project>
-  <Overview>YouTube Music API Proxy - A .NET 9.0 API that provides access to YouTube Music data through a RESTful interface. Supports search, video info, and more.</Overview>
   <Category>MediaServer:Music</Category>
-  <WebUI>http://[IP]:[PORT:8080]/</WebUI>
-  <TemplateURL>https://raw.githubusercontent.com/Bluscream/youtube-music-api-proxy/main/unraid/template.xml</TemplateURL>
+  <WebUI>http://[IP]:[PORT:15000]/</WebUI>
+  <TemplateURL>https://github.com/Bluscream/youtube-music-api-proxy</TemplateURL>
   <Icon>https://raw.githubusercontent.com/Bluscream/youtube-music-api-proxy/main/unraid/icon.png</Icon>
   <ExtraParams />
   <PostArgs />
@@ -18,16 +19,27 @@
   <DateInstalled>1703123456</DateInstalled>
   <DonateText />
   <DonateLink />
-  <Requires>Docker</Requires>
+  <Requires />
   <Config
-    Name="WebUI"
-    Target="8080"
-    Default="8080"
+    Name="HTTP Port"
+    Target="80"
+    Default="15000"
     Mode="tcp"
-    Description="Web Interface Port"
+    Description="HTTP Port"
     Type="Port"
     Display="always"
-    Required="true"
+    Required="false"
+    Mask="false"
+  />
+  <Config
+    Name="HTTPS Port"
+    Target="443"
+    Default="15001"
+    Mode="tcp"
+    Description="HTTPS Port"
+    Type="Port"
+    Display="always"
+    Required="false"
     Mask="false"
   />
   <Config
@@ -42,13 +54,13 @@
     Mask="false"
   />
   <Config
-    Name="YouTube Cookies"
+    Name="Cookies"
     Target="YTM_COOKIES"
     Default=""
     Mode=""
     Description="Base64 encoded YouTube cookies for authentication (optional)"
     Type="Variable"
-    Display="advanced"
+    Display="always"
     Required="false"
     Mask="true"
   />
@@ -59,7 +71,7 @@
     Mode=""
     Description="Visitor data for session tailoring (optional)"
     Type="Variable"
-    Display="advanced"
+    Display="always"
     Required="false"
     Mask="true"
   />
@@ -68,31 +80,53 @@
     Target="YTM_POTOKEN"
     Default=""
     Mode=""
-    Description="Proof of origin token for attestation (optional)"
+    Description="Proof of Origin Token for attestation (optional)"
     Type="Variable"
-    Display="advanced"
+    Display="always"
     Required="false"
     Mask="true"
   />
   <Config
-    Name="AppData Config"
-    Target="/app/config"
-    Default="/mnt/user/appdata/youtube-music-api-proxy"
-    Mode="rw"
-    Description="Configuration directory"
-    Type="Path"
-    Display="advanced"
+    Name="User Agent"
+    Target="YTM_USER_AGENT"
+    Default=""
+    Mode=""
+    Description="Custom user agent string (optional)"
+    Type="Variable"
+    Display="always"
     Required="false"
     Mask="false"
   />
   <Config
-    Name="Logs"
-    Target="/app/logs"
-    Default="/mnt/user/appdata/youtube-music-api-proxy/logs"
-    Mode="rw"
-    Description="Log directory"
-    Type="Path"
-    Display="advanced"
+    Name="Timeout"
+    Target="YTM_TIMEOUT"
+    Default="30"
+    Mode=""
+    Description="Request timeout in seconds"
+    Type="Variable"
+    Display="always"
+    Required="false"
+    Mask="false"
+  />
+  <Config
+    Name="Max Retries"
+    Target="YTM_MAX_RETRIES"
+    Default="3"
+    Mode=""
+    Description="Maximum retry attempts"
+    Type="Variable"
+    Display="always"
+    Required="false"
+    Mask="false"
+  />
+  <Config
+    Name="Debug"
+    Target="YTM_DEBUG"
+    Default="false"
+    Mode=""
+    Description="Enable debug logging (true/false)"
+    Type="Variable"
+    Display="always"
     Required="false"
     Mask="false"
   />

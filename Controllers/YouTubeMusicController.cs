@@ -18,14 +18,56 @@ namespace YoutubeMusicAPIProxy.Controllers;
 public class YouTubeMusicController : ControllerBase
 {
     private readonly IYouTubeMusicService _service;
+    private readonly IConfigurationService _configService;
     private readonly ILogger<YouTubeMusicController> _logger;
 
     public YouTubeMusicController(
         IYouTubeMusicService service,
+        IConfigurationService configService,
         ILogger<YouTubeMusicController> logger)
     {
         _service = service;
+        _configService = configService;
         _logger = logger;
+    }
+
+
+
+    /// <summary>
+    /// Get health and version information
+    /// </summary>
+    /// <returns>Health status and version information</returns>
+    /// <response code="200">Returns health status and version information</response>
+    [HttpGet]
+    [ProducesResponseType(typeof(HealthResponse), 200)]
+    public IActionResult GetHealth()
+    {
+        var process = System.Diagnostics.Process.GetCurrentProcess();
+        var runtimeInfo = new RuntimeInfo
+        {
+            Framework = Environment.Version.ToString(),
+            OS = Environment.OSVersion.ToString(),
+            UptimeSeconds = (DateTime.UtcNow - process.StartTime.ToUniversalTime()).TotalSeconds,
+            MemoryUsageMB = process.WorkingSet64 / 1024 / 1024
+        };
+
+        var environmentInfo = new EnvironmentInfo
+        {
+            Environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Unknown",
+            CookiesConfigured = !string.IsNullOrWhiteSpace(_configService.GetCookies())
+        };
+
+        var healthResponse = new HealthResponse
+        {
+            Status = "healthy",
+            Version = GetType().Assembly.GetName().Version?.ToString() ?? "1.0.0",
+            Name = "YouTube Music API Proxy",
+            Timestamp = DateTime.UtcNow,
+            Runtime = runtimeInfo,
+            Environment = environmentInfo
+        };
+
+        return Ok(healthResponse);
     }
 
     /// <summary>
@@ -55,7 +97,8 @@ public class YouTubeMusicController : ControllerBase
 
         try
         {
-            var searchResults = await _service.SearchAsync(query, category, cookies, location);
+            var authCookies = _configService.GetCookies(cookies);
+            var searchResults = await _service.SearchAsync(query, category, authCookies, location);
             var results = new List<SearchResult>();
             
             await foreach (var result in searchResults)
@@ -107,7 +150,8 @@ public class YouTubeMusicController : ControllerBase
 
         try
         {
-            var result = await _service.GetSongVideoInfoAsync(id, cookies, location);
+            var authCookies = _configService.GetCookies(cookies);
+            var result = await _service.GetSongVideoInfoAsync(id, authCookies, location);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -149,7 +193,8 @@ public class YouTubeMusicController : ControllerBase
 
         try
         {
-            var result = await _service.GetStreamingDataAsync(id, cookies, location);
+            var authCookies = _configService.GetCookies(cookies);
+            var result = await _service.GetStreamingDataAsync(id, authCookies, location);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -171,11 +216,12 @@ public class YouTubeMusicController : ControllerBase
     /// <param name="location">Geographical location (defaults to "US")</param>
     /// <param name="quality">Audio quality preference (e.g., "AUDIO_QUALITY_MEDIUM")</param>
     /// <returns>Audio stream</returns>
-    /// <response code="200">Returns audio stream in M4A format</response>
+    /// <response code="200">Returns audio stream in M4A format (accessible with or without .m4a extension)</response>
     /// <response code="400">If the ID is invalid or missing</response>
     /// <response code="404">If the song/video is not found or no audio stream available</response>
     /// <response code="500">If there was an internal server error</response>
     [HttpGet("stream/{id}.m4a")]
+    [HttpGet("stream/{id}")]
     [ProducesResponseType(200)]
     [ProducesResponseType(typeof(ErrorResponse), 400)]
     [ProducesResponseType(typeof(ErrorResponse), 404)]
@@ -193,11 +239,15 @@ public class YouTubeMusicController : ControllerBase
 
         try
         {
-            var streamingData = await _service.GetStreamingDataAsync(id, cookies, location);
+            var authCookies = _configService.GetCookies(cookies);
+            var streamingData = await _service.GetStreamingDataAsync(id, authCookies, location);
+            
+            _logger.LogDebug("Retrieved streaming data for ID: {Id}. Stream count: {Count}", 
+                id, streamingData.StreamInfo?.Count() ?? 0);
             
             // Find the best audio stream
             var audioStream = streamingData.StreamInfo
-                .OfType<YouTubeMusicAPI.Models.Streaming.AudioStreamInfo>()
+                ?.OfType<YouTubeMusicAPI.Models.Streaming.AudioStreamInfo>()
                 .OrderByDescending(s => s.Bitrate)
                 .FirstOrDefault();
 
@@ -208,7 +258,36 @@ public class YouTubeMusicController : ControllerBase
 
             // Stream the audio content
             using var httpClient = new HttpClient();
-            var audioResponse = await httpClient.GetAsync(audioStream.Url, HttpCompletionOption.ResponseHeadersRead);
+            
+            // Validate and log the audio URL
+            var audioUrl = audioStream.Url;
+            _logger.LogDebug("Audio stream URL (encoded): {Url}", audioUrl);
+            
+            if (string.IsNullOrWhiteSpace(audioUrl))
+            {
+                _logger.LogError("Audio stream URL is null or empty for ID: {Id}", id);
+                return StatusCode(500, new ErrorResponse { Error = "Audio stream URL is missing" });
+            }
+            
+            // Decode the URL if it's percent-encoded
+            try
+            {
+                audioUrl = Uri.UnescapeDataString(audioUrl);
+                _logger.LogDebug("Audio stream URL (decoded): {Url}", audioUrl);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to decode audio stream URL: {Url}", audioUrl);
+                // Continue with the original URL if decoding fails
+            }
+            
+            if (!Uri.IsWellFormedUriString(audioUrl, UriKind.Absolute))
+            {
+                _logger.LogWarning("Audio stream URL is not absolute after decoding: {Url}", audioUrl);
+                return StatusCode(500, new ErrorResponse { Error = "Invalid audio stream URL format" });
+            }
+            
+            var audioResponse = await httpClient.GetAsync(audioUrl, HttpCompletionOption.ResponseHeadersRead);
             
             if (!audioResponse.IsSuccessStatusCode)
             {
@@ -260,7 +339,8 @@ public class YouTubeMusicController : ControllerBase
 
         try
         {
-            var result = await _service.GetAlbumInfoAsync(browseId, cookies, location);
+            var authCookies = _configService.GetCookies(cookies);
+            var result = await _service.GetAlbumInfoAsync(browseId, authCookies, location);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -302,7 +382,8 @@ public class YouTubeMusicController : ControllerBase
 
         try
         {
-            var result = await _service.GetArtistInfoAsync(browseId, cookies, location);
+            var authCookies = _configService.GetCookies(cookies);
+            var result = await _service.GetArtistInfoAsync(browseId, authCookies, location);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -334,14 +415,15 @@ public class YouTubeMusicController : ControllerBase
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
         [FromQuery] string? location = null)
     {
-        if (string.IsNullOrWhiteSpace(cookies))
+        var authCookies = _configService.GetCookies(cookies);
+        if (string.IsNullOrWhiteSpace(authCookies))
         {
-            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter." });
+            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter, set 'YTM_COOKIES' environment variable, or configure in appsettings." });
         }
 
         try
         {
-            var result = await _service.GetLibraryAsync(cookies, location);
+            var result = await _service.GetLibraryAsync(authCookies, location);
             return Ok(result);
         }
         catch (Exception ex)
@@ -368,14 +450,15 @@ public class YouTubeMusicController : ControllerBase
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
         [FromQuery] string? location = null)
     {
-        if (string.IsNullOrWhiteSpace(cookies))
+        var authCookies = _configService.GetCookies(cookies);
+        if (string.IsNullOrWhiteSpace(authCookies))
         {
-            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter." });
+            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter, set 'YTM_COOKIES' environment variable, or configure in appsettings." });
         }
 
         try
         {
-            var result = await _service.GetLibrarySongsAsync(cookies, location);
+            var result = await _service.GetLibrarySongsAsync(authCookies, location);
             return Ok(result);
         }
         catch (Exception ex)
@@ -402,14 +485,15 @@ public class YouTubeMusicController : ControllerBase
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
         [FromQuery] string? location = null)
     {
-        if (string.IsNullOrWhiteSpace(cookies))
+        var authCookies = _configService.GetCookies(cookies);
+        if (string.IsNullOrWhiteSpace(authCookies))
         {
-            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter." });
+            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter, set 'YTM_COOKIES' environment variable, or configure in appsettings." });
         }
 
         try
         {
-            var result = await _service.GetLibraryAlbumsAsync(cookies, location);
+            var result = await _service.GetLibraryAlbumsAsync(authCookies, location);
             return Ok(result);
         }
         catch (Exception ex)
@@ -436,14 +520,15 @@ public class YouTubeMusicController : ControllerBase
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
         [FromQuery] string? location = null)
     {
-        if (string.IsNullOrWhiteSpace(cookies))
+        var authCookies = _configService.GetCookies(cookies);
+        if (string.IsNullOrWhiteSpace(authCookies))
         {
-            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter." });
+            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter, set 'YTM_COOKIES' environment variable, or configure in appsettings." });
         }
 
         try
         {
-            var result = await _service.GetLibraryArtistsAsync(cookies, location);
+            var result = await _service.GetLibraryArtistsAsync(authCookies, location);
             return Ok(result);
         }
         catch (Exception ex)
@@ -470,14 +555,15 @@ public class YouTubeMusicController : ControllerBase
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
         [FromQuery] string? location = null)
     {
-        if (string.IsNullOrWhiteSpace(cookies))
+        var authCookies = _configService.GetCookies(cookies);
+        if (string.IsNullOrWhiteSpace(authCookies))
         {
-            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter." });
+            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter, set 'YTM_COOKIES' environment variable, or configure in appsettings." });
         }
 
         try
         {
-            var result = await _service.GetLibrarySubscriptionsAsync(cookies, location);
+            var result = await _service.GetLibrarySubscriptionsAsync(authCookies, location);
             return Ok(result);
         }
         catch (Exception ex)
@@ -504,14 +590,15 @@ public class YouTubeMusicController : ControllerBase
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
         [FromQuery] string? location = null)
     {
-        if (string.IsNullOrWhiteSpace(cookies))
+        var authCookies = _configService.GetCookies(cookies);
+        if (string.IsNullOrWhiteSpace(authCookies))
         {
-            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter." });
+            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter, set 'YTM_COOKIES' environment variable, or configure in appsettings." });
         }
 
         try
         {
-            var result = await _service.GetLibraryPodcastsAsync(cookies, location);
+            var result = await _service.GetLibraryPodcastsAsync(authCookies, location);
             return Ok(result);
         }
         catch (Exception ex)
@@ -538,14 +625,15 @@ public class YouTubeMusicController : ControllerBase
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
         [FromQuery] string? location = null)
     {
-        if (string.IsNullOrWhiteSpace(cookies))
+        var authCookies = _configService.GetCookies(cookies);
+        if (string.IsNullOrWhiteSpace(authCookies))
         {
-            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter." });
+            return Unauthorized(new ErrorResponse { Error = "Authentication required. Please provide cookies parameter, set 'YTM_COOKIES' environment variable, or configure in appsettings." });
         }
 
         try
         {
-            var result = await _service.GetLibraryPlaylistsAsync(cookies, location);
+            var result = await _service.GetLibraryPlaylistsAsync(authCookies, location);
             return Ok(result);
         }
         catch (Exception ex)
@@ -583,7 +671,8 @@ public class YouTubeMusicController : ControllerBase
 
         try
         {
-            var result = await _service.GetPlaylistAsync(id, cookies, location);
+            var authCookies = _configService.GetCookies(cookies);
+            var result = await _service.GetPlaylistAsync(id, authCookies, location);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -594,6 +683,52 @@ public class YouTubeMusicController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting playlist for ID: {Id}", id);
+            return StatusCode(500, new ErrorResponse { Error = "Internal server error" });
+        }
+    }
+
+    /// <summary>
+    /// Clear the session cache (useful for testing or when cookies change)
+    /// </summary>
+    /// <returns>Success message</returns>
+    /// <response code="200">Session cache cleared successfully</response>
+    /// <response code="500">If there was an internal server error</response>
+    [HttpPost("cache/clear")]
+    [ProducesResponseType(typeof(object), 200)]
+    [ProducesResponseType(typeof(ErrorResponse), 500)]
+    public IActionResult ClearSessionCache()
+    {
+        try
+        {
+            _service.ClearSessionCache();
+            return Ok(new { message = "Session cache cleared successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error clearing session cache");
+            return StatusCode(500, new ErrorResponse { Error = "Internal server error" });
+        }
+    }
+
+    /// <summary>
+    /// Get session cache statistics
+    /// </summary>
+    /// <returns>Cache statistics</returns>
+    /// <response code="200">Returns cache statistics</response>
+    /// <response code="500">If there was an internal server error</response>
+    [HttpGet("cache/stats")]
+    [ProducesResponseType(typeof(object), 200)]
+    [ProducesResponseType(typeof(ErrorResponse), 500)]
+    public IActionResult GetSessionCacheStats()
+    {
+        try
+        {
+            var stats = _service.GetSessionCacheStats();
+            return Ok(stats);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting session cache stats");
             return StatusCode(500, new ErrorResponse { Error = "Internal server error" });
         }
     }

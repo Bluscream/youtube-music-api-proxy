@@ -7,7 +7,8 @@ services:
       dockerfile: docker/Dockerfile
     container_name: youtube-music-api-proxy
     ports:
-      - "8080:8080"
+      - "80:80"
+      - "443:443"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - YTM_GEOGRAPHICAL_LOCATION=US
@@ -20,7 +21,7 @@ services:
       - ./logs:/app/logs
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
       interval: 30s
       timeout: 10s
       retries: 3

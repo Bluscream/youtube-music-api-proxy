@@ -32,9 +32,9 @@ info:
 servers:
   - url: https://your-api-domain.com/api
     description: Production server
-  - url: https://localhost:5001/api
+  - url: https://localhost/api
     description: Local development server
-  - url: http://localhost:5000/api
+  - url: http://localhost/api
     description: Local development server (HTTP)
 
 paths:

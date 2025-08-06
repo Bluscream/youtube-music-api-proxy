@@ -229,4 +229,82 @@ public class PlaylistResponse
     /// Total number of songs in the playlist
     /// </summary>
     public int TotalSongs { get; set; }
+}
+
+/// <summary>
+/// Health and version information response model
+/// </summary>
+public class HealthResponse
+{
+    /// <summary>
+    /// Service status
+    /// </summary>
+    public string Status { get; set; } = "healthy";
+
+    /// <summary>
+    /// Application version
+    /// </summary>
+    public string Version { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Application name
+    /// </summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Current timestamp
+    /// </summary>
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    /// Runtime information
+    /// </summary>
+    public RuntimeInfo Runtime { get; set; } = new();
+
+    /// <summary>
+    /// Environment information
+    /// </summary>
+    public EnvironmentInfo Environment { get; set; } = new();
+}
+
+/// <summary>
+/// Runtime information
+/// </summary>
+public class RuntimeInfo
+{
+    /// <summary>
+    /// .NET version
+    /// </summary>
+    public string Framework { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Operating system
+    /// </summary>
+    public string OS { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Process uptime in seconds
+    /// </summary>
+    public double UptimeSeconds { get; set; }
+
+    /// <summary>
+    /// Memory usage in MB
+    /// </summary>
+    public long MemoryUsageMB { get; set; }
+}
+
+/// <summary>
+/// Environment information
+/// </summary>
+public class EnvironmentInfo
+{
+    /// <summary>
+    /// Environment name (Development, Production, etc.)
+    /// </summary>
+    public string Environment { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Whether cookies are configured
+    /// </summary>
+    public bool CookiesConfigured { get; set; }
 } 

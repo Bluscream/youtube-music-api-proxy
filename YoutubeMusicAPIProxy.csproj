@@ -6,12 +6,31 @@
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <WarningsAsErrors />
     <NoWarn>$(NoWarn);CS1591;CS8618;IDE0051;IDE0052</NoWarn>
-    <Version>1.0.3.1</Version>
+    <Version>1.0.5.1</Version>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="YouTubeMusicAPI" Version="3.0.0" />
     <PackageReference Include="YouTubeSessionGenerator" Version="1.0.2" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.7" />
+  </ItemGroup>
+  <!-- Trim configuration to preserve OpenAPI assemblies -->
+  <ItemGroup>
+    <TrimmerPreserveAssembly Include="Microsoft.AspNetCore.OpenApi" />
+    <TrimmerPreserveAssembly Include="Swashbuckle.AspNetCore" />
+    <TrimmerPreserveAssembly Include="Swashbuckle.AspNetCore.SwaggerGen" />
+    <TrimmerPreserveAssembly Include="Swashbuckle.AspNetCore.SwaggerUI" />
+    <TrimmerPreserveAssembly Include="Microsoft.AspNetCore.Mvc.ApiExplorer" />
+    <TrimmerPreserveAssembly Include="Microsoft.AspNetCore.Mvc.Core" />
+  </ItemGroup>
+  <!-- Preserve specific types that are needed for OpenAPI -->
+  <ItemGroup>
+    <TrimmerPreserveType Include="Microsoft.OpenApi.Models.OpenApiInfo" />
+    <TrimmerPreserveType Include="Microsoft.OpenApi.Models.OpenApiSecurityScheme" />
+    <TrimmerPreserveType Include="Microsoft.OpenApi.Models.OpenApiSecurityRequirement" />
+    <TrimmerPreserveType Include="Microsoft.OpenApi.Models.OpenApiReference" />
+    <TrimmerPreserveType Include="Microsoft.OpenApi.Models.ParameterLocation" />
+    <TrimmerPreserveType Include="Microsoft.OpenApi.Models.SecuritySchemeType" />
+    <TrimmerPreserveType Include="Microsoft.OpenApi.Models.ReferenceType" />
   </ItemGroup>
 </Project>
