@@ -48,6 +48,10 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Generate and trust HTTPS development certificate
+RUN dotnet dev-certs https --clean && \
+    dotnet dev-certs https --trust
+
 # Copy published app
 COPY --from=publish /app/publish .
 
@@ -59,9 +63,11 @@ USER appuser
 # Expose ports
 EXPOSE 80 443
 
-# Set environment variables based on build configuration
-# ENV ASPNETCORE_URLS=http://+:80;https://+:443
+# Set environment variables for container deployment
+ENV ASPNETCORE_URLS=http://+:80;https://+:443
 ENV ASPNETCORE_ENVIRONMENT=${BUILD_CONFIGURATION}
+ENV ASPNETCORE_Kestrel__Certificates__Default__Password=""
+ENV ASPNETCORE_Kestrel__Certificates__Default__Path=""
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

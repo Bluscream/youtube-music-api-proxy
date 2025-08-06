@@ -1,25 +1,39 @@
 #!/usr/bin/env pwsh
 
-Write-Host "Setting up HTTPS development certificate for YouTube Music API Proxy..." -ForegroundColor Green
+# Setup HTTPS certificates for YouTube Music API Proxy
+# This script generates and trusts development certificates
+
+Write-Host "Setting up HTTPS certificates for YouTube Music API Proxy..." -ForegroundColor Green
 
 # Check if dotnet is available
-if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
-    Write-Host "Error: .NET SDK is not installed or not in PATH" -ForegroundColor Red
+try {
+    $dotnetVersion = dotnet --version
+    Write-Host "Using .NET version: $dotnetVersion" -ForegroundColor Yellow
+} catch {
+    Write-Host "Error: .NET SDK not found. Please install .NET 9.0 SDK or later." -ForegroundColor Red
     exit 1
 }
 
-# Trust the HTTPS development certificate
-Write-Host "Trusting HTTPS development certificate..." -ForegroundColor Yellow
+# Clean existing certificates
+Write-Host "Cleaning existing development certificates..." -ForegroundColor Yellow
+dotnet dev-certs https --clean
+
+# Generate new development certificate
+Write-Host "Generating new development certificate..." -ForegroundColor Yellow
+dotnet dev-certs https
+
+# Trust the certificate (Windows and macOS only)
+Write-Host "Trusting development certificate..." -ForegroundColor Yellow
 dotnet dev-certs https --trust
 
+# Verify certificate
+Write-Host "Verifying certificate..." -ForegroundColor Yellow
+$certCheck = dotnet dev-certs https --check
 if ($LASTEXITCODE -eq 0) {
-    Write-Host "HTTPS development certificate has been trusted successfully!" -ForegroundColor Green
-    Write-Host "You can now run the application with HTTPS support." -ForegroundColor Green
-    Write-Host "Default ports: HTTP=80, HTTPS=443" -ForegroundColor Cyan
-    Write-Host "You can customize these in appsettings.json" -ForegroundColor Cyan
+    Write-Host "Certificate is valid and trusted!" -ForegroundColor Green
 } else {
-    Write-Host "Failed to trust HTTPS development certificate. You may need to run as administrator." -ForegroundColor Red
-    Write-Host "Try running: dotnet dev-certs https --trust" -ForegroundColor Yellow
+    Write-Host "Warning: Certificate verification failed. You may need to run this script as administrator." -ForegroundColor Yellow
 }
 
-Write-Host "Setup complete!" -ForegroundColor Green
+Write-Host "HTTPS setup complete!" -ForegroundColor Green
+Write-Host "You can now run the application with HTTPS support." -ForegroundColor Cyan

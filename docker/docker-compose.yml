@@ -11,6 +11,9 @@ services:
       - "443:443"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80;https://+:443
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=""
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=""
       - YTM_GEOGRAPHICAL_LOCATION=US
       # Optional: Set these for authentication
       # - YTM_COOKIES=your_base64_encoded_cookies_here
@@ -19,6 +22,8 @@ services:
     volumes:
       # Optional: Mount logs directory for debugging
       - ./logs:/app/logs
+      # Mount certificates directory for HTTPS
+      - ~/.aspnet/https:/root/.aspnet/https:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80/"]

@@ -14,10 +14,18 @@ builder.Services.Configure<StaticFileOptions>(options =>
     options.FileProvider = embeddedProvider;
 });
 
-// Configure URLs from configuration
-var httpPort = builder.Configuration.GetValue<int>("HttpPort", 80);
-var httpsPort = builder.Configuration.GetValue<int>("HttpsPort", 443);
-builder.WebHost.UseUrls($"http://localhost:{httpPort}", $"https://localhost:{httpsPort}");
+// Configure URLs from configuration or environment variables
+var urls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS");
+if (string.IsNullOrEmpty(urls))
+{
+    var httpPort = builder.Configuration.GetValue<int>("HttpPort", 80);
+    var httpsPort = builder.Configuration.GetValue<int>("HttpsPort", 443);
+    builder.WebHost.UseUrls($"http://localhost:{httpPort}", $"https://localhost:{httpsPort}");
+}
+else
+{
+    builder.WebHost.UseUrls(urls);
+}
 
 // Add services to the container.
 builder.Services.AddControllers()
@@ -85,7 +93,12 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+// Only use HTTPS redirection if we're not in development or if HTTPS is explicitly configured
+if (!app.Environment.IsDevelopment() || Environment.GetEnvironmentVariable("ASPNETCORE_URLS")?.Contains("https") == true)
+{
+    app.UseHttpsRedirection();
+}
+
 app.UseStaticFiles();
 app.UseAuthorization();
 app.MapControllers();
