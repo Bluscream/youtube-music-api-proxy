@@ -33,7 +33,43 @@ export class PlayerManager {
             trackchange: []
         };
 
-        this.init();
+        // Wait for API to be ready before initializing
+        if (window.onApiReady) {
+            window.onApiReady(() => {
+                this.init();
+            });
+        } else {
+            // Fallback: check if API is already available
+            if (window.ytmAPI) {
+                this.api = window.ytmAPI;
+                this.init();
+            } else {
+                console.warn('YouTube Music API not ready for player manager, will retry...');
+                this.initializeWithRetry();
+            }
+        }
+    }
+
+    initializeWithRetry(maxRetries = 10, retryDelay = 200) {
+        let retryCount = 0;
+
+        const attemptInit = () => {
+            if (window.ytmAPI) {
+                this.api = window.ytmAPI;
+                this.init();
+                return;
+            }
+
+            retryCount++;
+            if (retryCount < maxRetries) {
+                console.log(`Player Manager: API not ready, retrying in ${retryDelay}ms (attempt ${retryCount}/${maxRetries})`);
+                setTimeout(attemptInit, retryDelay);
+            } else {
+                console.error('Player Manager: Failed to initialize after maximum retries');
+            }
+        };
+
+        attemptInit();
     }
 
     init() {
@@ -256,6 +292,27 @@ export class PlayerManager {
         }
     }
 
+    loadSong(songId, title, artist, thumbnail, playlist = null, index = -1) {
+        // Load song info without playing it
+        this.currentTrack = {
+            id: songId,
+            title: title,
+            artist: artist,
+            thumbnail: thumbnail
+        };
+
+        if (playlist) {
+            this.currentPlaylist = playlist;
+        }
+
+        if (index >= 0) {
+            this.currentIndex = index;
+        }
+
+        this.updateNowPlaying();
+        this.notificationManager.showInfoNotification(`Loaded: ${title} - ${artist}`);
+    }
+
     async playTrack(trackId, trackInfo = null) {
         try {
             // Get streaming data
@@ -308,6 +365,27 @@ export class PlayerManager {
     setPlaylist(playlist) {
         this.currentPlaylist = playlist;
         this.currentIndex = -1;
+    }
+
+    setCurrentPlaylist(playlistId) {
+        this.currentPlaylistId = playlistId;
+        // Store the playlist ID for reference
+        this.currentPlaylist = this.currentPlaylist || [];
+    }
+
+    highlightCurrentPlaylist() {
+        // Remove highlight from all playlist items
+        document.querySelectorAll('.playlist-item').forEach(item => {
+            item.classList.remove('active');
+        });
+
+        // Add highlight to current playlist if it exists
+        if (this.currentPlaylistId) {
+            const currentPlaylistElement = document.querySelector(`[data-playlist-id="${this.currentPlaylistId}"]`);
+            if (currentPlaylistElement) {
+                currentPlaylistElement.classList.add('active');
+            }
+        }
     }
 
     addToPlaylist(track) {
@@ -432,10 +510,21 @@ export class PlayerManager {
 
         if (this.currentTrack) {
             if (thumbnail) {
+                // Clear existing content
+                while (thumbnail.firstChild) {
+                    thumbnail.removeChild(thumbnail.firstChild);
+                }
+
                 if (this.currentTrack.thumbnail) {
-                    thumbnail.innerHTML = `<img src="${this.currentTrack.thumbnail}" alt="${this.currentTrack.title}">`;
+                    // Create img element
+                    const img = document.createElement('img');
+                    img.src = this.currentTrack.thumbnail;
+                    img.alt = this.currentTrack.title;
+                    thumbnail.appendChild(img);
                 } else {
-                    thumbnail.innerHTML = '🎵';
+                    // Create text node for emoji
+                    const emojiText = document.createTextNode('🎵');
+                    thumbnail.appendChild(emojiText);
                 }
             }
 
@@ -447,9 +536,17 @@ export class PlayerManager {
                 artist.textContent = this.currentTrack.artist || 'Unknown Artist';
             }
         } else {
-            if (thumbnail) thumbnail.innerHTML = '';
-            if (title) title.textContent = 'No song playing';
-            if (artist) artist.textContent = '';
+            if (thumbnail) {
+                while (thumbnail.firstChild) {
+                    thumbnail.removeChild(thumbnail.firstChild);
+                }
+            }
+            if (title) {
+                title.textContent = 'No song playing';
+            }
+            if (artist) {
+                artist.textContent = '';
+            }
         }
     }
 
@@ -579,7 +676,7 @@ export class PlayerManager {
                 const delta = e.deltaY > 0 ? -0.1 : 0.1;
                 const newVolume = Math.max(0, Math.min(1, this.volume + delta));
                 this.setVolume(newVolume);
-            });
+            }, { passive: false });
         }
     }
 
@@ -623,13 +720,15 @@ export class PlayerManager {
     }
 }
 
-// Create global instance
-window.playerManager = new PlayerManager(window.ytmAPI);
+// Create global instance when API is ready
+window.onApiReady(() => {
+    window.playerManager = new PlayerManager(window.ytmAPI);
 
-// Global functions for onclick handlers
-window.togglePlay = () => window.playerManager.togglePlay();
-window.playPreviousSong = () => window.playerManager.playPreviousSong();
-window.playNextSong = () => window.playerManager.playNextSong();
-window.toggleRepeatMode = () => window.playerManager.toggleRepeatMode();
-window.toggleShuffle = () => window.playerManager.toggleShuffle();
-window.seek = (event) => window.playerManager.handleSeek(event);
+    // Global functions for onclick handlers
+    window.togglePlay = () => window.playerManager.togglePlay();
+    window.playPreviousSong = () => window.playerManager.playPreviousSong();
+    window.playNextSong = () => window.playerManager.playNextSong();
+    window.toggleRepeatMode = () => window.playerManager.toggleRepeatMode();
+    window.toggleShuffle = () => window.playerManager.toggleShuffle();
+    window.seek = (event) => window.playerManager.handleSeek(event);
+});

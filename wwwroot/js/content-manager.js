@@ -8,6 +8,61 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+// Helper function to create a library item element
+function createLibraryItem(data, type = 'song', onClick = null) {
+    const item = document.createElement('div');
+    item.className = 'library-item';
+
+    if (onClick) {
+        item.onclick = onClick;
+    }
+
+    // Set data attributes for songs
+    if (type === 'song') {
+        item.setAttribute('data-song-id', data.id || data.browseId || '');
+        item.setAttribute('data-song-name', data.title || data.name || 'Unknown Title');
+        item.setAttribute('data-song-artist', data.artist || data.author || '');
+        item.setAttribute('data-song-thumbnail', data.thumbnails?.[0]?.url || data.thumbnail || '');
+    }
+
+    // Create thumbnail container
+    const thumbnailDiv = document.createElement('div');
+    thumbnailDiv.className = 'library-item-thumbnail';
+
+    const thumbnail = data.thumbnails?.[0]?.url || data.thumbnail || '';
+    if (thumbnail) {
+        const img = document.createElement('img');
+        img.src = thumbnail;
+        img.alt = data.title || data.name || 'Unknown';
+        thumbnailDiv.appendChild(img);
+    } else {
+        // Default icons based on type
+        const defaultIcons = {
+            song: '🎵',
+            album: '💿',
+            artist: '👤'
+        };
+        thumbnailDiv.textContent = defaultIcons[type] || '🎵';
+    }
+    item.appendChild(thumbnailDiv);
+
+    // Create title
+    const titleDiv = document.createElement('div');
+    titleDiv.className = 'library-item-title';
+    titleDiv.textContent = data.title || data.name || 'Unknown';
+    item.appendChild(titleDiv);
+
+    // Create artist (for songs and albums)
+    if (type !== 'artist' && (data.artist || data.author)) {
+        const artistDiv = document.createElement('div');
+        artistDiv.className = 'library-item-artist';
+        artistDiv.textContent = data.artist || data.author;
+        item.appendChild(artistDiv);
+    }
+
+    return item;
+}
+
 // Content Manager - Uses the YouTube Music API
 export class ContentManager {
     constructor(ytmAPI) {
@@ -15,25 +70,33 @@ export class ContentManager {
         this.playlists = [];
         this.initialized = false;
 
-        // Check if API is available
-        if (!this.api) {
-            console.warn('YouTube Music API not ready for content manager, will retry...');
-            this.initializeWithRetry();
+        // Wait for API to be ready before initializing
+        if (window.onApiReady) {
+            window.onApiReady(() => {
+                this.init();
+            });
         } else {
-            this.init();
+            // Fallback: check if API is already available
+            if (window.ytmAPI) {
+                this.api = window.ytmAPI;
+                this.init();
+            } else {
+                console.warn('YouTube Music API not ready for content manager, will retry...');
+                this.initializeWithRetry();
+            }
         }
     }
 
     initializeWithRetry(maxRetries = 10, retryDelay = 200) {
         let retryCount = 0;
-        
+
         const attemptInit = () => {
             if (window.ytmAPI) {
                 this.api = window.ytmAPI;
                 this.init();
                 return;
             }
-            
+
             retryCount++;
             if (retryCount < maxRetries) {
                 console.log(`Content Manager: API not ready, retrying in ${retryDelay}ms (attempt ${retryCount}/${maxRetries})`);
@@ -43,7 +106,7 @@ export class ContentManager {
                 this.initialized = false;
             }
         };
-        
+
         attemptInit();
     }
 
@@ -95,7 +158,13 @@ export class ContentManager {
         libraryContent.style.display = 'none';
         container.style.display = 'grid';
 
-        container.innerHTML = results.map(result => {
+        // Clear existing content
+        while (container.firstChild) {
+            container.removeChild(container.firstChild);
+        }
+
+        // Create result cards programmatically
+        results.forEach(result => {
             // Get the correct ID based on result type
             let songId = result.id || result.browseId || '';
             let title = result.title || result.name || 'Unknown Title';
@@ -106,17 +175,59 @@ export class ContentManager {
 
             const thumbnail = result.thumbnails && result.thumbnails.length > 0 ? result.thumbnails[0].url : (result.thumbnail || '');
 
-            return `
-                <div class="result-card" ${isPlayable ? `data-song-id="${escapeHtml(songId)}" data-song-name="${escapeHtml(title)}" data-song-artist="${escapeHtml(artist)}" data-song-thumbnail="${escapeHtml(thumbnail)}"` : ''}>
-                    <div class="result-thumbnail">
-                        ${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(title)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
-                    </div>
-                    <div class="result-title">${escapeHtml(title)}</div>
-                    <div class="result-artist">${escapeHtml(artist)}</div>
-                    ${!isPlayable ? '<div style="font-size: 10px; color: #666; margin-top: 4px;">Not playable</div>' : ''}
-                </div>
-            `;
-        }).join('');
+            // Create result card
+            const resultCard = document.createElement('div');
+            resultCard.className = 'result-card';
+
+            if (isPlayable) {
+                resultCard.setAttribute('data-song-id', songId);
+                resultCard.setAttribute('data-song-name', title);
+                resultCard.setAttribute('data-song-artist', artist);
+                resultCard.setAttribute('data-song-thumbnail', thumbnail);
+            }
+
+            // Create thumbnail container
+            const thumbnailDiv = document.createElement('div');
+            thumbnailDiv.className = 'result-thumbnail';
+
+            if (thumbnail) {
+                const img = document.createElement('img');
+                img.src = thumbnail;
+                img.alt = title;
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'cover';
+                img.style.borderRadius = '4px';
+                thumbnailDiv.appendChild(img);
+            } else {
+                thumbnailDiv.textContent = '🎵';
+            }
+            resultCard.appendChild(thumbnailDiv);
+
+            // Create title
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'result-title';
+            titleDiv.textContent = title;
+            resultCard.appendChild(titleDiv);
+
+            // Create artist
+            const artistDiv = document.createElement('div');
+            artistDiv.className = 'result-artist';
+            artistDiv.textContent = artist;
+            resultCard.appendChild(artistDiv);
+
+            // Add "Not playable" indicator if needed
+            if (!isPlayable) {
+                const notPlayableDiv = document.createElement('div');
+                notPlayableDiv.style.fontSize = '10px';
+                notPlayableDiv.style.color = '#666';
+                notPlayableDiv.style.marginTop = '4px';
+                notPlayableDiv.textContent = 'Not playable';
+                resultCard.appendChild(notPlayableDiv);
+            }
+
+            container.appendChild(resultCard);
+        });
     }
 
     // Library navigation
@@ -251,12 +362,30 @@ export class ContentManager {
 
         if (this.playlists.length > 0) {
             playlistsSection.style.display = 'block';
-            playlistsList.innerHTML = this.playlists.map(playlist => `
-                <div class="nav-item playlist-item" onclick="window.contentManager.loadPlaylist('${escapeHtml(playlist.browseId)}', '${escapeHtml(playlist.name)}')">
-                    <div class="nav-icon">📜</div>
-                    <span class="nav-text">${escapeHtml(playlist.name)}</span>
-                </div>
-            `).join('');
+
+            // Clear existing content
+            while (playlistsList.firstChild) {
+                playlistsList.removeChild(playlistsList.firstChild);
+            }
+
+            // Create playlist items programmatically
+            this.playlists.forEach(playlist => {
+                const playlistItem = document.createElement('div');
+                playlistItem.className = 'nav-item playlist-item';
+                playlistItem.onclick = () => window.contentManager.loadPlaylist(playlist.browseId, playlist.name);
+
+                const navIcon = document.createElement('div');
+                navIcon.className = 'nav-icon';
+                navIcon.textContent = '📜';
+                playlistItem.appendChild(navIcon);
+
+                const navText = document.createElement('span');
+                navText.className = 'nav-text';
+                navText.textContent = playlist.name;
+                playlistItem.appendChild(navText);
+
+                playlistsList.appendChild(playlistItem);
+            });
         } else {
             playlistsSection.style.display = 'none';
         }
@@ -292,28 +421,72 @@ export class ContentManager {
 
         const songs = playlistData.songs || [];
 
-        container.innerHTML = `
-            <div class="playlist-header">
-                <h2>${escapeHtml(playlistTitle)}</h2>
-                <p>${songs.length} songs</p>
-            </div>
-            ${songs.map(song => {
+        // Clear existing content
+        while (container.firstChild) {
+            container.removeChild(container.firstChild);
+        }
+
+        // Create playlist header
+        const playlistHeader = document.createElement('div');
+        playlistHeader.className = 'playlist-header';
+
+        const headerTitle = document.createElement('h2');
+        headerTitle.textContent = playlistTitle;
+        playlistHeader.appendChild(headerTitle);
+
+        const songCount = document.createElement('p');
+        songCount.textContent = `${songs.length} songs`;
+        playlistHeader.appendChild(songCount);
+
+        container.appendChild(playlistHeader);
+
+        // Create song cards programmatically
+        songs.forEach(song => {
             const songId = song.id || song.browseId || '';
             const title = song.title || song.name || 'Unknown Title';
             const artist = song.artist || song.author || '';
             const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : (song.thumbnail || '');
 
-            return `
-                    <div class="result-card" data-song-id="${escapeHtml(songId)}" data-song-name="${escapeHtml(title)}" data-song-artist="${escapeHtml(artist)}" data-song-thumbnail="${escapeHtml(thumbnail)}">
-                        <div class="result-thumbnail">
-                            ${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(title)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
-                        </div>
-                        <div class="result-title">${escapeHtml(title)}</div>
-                        <div class="result-artist">${escapeHtml(artist)}</div>
-                    </div>
-                `;
-        }).join('')}
-        `;
+            // Create result card
+            const resultCard = document.createElement('div');
+            resultCard.className = 'result-card';
+            resultCard.setAttribute('data-song-id', songId);
+            resultCard.setAttribute('data-song-name', title);
+            resultCard.setAttribute('data-song-artist', artist);
+            resultCard.setAttribute('data-song-thumbnail', thumbnail);
+
+            // Create thumbnail container
+            const thumbnailDiv = document.createElement('div');
+            thumbnailDiv.className = 'result-thumbnail';
+
+            if (thumbnail) {
+                const img = document.createElement('img');
+                img.src = thumbnail;
+                img.alt = title;
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'cover';
+                img.style.borderRadius = '4px';
+                thumbnailDiv.appendChild(img);
+            } else {
+                thumbnailDiv.textContent = '🎵';
+            }
+            resultCard.appendChild(thumbnailDiv);
+
+            // Create title
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'result-title';
+            titleDiv.textContent = title;
+            resultCard.appendChild(titleDiv);
+
+            // Create artist
+            const artistDiv = document.createElement('div');
+            artistDiv.className = 'result-artist';
+            artistDiv.textContent = artist;
+            resultCard.appendChild(artistDiv);
+
+            container.appendChild(resultCard);
+        });
     }
 
     displayLibraryContent(libraryData) {
@@ -334,74 +507,82 @@ export class ContentManager {
         const albums = libraryData.albums || [];
         const artists = libraryData.artists || [];
 
-        container.innerHTML = `
-            <div class="library-section">
-                <h2>Your Library</h2>
-                <div class="library-grid">
-                    <div class="library-category">
-                        <h3>Songs (${songs.length})</h3>
-                        <div class="library-items">
-                            ${songs.slice(0, 6).map(song => {
-            const songId = song.id || song.browseId || '';
-            const title = song.title || song.name || 'Unknown Title';
-            const artist = song.artist || song.author || '';
-            const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : (song.thumbnail || '');
+        // Clear existing content
+        while (container.firstChild) {
+            container.removeChild(container.firstChild);
+        }
 
-            return `
-                                    <div class="library-item" data-song-id="${escapeHtml(songId)}" data-song-name="${escapeHtml(title)}" data-song-artist="${escapeHtml(artist)}" data-song-thumbnail="${escapeHtml(thumbnail)}">
-                                        <div class="library-item-thumbnail">
-                                            ${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(title)}">` : '🎵'}
-                                        </div>
-                                        <div class="library-item-title">${escapeHtml(title)}</div>
-                                        <div class="library-item-artist">${escapeHtml(artist)}</div>
-                                    </div>
-                                `;
-        }).join('')}
-                        </div>
-                    </div>
-                    <div class="library-category">
-                        <h3>Albums (${albums.length})</h3>
-                        <div class="library-items">
-                            ${albums.slice(0, 6).map(album => {
-            const albumId = album.browseId || '';
-            const title = album.title || album.name || 'Unknown Album';
-            const artist = album.artist || album.author || '';
-            const thumbnail = album.thumbnails && album.thumbnails.length > 0 ? album.thumbnails[0].url : (album.thumbnail || '');
+        // Create library section
+        const librarySection = document.createElement('div');
+        librarySection.className = 'library-section';
 
-            return `
-                                    <div class="library-item" onclick="window.contentManager.loadAlbum('${escapeHtml(albumId)}', '${escapeHtml(title)}')">
-                                        <div class="library-item-thumbnail">
-                                            ${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(title)}">` : '💿'}
-                                        </div>
-                                        <div class="library-item-title">${escapeHtml(title)}</div>
-                                        <div class="library-item-artist">${escapeHtml(artist)}</div>
-                                    </div>
-                                `;
-        }).join('')}
-                        </div>
-                    </div>
-                    <div class="library-category">
-                        <h3>Artists (${artists.length})</h3>
-                        <div class="library-items">
-                            ${artists.slice(0, 6).map(artist => {
-            const artistId = artist.browseId || '';
-            const name = artist.name || 'Unknown Artist';
-            const thumbnail = artist.thumbnails && artist.thumbnails.length > 0 ? artist.thumbnails[0].url : (artist.thumbnail || '');
+        const libraryTitle = document.createElement('h2');
+        libraryTitle.textContent = 'Your Library';
+        librarySection.appendChild(libraryTitle);
 
-            return `
-                                    <div class="library-item" onclick="window.contentManager.loadArtist('${escapeHtml(artistId)}', '${escapeHtml(name)}')">
-                                        <div class="library-item-thumbnail">
-                                            ${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(name)}">` : '👤'}
-                                        </div>
-                                        <div class="library-item-title">${escapeHtml(name)}</div>
-                                    </div>
-                                `;
-        }).join('')}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
+        const libraryGrid = document.createElement('div');
+        libraryGrid.className = 'library-grid';
+
+        // Songs category
+        const songsCategory = document.createElement('div');
+        songsCategory.className = 'library-category';
+
+        const songsTitle = document.createElement('h3');
+        songsTitle.textContent = `Songs (${songs.length})`;
+        songsCategory.appendChild(songsTitle);
+
+        const songsItems = document.createElement('div');
+        songsItems.className = 'library-items';
+
+        songs.slice(0, 6).forEach(song => {
+            const songItem = createLibraryItem(song, 'song');
+            songsItems.appendChild(songItem);
+        });
+        songsCategory.appendChild(songsItems);
+        libraryGrid.appendChild(songsCategory);
+
+        // Albums category
+        const albumsCategory = document.createElement('div');
+        albumsCategory.className = 'library-category';
+
+        const albumsTitle = document.createElement('h3');
+        albumsTitle.textContent = `Albums (${albums.length})`;
+        albumsCategory.appendChild(albumsTitle);
+
+        const albumsItems = document.createElement('div');
+        albumsItems.className = 'library-items';
+
+        albums.slice(0, 6).forEach(album => {
+            const albumItem = createLibraryItem(album, 'album', () =>
+                window.contentManager.loadAlbum(album.browseId, album.title || album.name)
+            );
+            albumsItems.appendChild(albumItem);
+        });
+        albumsCategory.appendChild(albumsItems);
+        libraryGrid.appendChild(albumsCategory);
+
+        // Artists category
+        const artistsCategory = document.createElement('div');
+        artistsCategory.className = 'library-category';
+
+        const artistsTitle = document.createElement('h3');
+        artistsTitle.textContent = `Artists (${artists.length})`;
+        artistsCategory.appendChild(artistsTitle);
+
+        const artistsItems = document.createElement('div');
+        artistsItems.className = 'library-items';
+
+        artists.slice(0, 6).forEach(artist => {
+            const artistItem = createLibraryItem(artist, 'artist', () =>
+                window.contentManager.loadArtist(artist.browseId, artist.name)
+            );
+            artistsItems.appendChild(artistItem);
+        });
+        artistsCategory.appendChild(artistsItems);
+        libraryGrid.appendChild(artistsCategory);
+
+        librarySection.appendChild(libraryGrid);
+        container.appendChild(librarySection);
     }
 
     displaySongsContent(libraryData) {
@@ -420,29 +601,30 @@ export class ContentManager {
 
         const songs = libraryData.songs || [];
 
-        container.innerHTML = `
-            <div class="library-section">
-                <h2>Your Songs (${songs.length})</h2>
-                <div class="library-grid">
-                    ${songs.map(song => {
-            const songId = song.id || song.browseId || '';
-            const title = song.title || song.name || 'Unknown Title';
-            const artist = song.artist || song.author || '';
-            const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : (song.thumbnail || '');
+        // Clear existing content
+        while (container.firstChild) {
+            container.removeChild(container.firstChild);
+        }
 
-            return `
-                            <div class="library-item" data-song-id="${escapeHtml(songId)}" data-song-name="${escapeHtml(title)}" data-song-artist="${escapeHtml(artist)}" data-song-thumbnail="${escapeHtml(thumbnail)}">
-                                <div class="library-item-thumbnail">
-                                    ${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(title)}">` : '🎵'}
-                                </div>
-                                <div class="library-item-title">${escapeHtml(title)}</div>
-                                <div class="library-item-artist">${escapeHtml(artist)}</div>
-                            </div>
-                        `;
-        }).join('')}
-                </div>
-            </div>
-        `;
+        // Create library section
+        const librarySection = document.createElement('div');
+        librarySection.className = 'library-section';
+
+        const libraryTitle = document.createElement('h2');
+        libraryTitle.textContent = `Your Songs (${songs.length})`;
+        librarySection.appendChild(libraryTitle);
+
+        const libraryGrid = document.createElement('div');
+        libraryGrid.className = 'library-grid';
+
+        // Create song items
+        songs.forEach(song => {
+            const songItem = createLibraryItem(song, 'song');
+            libraryGrid.appendChild(songItem);
+        });
+
+        librarySection.appendChild(libraryGrid);
+        container.appendChild(librarySection);
     }
 
     displayArtistsContent(libraryData) {
@@ -461,27 +643,32 @@ export class ContentManager {
 
         const artists = libraryData.artists || [];
 
-        container.innerHTML = `
-            <div class="library-section">
-                <h2>Your Artists (${artists.length})</h2>
-                <div class="library-grid">
-                    ${artists.map(artist => {
-            const artistId = artist.browseId || '';
-            const name = artist.name || 'Unknown Artist';
-            const thumbnail = artist.thumbnails && artist.thumbnails.length > 0 ? artist.thumbnails[0].url : (artist.thumbnail || '');
+        // Clear existing content
+        while (container.firstChild) {
+            container.removeChild(container.firstChild);
+        }
 
-            return `
-                            <div class="library-item" onclick="window.contentManager.loadArtist('${escapeHtml(artistId)}', '${escapeHtml(name)}')">
-                                <div class="library-item-thumbnail">
-                                    ${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(name)}">` : '👤'}
-                                </div>
-                                <div class="library-item-title">${escapeHtml(name)}</div>
-                            </div>
-                        `;
-        }).join('')}
-                </div>
-            </div>
-        `;
+        // Create library section
+        const librarySection = document.createElement('div');
+        librarySection.className = 'library-section';
+
+        const libraryTitle = document.createElement('h2');
+        libraryTitle.textContent = `Your Artists (${artists.length})`;
+        librarySection.appendChild(libraryTitle);
+
+        const libraryGrid = document.createElement('div');
+        libraryGrid.className = 'library-grid';
+
+        // Create artist items
+        artists.forEach(artist => {
+            const artistItem = createLibraryItem(artist, 'artist', () =>
+                window.contentManager.loadArtist(artist.browseId, artist.name)
+            );
+            libraryGrid.appendChild(artistItem);
+        });
+
+        librarySection.appendChild(libraryGrid);
+        container.appendChild(librarySection);
     }
 
     displayAlbumsContent(libraryData) {
@@ -500,29 +687,32 @@ export class ContentManager {
 
         const albums = libraryData.albums || [];
 
-        container.innerHTML = `
-            <div class="library-section">
-                <h2>Your Albums (${albums.length})</h2>
-                <div class="library-grid">
-                    ${albums.map(album => {
-            const albumId = album.browseId || '';
-            const title = album.title || album.name || 'Unknown Album';
-            const artist = album.artist || album.author || '';
-            const thumbnail = album.thumbnails && album.thumbnails.length > 0 ? album.thumbnails[0].url : (album.thumbnail || '');
+        // Clear existing content
+        while (container.firstChild) {
+            container.removeChild(container.firstChild);
+        }
 
-            return `
-                            <div class="library-item" onclick="window.contentManager.loadAlbum('${escapeHtml(albumId)}', '${escapeHtml(title)}')">
-                                <div class="library-item-thumbnail">
-                                    ${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(title)}">` : '💿'}
-                                </div>
-                                <div class="library-item-title">${escapeHtml(title)}</div>
-                                <div class="library-item-artist">${escapeHtml(artist)}</div>
-                            </div>
-                        `;
-        }).join('')}
-                </div>
-            </div>
-        `;
+        // Create library section
+        const librarySection = document.createElement('div');
+        librarySection.className = 'library-section';
+
+        const libraryTitle = document.createElement('h2');
+        libraryTitle.textContent = `Your Albums (${albums.length})`;
+        librarySection.appendChild(libraryTitle);
+
+        const libraryGrid = document.createElement('div');
+        libraryGrid.className = 'library-grid';
+
+        // Create album items
+        albums.forEach(album => {
+            const albumItem = createLibraryItem(album, 'album', () =>
+                window.contentManager.loadAlbum(album.browseId, album.title || album.name)
+            );
+            libraryGrid.appendChild(albumItem);
+        });
+
+        librarySection.appendChild(libraryGrid);
+        container.appendChild(librarySection);
     }
 
     async loadAlbum(browseId, albumTitle) {
@@ -569,28 +759,72 @@ export class ContentManager {
 
         const songs = albumData.songs || [];
 
-        container.innerHTML = `
-            <div class="album-header">
-                <h2>${escapeHtml(albumTitle)}</h2>
-                <p>${songs.length} songs</p>
-            </div>
-            ${songs.map(song => {
+        // Clear existing content
+        while (container.firstChild) {
+            container.removeChild(container.firstChild);
+        }
+
+        // Create album header
+        const albumHeader = document.createElement('div');
+        albumHeader.className = 'album-header';
+
+        const albumTitleElement = document.createElement('h2');
+        albumTitleElement.textContent = albumTitle;
+        albumHeader.appendChild(albumTitleElement);
+
+        const songCount = document.createElement('p');
+        songCount.textContent = `${songs.length} songs`;
+        albumHeader.appendChild(songCount);
+
+        container.appendChild(albumHeader);
+
+        // Create song cards
+        songs.forEach(song => {
             const songId = song.id || song.browseId || '';
             const title = song.title || song.name || 'Unknown Title';
             const artist = song.artist || song.author || '';
             const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : (song.thumbnail || '');
 
-            return `
-                    <div class="result-card" data-song-id="${escapeHtml(songId)}" data-song-name="${escapeHtml(title)}" data-song-artist="${escapeHtml(artist)}" data-song-thumbnail="${escapeHtml(thumbnail)}">
-                        <div class="result-thumbnail">
-                            ${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(title)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
-                        </div>
-                        <div class="result-title">${escapeHtml(title)}</div>
-                        <div class="result-artist">${escapeHtml(artist)}</div>
-                    </div>
-                `;
-        }).join('')}
-        `;
+            // Create result card
+            const resultCard = document.createElement('div');
+            resultCard.className = 'result-card';
+            resultCard.setAttribute('data-song-id', songId);
+            resultCard.setAttribute('data-song-name', title);
+            resultCard.setAttribute('data-song-artist', artist);
+            resultCard.setAttribute('data-song-thumbnail', thumbnail);
+
+            // Create thumbnail container
+            const thumbnailDiv = document.createElement('div');
+            thumbnailDiv.className = 'result-thumbnail';
+
+            if (thumbnail) {
+                const img = document.createElement('img');
+                img.src = thumbnail;
+                img.alt = title;
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'cover';
+                img.style.borderRadius = '4px';
+                thumbnailDiv.appendChild(img);
+            } else {
+                thumbnailDiv.textContent = '🎵';
+            }
+            resultCard.appendChild(thumbnailDiv);
+
+            // Create title
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'result-title';
+            titleDiv.textContent = title;
+            resultCard.appendChild(titleDiv);
+
+            // Create artist
+            const artistDiv = document.createElement('div');
+            artistDiv.className = 'result-artist';
+            artistDiv.textContent = artist;
+            resultCard.appendChild(artistDiv);
+
+            container.appendChild(resultCard);
+        });
     }
 
     displayArtistContent(artistData, artistName) {
@@ -610,47 +844,131 @@ export class ContentManager {
         const songs = artistData.songs || [];
         const albums = artistData.albums || [];
 
-        container.innerHTML = `
-            <div class="artist-header">
-                <h2>${escapeHtml(artistName)}</h2>
-            </div>
-            <div class="artist-songs">
-                <h3>Songs (${songs.length})</h3>
-                ${songs.map(song => {
+        // Clear existing content
+        while (container.firstChild) {
+            container.removeChild(container.firstChild);
+        }
+
+        // Create artist header
+        const artistHeader = document.createElement('div');
+        artistHeader.className = 'artist-header';
+
+        const artistTitle = document.createElement('h2');
+        artistTitle.textContent = artistName;
+        artistHeader.appendChild(artistTitle);
+
+        container.appendChild(artistHeader);
+
+        // Create artist songs section
+        const artistSongs = document.createElement('div');
+        artistSongs.className = 'artist-songs';
+
+        const songsTitle = document.createElement('h3');
+        songsTitle.textContent = `Songs (${songs.length})`;
+        artistSongs.appendChild(songsTitle);
+
+        // Create song cards
+        songs.forEach(song => {
             const songId = song.id || song.browseId || '';
             const title = song.title || song.name || 'Unknown Title';
             const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : (song.thumbnail || '');
 
-            return `
-                        <div class="result-card" data-song-id="${escapeHtml(songId)}" data-song-name="${escapeHtml(title)}" data-song-artist="${escapeHtml(artistName)}" data-song-thumbnail="${escapeHtml(thumbnail)}">
-                            <div class="result-thumbnail">
-                                ${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(title)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
-                            </div>
-                            <div class="result-title">${escapeHtml(title)}</div>
-                            <div class="result-artist">${escapeHtml(artistName)}</div>
-                        </div>
-                    `;
-        }).join('')}
-            </div>
-            <div class="artist-albums">
-                <h3>Albums (${albums.length})</h3>
-                ${albums.map(album => {
+            // Create result card
+            const resultCard = document.createElement('div');
+            resultCard.className = 'result-card';
+            resultCard.setAttribute('data-song-id', songId);
+            resultCard.setAttribute('data-song-name', title);
+            resultCard.setAttribute('data-song-artist', artistName);
+            resultCard.setAttribute('data-song-thumbnail', thumbnail);
+
+            // Create thumbnail container
+            const thumbnailDiv = document.createElement('div');
+            thumbnailDiv.className = 'result-thumbnail';
+
+            if (thumbnail) {
+                const img = document.createElement('img');
+                img.src = thumbnail;
+                img.alt = title;
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'cover';
+                img.style.borderRadius = '4px';
+                thumbnailDiv.appendChild(img);
+            } else {
+                thumbnailDiv.textContent = '🎵';
+            }
+            resultCard.appendChild(thumbnailDiv);
+
+            // Create title
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'result-title';
+            titleDiv.textContent = title;
+            resultCard.appendChild(titleDiv);
+
+            // Create artist
+            const artistDiv = document.createElement('div');
+            artistDiv.className = 'result-artist';
+            artistDiv.textContent = artistName;
+            resultCard.appendChild(artistDiv);
+
+            artistSongs.appendChild(resultCard);
+        });
+
+        container.appendChild(artistSongs);
+
+        // Create artist albums section
+        const artistAlbums = document.createElement('div');
+        artistAlbums.className = 'artist-albums';
+
+        const albumsTitle = document.createElement('h3');
+        albumsTitle.textContent = `Albums (${albums.length})`;
+        artistAlbums.appendChild(albumsTitle);
+
+        // Create album cards
+        albums.forEach(album => {
             const albumId = album.browseId || '';
             const title = album.title || album.name || 'Unknown Album';
             const thumbnail = album.thumbnails && album.thumbnails.length > 0 ? album.thumbnails[0].url : (album.thumbnail || '');
 
-            return `
-                        <div class="result-card" onclick="window.contentManager.loadAlbum('${escapeHtml(albumId)}', '${escapeHtml(title)}')">
-                            <div class="result-thumbnail">
-                                ${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(title)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '💿'}
-                            </div>
-                            <div class="result-title">${escapeHtml(title)}</div>
-                            <div class="result-artist">${escapeHtml(artistName)}</div>
-                        </div>
-                    `;
-        }).join('')}
-            </div>
-        `;
+            // Create result card
+            const resultCard = document.createElement('div');
+            resultCard.className = 'result-card';
+            resultCard.onclick = () => window.contentManager.loadAlbum(albumId, title);
+
+            // Create thumbnail container
+            const thumbnailDiv = document.createElement('div');
+            thumbnailDiv.className = 'result-thumbnail';
+
+            if (thumbnail) {
+                const img = document.createElement('img');
+                img.src = thumbnail;
+                img.alt = title;
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'cover';
+                img.style.borderRadius = '4px';
+                thumbnailDiv.appendChild(img);
+            } else {
+                thumbnailDiv.textContent = '💿';
+            }
+            resultCard.appendChild(thumbnailDiv);
+
+            // Create title
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'result-title';
+            titleDiv.textContent = title;
+            resultCard.appendChild(titleDiv);
+
+            // Create artist
+            const artistDiv = document.createElement('div');
+            artistDiv.className = 'result-artist';
+            artistDiv.textContent = artistName;
+            resultCard.appendChild(artistDiv);
+
+            artistAlbums.appendChild(resultCard);
+        });
+
+        container.appendChild(artistAlbums);
     }
 
     showWelcomeScreen() {
@@ -674,14 +992,16 @@ export class ContentManager {
     }
 }
 
-// Create global instance
-window.contentManager = new ContentManager(window.ytmAPI);
+// Create global instance when API is ready
+window.onApiReady(() => {
+    window.contentManager = new ContentManager(window.ytmAPI);
 
-// Global functions for onclick handlers
-window.loadLibrary = (event) => window.contentManager.loadLibrary(event);
-window.loadSongs = (event) => window.contentManager.loadSongs(event);
-window.loadArtists = (event) => window.contentManager.loadArtists(event);
-window.loadAlbums = (event) => window.contentManager.loadAlbums(event);
-window.loadHome = (event) => window.contentManager.loadHome(event);
-window.loadExplore = (event) => window.contentManager.loadExplore(event);
-window.handleSearch = (event) => window.contentManager.handleSearch(event);
+    // Global functions for onclick handlers
+    window.loadLibrary = (event) => window.contentManager.loadLibrary(event);
+    window.loadSongs = (event) => window.contentManager.loadSongs(event);
+    window.loadArtists = (event) => window.contentManager.loadArtists(event);
+    window.loadAlbums = (event) => window.contentManager.loadAlbums(event);
+    window.loadHome = (event) => window.contentManager.loadHome(event);
+    window.loadExplore = (event) => window.contentManager.loadExplore(event);
+    window.handleSearch = (event) => window.contentManager.handleSearch(event);
+});

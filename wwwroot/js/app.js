@@ -1,7 +1,7 @@
 // Main Application Entry Point
 // This file imports and initializes all the modular components
+// Note: API readiness system is now defined in api-ready.js and loaded before this module
 
-// Create YouTube Music API instance immediately
 console.log('Creating YouTube Music API...');
 console.log('YouTubeMusicAPI available:', typeof YouTubeMusicAPI);
 
@@ -22,40 +22,57 @@ function createAPI() {
     return false;
 }
 
-// Try to create API with retry mechanism
-function initializeAPI(maxRetries = 5, retryDelay = 1000) {
+// Enhanced API initialization with better error handling
+async function initializeAPI(maxRetries = 10, retryDelay = 1000) {
     let retryCount = 0;
-    
-    function attemptCreate() {
+
+    const attemptCreate = async () => {
         if (createAPI()) {
-            return true;
+            // Test the API to make sure it's working
+            try {
+                // Try a simple health check or basic operation
+                if (window.ytmAPI.getHealth) {
+                    await window.ytmAPI.getHealth();
+                } else {
+                    // If getHealth doesn't exist, just assume the API is working
+                    console.log('YouTube Music API created successfully (no health check available)');
+                }
+                console.log('YouTube Music API is ready and working');
+                window.notifyApiReady();
+                return true;
+            } catch (error) {
+                console.error('API health check failed:', error);
+                // Even if health check fails, we can still proceed if the API object exists
+                if (window.ytmAPI) {
+                    console.log('YouTube Music API created but health check failed, proceeding anyway');
+                    window.notifyApiReady();
+                    return true;
+                }
+                return false;
+            }
         }
-        
+
         retryCount++;
         if (retryCount < maxRetries) {
             console.log(`YouTube Music API not available, retrying in ${retryDelay}ms (attempt ${retryCount}/${maxRetries})`);
-            setTimeout(attemptCreate, retryDelay);
-            return false;
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+            return await attemptCreate();
         } else {
             console.error('YouTube Music API failed to initialize after maximum retries');
+            // Show error to user
+            const errorDiv = document.getElementById('error');
+            if (errorDiv) {
+                errorDiv.textContent = 'Failed to initialize YouTube Music API. Please refresh the page.';
+                errorDiv.style.display = 'block';
+            }
             return false;
         }
-    }
-    
-    return attemptCreate();
+    };
+
+    return await attemptCreate();
 }
 
-// Try to create API immediately
-if (!initializeAPI()) {
-    // If not available, wait for DOM content loaded and try again
-    document.addEventListener('DOMContentLoaded', () => {
-        if (!initializeAPI()) {
-            console.error('YouTubeMusicAPI still not available after DOMContentLoaded');
-        }
-    });
-}
-
-// Import all modules
+// Import all modules (but don't initialize them yet)
 import './constants.js';
 import './utils.js';
 import './notification-manager.js';
@@ -66,7 +83,7 @@ import './content-manager.js';
 import './url-manager.js';
 import { setupEventDelegation } from './event-delegation.js';
 
-// Initialize the application
+// Initialize the application only after API is ready
 function initializeApp() {
     console.log('Initializing YouTube Music API Proxy...');
 
@@ -80,11 +97,18 @@ function initializeApp() {
     // Initialize event delegation for data attributes
     setupEventDelegation();
 
-    // Initialize mobile enhancements
-    if (window.playerManager) {
-        window.playerManager.addMobileTouchHandlers();
-        window.playerManager.enhancePlayerControls();
-    }
+    // Track user interaction to enable AudioContext
+    const trackUserInteraction = () => {
+        document.body.classList.add('user-interacted');
+        // Remove the event listeners after first interaction
+        document.removeEventListener('click', trackUserInteraction);
+        document.removeEventListener('touchstart', trackUserInteraction);
+        document.removeEventListener('keydown', trackUserInteraction);
+    };
+
+    document.addEventListener('click', trackUserInteraction);
+    document.addEventListener('touchstart', trackUserInteraction);
+    document.addEventListener('keydown', trackUserInteraction);
 
     // Stop any existing audio when page loads
     if (window.stopAllAudio) {
@@ -97,6 +121,12 @@ function initializeApp() {
             window.stopAllAudio();
         }
     });
+
+    // Initialize mobile enhancements
+    if (window.playerManager) {
+        window.playerManager.addMobileTouchHandlers();
+        window.playerManager.enhancePlayerControls();
+    }
 
     // Add event listeners for navigation items
     document.addEventListener('DOMContentLoaded', function () {
@@ -160,13 +190,48 @@ function initializeApp() {
     console.log('YouTube Music API Proxy initialized successfully!');
 }
 
-// Initialize the app when the DOM is ready
+// Main initialization function
+async function startApplication() {
+    console.log('Starting YouTube Music API Proxy application...');
+
+    // Show loading state
+    const loading = document.getElementById('loading');
+    if (loading) {
+        loading.style.display = 'block';
+        loading.textContent = 'Initializing YouTube Music API...';
+    }
+
+    // Initialize API first
+    const apiSuccess = await initializeAPI();
+
+    if (!apiSuccess) {
+        console.error('Failed to initialize API, application cannot start');
+        return;
+    }
+
+    // Hide loading and show success
+    if (loading) {
+        loading.textContent = 'API Ready! Initializing application...';
+    }
+
+    // Initialize the app
+    initializeApp();
+
+    // Hide loading completely
+    if (loading) {
+        loading.style.display = 'none';
+    }
+
+    console.log('Application startup complete!');
+}
+
+// Start the application when the DOM is ready
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeApp);
+    document.addEventListener('DOMContentLoaded', startApplication);
 } else {
     // DOM is already ready
-    initializeApp();
+    startApplication();
 }
 
 // Export for potential external use
-export { initializeApp };
+export { initializeApp, startApplication };

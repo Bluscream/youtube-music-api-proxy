@@ -137,9 +137,12 @@ export function stopAllAudio() {
     if (window.AudioContext || window.webkitAudioContext) {
         // Stop any active audio contexts
         try {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            if (audioContext.state === 'running') {
-                audioContext.suspend();
+            // Only create AudioContext if it's allowed (user has interacted with page)
+            if (document.body.classList.contains('user-interacted')) {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioContext.state === 'running') {
+                    audioContext.suspend();
+                }
             }
         } catch (e) {
             // Ignore errors if audio context is not available
@@ -167,21 +170,35 @@ export function stopAllAudio() {
 
 // Show loading state
 export function showLoading() {
-    document.getElementById('loading').style.display = 'block';
-    document.getElementById('error').style.display = 'none';
-    document.querySelector('.welcome-section').style.display = 'none';
-    document.getElementById('searchResults').style.display = 'none';
-    document.getElementById('libraryContent').style.display = 'none';
+    const loading = document.getElementById('loading');
+    const error = document.getElementById('error');
+    const welcomeSection = document.querySelector('.welcome-section');
+    const searchResults = document.getElementById('searchResults');
+    const libraryContent = document.getElementById('libraryContent');
+    
+    if (loading) loading.style.display = 'block';
+    if (error) error.style.display = 'none';
+    if (welcomeSection) welcomeSection.style.display = 'none';
+    if (searchResults) searchResults.style.display = 'none';
+    if (libraryContent) libraryContent.style.display = 'none';
 }
 
 // Show error state
 export function showError(message) {
-    document.getElementById('error').textContent = message;
-    document.getElementById('error').style.display = 'block';
-    document.getElementById('loading').style.display = 'none';
-    document.querySelector('.welcome-section').style.display = 'none';
-    document.getElementById('searchResults').style.display = 'none';
-    document.getElementById('libraryContent').style.display = 'none';
+    const error = document.getElementById('error');
+    const loading = document.getElementById('loading');
+    const welcomeSection = document.querySelector('.welcome-section');
+    const searchResults = document.getElementById('searchResults');
+    const libraryContent = document.getElementById('libraryContent');
+    
+    if (error) {
+        error.textContent = message;
+        error.style.display = 'block';
+    }
+    if (loading) loading.style.display = 'none';
+    if (welcomeSection) welcomeSection.style.display = 'none';
+    if (searchResults) searchResults.style.display = 'none';
+    if (libraryContent) libraryContent.style.display = 'none';
 }
 
 // Update active navigation item

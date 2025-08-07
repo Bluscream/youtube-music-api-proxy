@@ -19,14 +19,34 @@ export class NotificationManager {
         notification.className = `notification ${type}`;
         notification.id = notificationId;
 
-        notification.innerHTML = `
-            <div class="notification-icon">${NOTIFICATION_ICONS[type] || NOTIFICATION_ICONS.info}</div>
-            <div class="notification-content">
-                <div class="notification-title">${title}</div>
-                <div class="notification-message">${message}</div>
-            </div>
-            <button class="notification-close" onclick="window.notificationManager.removeNotification('${notificationId}')">×</button>
-        `;
+        // Create notification icon
+        const iconDiv = document.createElement('div');
+        iconDiv.className = 'notification-icon';
+        iconDiv.textContent = NOTIFICATION_ICONS[type] || NOTIFICATION_ICONS.info;
+        notification.appendChild(iconDiv);
+
+        // Create notification content
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'notification-content';
+
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'notification-title';
+        titleDiv.textContent = title;
+        contentDiv.appendChild(titleDiv);
+
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'notification-message';
+        messageDiv.textContent = message;
+        contentDiv.appendChild(messageDiv);
+
+        notification.appendChild(contentDiv);
+
+        // Create close button
+        const closeButton = document.createElement('button');
+        closeButton.className = 'notification-close';
+        closeButton.textContent = '×';
+        closeButton.onclick = () => window.notificationManager.removeNotification(notificationId);
+        notification.appendChild(closeButton);
 
         container.appendChild(notification);
 

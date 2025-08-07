@@ -21,7 +21,7 @@ export class URLManager {
                 if (response.ok) {
                     const data = await response.json();
                     const playlistTitle = data.name || data.title || 'Playlist';
-                    
+
                     if (window.contentManager) {
                         window.contentManager.displayPlaylistContent(data, playlistTitle);
                     }
@@ -33,18 +33,27 @@ export class URLManager {
 
                         // If song parameter is also present, load that specific song
                         if (params.song) {
-                            const songIndex = window.playerManager.currentPlaylistSongs.findIndex(song => song.id === params.song);
+                            // Try to find the song in the playlist data
+                            const songs = data.songs || data.tracks || [];
+                            const songIndex = songs.findIndex(song => song.id === params.song || song.videoId === params.song);
                             if (songIndex !== -1) {
-                                const song = window.playerManager.currentPlaylistSongs[songIndex];
+                                const song = songs[songIndex];
                                 const title = song.name || song.title || 'Unknown Title';
                                 const artist = song.artists && song.artists.length > 0 ? song.artists[0].name : '';
                                 const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : '';
 
                                 // If play parameter is present, auto-play the song
                                 if (params.play) {
-                                    window.playerManager.playSong(song.id || '', title, artist, thumbnail, window.playerManager.currentPlaylist, songIndex);
+                                    window.playerManager.playSong(song.id || song.videoId || '', title, artist, thumbnail, songs, songIndex);
                                 } else {
-                                    window.playerManager.loadSong(song.id || '', title, artist, thumbnail, window.playerManager.currentPlaylist, songIndex);
+                                    window.playerManager.loadSong(song.id || song.videoId || '', title, artist, thumbnail, songs, songIndex);
+                                }
+                            } else {
+                                // Song not found in playlist, try to load it directly
+                                if (params.play) {
+                                    window.playerManager.playSong(params.song, 'Unknown Title', 'Unknown Artist', '', data, -1);
+                                } else {
+                                    window.playerManager.loadSong(params.song, 'Unknown Title', 'Unknown Artist', '', data, -1);
                                 }
                             }
                         }
@@ -95,8 +104,10 @@ export class URLManager {
     }
 }
 
-// Create global instance
-window.urlManager = new URLManager();
+// Create global instance when API is ready
+window.onApiReady(() => {
+    window.urlManager = new URLManager();
 
-// Make functions globally accessible
-window.loadFromURL = () => window.urlManager.loadFromURL();
+    // Make functions globally accessible
+    window.loadFromURL = () => window.urlManager.loadFromURL();
+});
