@@ -149,9 +149,9 @@ export class RightSidebarManager {
         document.addEventListener('mouseup', stopResize);
 
         // Touch events for mobile
-        resizeHandle.addEventListener('touchstart', startResize);
-        document.addEventListener('touchmove', doResize);
-        document.addEventListener('touchend', stopResize);
+        resizeHandle.addEventListener('touchstart', startResize, { passive: false });
+        document.addEventListener('touchmove', doResize, { passive: false });
+        document.addEventListener('touchend', stopResize, { passive: true });
     }
 
     updateSidebarWidth() {

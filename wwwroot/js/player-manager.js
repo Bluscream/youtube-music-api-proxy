@@ -352,7 +352,7 @@ export class PlayerManagerV2 {
             playerBar.addEventListener('touchstart', (e) => {
                 touchStartX = e.touches[0].clientX;
                 touchStartY = e.touches[0].clientY;
-            });
+            }, { passive: true });
 
             playerBar.addEventListener('touchend', (e) => {
                 const touchEndX = e.changedTouches[0].clientX;
@@ -368,7 +368,7 @@ export class PlayerManagerV2 {
                         this.playNextSong();
                     }
                 }
-            });
+            }, { passive: true });
         }
     }
 

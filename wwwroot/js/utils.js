@@ -191,3 +191,33 @@ export function updateActiveNavItem(clickedItem) {
         window.sidebarManager.toggle();
     }
 }
+
+// Create global utils object for backward compatibility
+window.utils = {
+    formatDuration,
+    formatNumber,
+    formatDate,
+    getQueryParams,
+    buildQueryString,
+    updateURL,
+    updateCSSBreakpoints,
+    shouldCollapseSidebar,
+    stopAllAudio,
+    showLoading,
+    showError,
+    updateActiveNavItem
+};
+
+// Also export individual functions to window for direct access
+window.formatDuration = formatDuration;
+window.formatNumber = formatNumber;
+window.formatDate = formatDate;
+window.getQueryParams = getQueryParams;
+window.buildQueryString = buildQueryString;
+window.updateURL = updateURL;
+window.updateCSSBreakpoints = updateCSSBreakpoints;
+window.shouldCollapseSidebar = shouldCollapseSidebar;
+window.stopAllAudio = stopAllAudio;
+window.showLoading = showLoading;
+window.showError = showError;
+window.updateActiveNavItem = updateActiveNavItem;

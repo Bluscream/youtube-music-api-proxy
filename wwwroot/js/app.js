@@ -17,9 +17,9 @@ function initializeApp() {
     console.log('Initializing YouTube Music API Proxy...');
 
     // Update CSS breakpoints
-    import('./utils.js').then(({ updateCSSBreakpoints }) => {
-        updateCSSBreakpoints();
-    });
+    if (window.updateCSSBreakpoints) {
+        window.updateCSSBreakpoints();
+    }
 
     // Initialize event delegation for data attributes
     setupEventDelegation();
@@ -31,15 +31,15 @@ function initializeApp() {
     }
 
     // Stop any existing audio when page loads
-    import('./utils.js').then(({ stopAllAudio }) => {
-        stopAllAudio();
-    });
+    if (window.stopAllAudio) {
+        window.stopAllAudio();
+    }
 
     // Stop audio when page is about to unload
     window.addEventListener('beforeunload', () => {
-        import('./utils.js').then(({ stopAllAudio }) => {
-            stopAllAudio();
-        });
+        if (window.stopAllAudio) {
+            window.stopAllAudio();
+        }
     });
 
     // Add event listeners for navigation items
@@ -68,26 +68,38 @@ function initializeApp() {
     });
 
     // Check if there are URL parameters to load from
-    import('./utils.js').then(({ getQueryParams }) => {
-        const params = getQueryParams();
-        if (params.playlist || params.song) {
-            // Load playlists first, then load from URL parameters
-            if (window.contentManager) {
-                window.contentManager.loadPlaylists().then(() => {
-                    if (window.urlManager) {
-                        window.urlManager.loadFromURL();
-                    }
-                });
+    // Use a small delay to ensure all modules are loaded
+    setTimeout(() => {
+        if (window.getQueryParams) {
+            const params = window.getQueryParams();
+            console.log('URL parameters found:', params);
+
+            if (params.playlist || params.song) {
+                // Load playlists first, then load from URL parameters
+                if (window.contentManager) {
+                    window.contentManager.loadPlaylists().then(() => {
+                        if (window.urlManager) {
+                            window.urlManager.loadFromURL();
+                        }
+                    });
+                }
+            } else {
+                // No URL parameters, load home page
+                if (window.contentManager) {
+                    window.contentManager.loadHome();
+                    // Load playlists in background
+                    window.contentManager.loadPlaylists();
+                }
             }
         } else {
-            // No URL parameters, load home page
+            console.error('getQueryParams function not available');
+            // Fallback: load home page
             if (window.contentManager) {
                 window.contentManager.loadHome();
-                // Load playlists in background
                 window.contentManager.loadPlaylists();
             }
         }
-    });
+    }, 100);
 
     console.log('YouTube Music API Proxy initialized successfully!');
 }
