@@ -149,12 +149,11 @@
         </div>
 
         <div class="player-controls">
-            <div class="control-buttons">
+            <div class="control-buttons"><button class="control-button" id="repeatButton" onclick="toggleRepeatMode()"
+                    title="No repeat">🔁</button>
                 <button class="control-button" onclick="playPreviousSong()" title="Previous song">⏮</button>
                 <button class="control-button play-button" id="playButton" onclick="togglePlay()">▶</button>
                 <button class="control-button" onclick="playNextSong()" title="Next song">⏭</button>
-                <button class="control-button" id="repeatButton" onclick="toggleRepeatMode()"
-                    title="No repeat">🔁</button>
                 <button class="control-button" id="shuffleButton" onclick="toggleShuffle()"
                     title="Shuffle off">🔀</button>
             </div>
@@ -177,7 +176,7 @@
     <!-- Notification Container -->
     <div class="notification-container" id="notificationContainer"></div>
 
-    <script src="/js/app.js"></script>
+    <script type="module" src="/js/app.js"></script>
 </body>
 
 </html>
