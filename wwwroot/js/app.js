@@ -728,7 +728,7 @@ async function loadFromURL() {
                 currentPlaylist = params.playlist;
                 highlightCurrentPlaylist();
 
-                // If song parameter is also present, play that specific song
+                // If song parameter is also present, load that specific song
                 if (params.song) {
                     const songIndex = currentPlaylistSongs.findIndex(song => song.id === params.song);
                     if (songIndex !== -1) {
@@ -736,7 +736,13 @@ async function loadFromURL() {
                         const title = song.name || song.title || 'Unknown Title';
                         const artist = song.artists && song.artists.length > 0 ? song.artists[0].name : '';
                         const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : '';
-                        playSong(song.id || '', title, artist, thumbnail, currentPlaylist, songIndex);
+
+                        // If play parameter is present, auto-play the song
+                        if (params.play) {
+                            playSong(song.id || '', title, artist, thumbnail, currentPlaylist, songIndex);
+                        } else {
+                            loadSong(song.id || '', title, artist, thumbnail, currentPlaylist, songIndex);
+                        }
                     }
                 }
             }
@@ -744,7 +750,7 @@ async function loadFromURL() {
             console.error('Error loading playlist from URL:', error);
         }
     } else if (params.song) {
-        // Load and play specific song from URL parameter
+        // Load specific song from URL parameter
         try {
             const response = await fetch(`/api/song/${params.song}?${buildQueryString(params)}`);
             if (response.ok) {
@@ -752,7 +758,13 @@ async function loadFromURL() {
                 const title = data.name || data.title || 'Unknown Title';
                 const artist = data.artists && data.artists.length > 0 ? data.artists[0].name : '';
                 const thumbnail = data.thumbnails && data.thumbnails.length > 0 ? data.thumbnails[0].url : '';
-                playSong(params.song, title, artist, thumbnail, null, -1);
+
+                // If play parameter is present, auto-play the song
+                if (params.play) {
+                    awa(params.song, title, artist, thumbnail, null, -1);
+                } else {
+                    loadSong(params.song, title, artist, thumbnail, null, -1);
+                }
             }
         } catch (error) {
             console.error('Error loading song from URL:', error);
@@ -871,14 +883,14 @@ function highlightCurrentPlaylist() {
     }
 }
 
-async function playSong(songId, title, artist, thumbnail = null, playlistId = null, songIndex = -1) {
+async function loadSong(songId, title, artist, thumbnail = null, playlistId = null, songIndex = -1) {
     // Clear any existing error recovery timeout
     if (errorRecoveryTimeout) {
         clearTimeout(errorRecoveryTimeout);
         errorRecoveryTimeout = null;
     }
 
-    // Stop all audio playback before starting new song
+    // Stop all audio playback before loading new song
     stopAllAudio();
 
     // Update URL with song parameter
@@ -896,15 +908,10 @@ async function playSong(songId, title, artist, thumbnail = null, playlistId = nu
     currentSongIndex = songIndex;
     document.getElementById('nowPlayingTitle').textContent = title;
     document.getElementById('nowPlayingArtist').textContent = artist;
-    document.getElementById('playButton').textContent = '⏸';
-    isPlaying = true;
+    document.getElementById('playButton').textContent = '▶';
+    isPlaying = false;
 
-    // Update media session state
-    if (navigator.mediaSession) {
-        navigator.mediaSession.playbackState = 'playing';
-    }
-
-    // Reset repeat and shuffle if playing from search results (no playlist)
+    // Reset repeat and shuffle if loading from search results (no playlist)
     if (!playlistId) {
         repeatMode = 'none';
         shuffleEnabled = false;
@@ -919,12 +926,12 @@ async function playSong(songId, title, artist, thumbnail = null, playlistId = nu
         highlightCurrentSong();
     }
 
-    // Update current playlist and highlight it in sidebar if playing from a playlist
+    // Update current playlist and highlight it in sidebar if loading from a playlist
     if (playlistId) {
         currentPlaylist = playlistId;
         highlightCurrentPlaylist();
     } else {
-        // Clear playlist highlighting if playing from search results
+        // Clear playlist highlighting if loading from search results
         currentPlaylist = null;
         highlightCurrentPlaylist();
     }
@@ -940,6 +947,7 @@ async function playSong(songId, title, artist, thumbnail = null, playlistId = nu
     // Fetch detailed song information for the Info tab
     fetchSongInfo(songId);
 
+    // Preload audio without playing
     try {
         const queryParams = getQueryParams();
         const queryString = buildQueryString(queryParams);
@@ -955,7 +963,7 @@ async function playSong(songId, title, artist, thumbnail = null, playlistId = nu
             document.getElementById('playButton').textContent = '▶';
             // Reset document title on error
             document.title = DEFAULT_TITLE;
-            showErrorNotification(`Failed to play "${title}" by ${artist}. The song may be unavailable or restricted.`);
+            showErrorNotification(`Failed to load "${title}" by ${artist}. The song may be unavailable or restricted.`);
             handlePlaybackError(title, artist);
         });
 
@@ -965,30 +973,20 @@ async function playSong(songId, title, artist, thumbnail = null, playlistId = nu
             document.getElementById('playButton').textContent = '▶';
             // Reset document title on abort
             document.title = DEFAULT_TITLE;
-            showWarningNotification(`Playback of "${title}" was interrupted.`);
+            showWarningNotification(`Loading of "${title}" was interrupted.`);
         });
 
         audio.addEventListener('loadeddata', () => {
-            audio.play().catch(error => {
-                console.error('Play error:', error);
-                isPlaying = false;
-                document.getElementById('playButton').textContent = '▶';
-                // Reset document title on play error
-                document.title = DEFAULT_TITLE;
-                showErrorNotification(`Failed to start playback of "${title}". Please try again.`);
-                handlePlaybackError(title, artist);
-            }).then(() => {
-                // Update media session metadata for system media controls
-                if (navigator.mediaSession) {
-                    navigator.mediaSession.metadata = new MediaMetadata({
-                        title: title,
-                        artist: artist,
-                        album: 'YouTube Music',
-                        artwork: thumbnail ? [{ src: thumbnail, sizes: '300x300', type: 'image/jpeg' }] : []
-                    });
-                }
-                // showSuccessNotification(`Now playing: "${title}" by ${artist}`);
-            });
+            // Update media session metadata for system media controls
+            if (navigator.mediaSession) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: title,
+                    artist: artist,
+                    album: 'YouTube Music',
+                    artwork: thumbnail ? [{ src: thumbnail, sizes: '300x300', type: 'image/jpeg' }] : []
+                });
+            }
+            showInfoNotification(`Loaded: "${title}" by ${artist}`);
         });
 
         audio.addEventListener('timeupdate', () => {
@@ -1042,12 +1040,41 @@ async function playSong(songId, title, artist, thumbnail = null, playlistId = nu
 
         currentAudio = audio;
     } catch (error) {
-        console.error('PlaySong error:', error);
+        console.error('LoadSong error:', error);
         isPlaying = false;
         document.getElementById('playButton').textContent = '▶';
         // Reset document title on error
         document.title = DEFAULT_TITLE;
         showErrorNotification(`Failed to load "${title}" by ${artist}. Please check your connection and try again.`);
+    }
+}
+
+async function playSong(songId, title, artist, thumbnail = null, playlistId = null, songIndex = -1) {
+    // If no song is currently loaded or different song, load it first
+    if (!currentSongId || currentSongId !== songId) {
+        await loadSong(songId, title, artist, thumbnail, playlistId, songIndex);
+    }
+
+    // Start playback
+    if (currentAudio && !isPlaying) {
+        try {
+            document.getElementById('playButton').textContent = '⏸';
+            isPlaying = true;
+
+            // Update media session state
+            if (navigator.mediaSession) {
+                navigator.mediaSession.playbackState = 'playing';
+            }
+
+            await currentAudio.play();
+            showSuccessNotification(`Now playing: "${title}" by ${artist}`);
+        } catch (error) {
+            console.error('Play error:', error);
+            isPlaying = false;
+            document.getElementById('playButton').textContent = '▶';
+            showErrorNotification(`Failed to start playback of "${title}". Please try again.`);
+            handlePlaybackError(title, artist);
+        }
     }
 }
 
