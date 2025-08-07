@@ -13,6 +13,7 @@ let autoPlayEnabled = true;
 let isMobileMenuOpen = false;
 let isSidebarCollapsed = false;
 let errorRecoveryTimeout = null; // For automatic playlist advancement on error
+let autoSkip = false;
 
 // Repeat and shuffle modes
 let repeatMode = 'none'; // 'none', 'one', 'all'
@@ -168,7 +169,7 @@ function handlePlaybackError(title, artist) {
     }
 
     // If we're in a playlist, automatically advance to next song after 3 seconds
-    if (currentPlaylist && currentPlaylistSongs.length > 0) {
+    if (autoSkip && currentPlaylist && currentPlaylistSongs.length > 0) {
         errorRecoveryTimeout = setTimeout(() => {
             console.log(`Auto-advancing playlist due to playback error: ${title}`);
             playNextSong();
@@ -227,21 +228,19 @@ class SidebarManager {
         document.addEventListener('keydown', (event) => {
             if (this.isMobile) return;
 
-            // Ctrl/Cmd + B to cycle through states
-            if ((event.ctrlKey || event.metaKey) && event.key === 'b') {
+            if ((event.ctrlKey || event.metaKey) && event.key === 'b') { // Ctrl/Cmd + B to cycle through states
                 event.preventDefault();
                 this.cycleState();
             }
 
-            // F11 to toggle full screen
-            if (event.key === 'F11') {
-                event.preventDefault();
-                if (this.currentState === 'full') {
-                    this.setState('expanded');
-                } else {
-                    this.setState('full');
-                }
-            }
+            // if (event.key === 'F11') { // F11 to toggle full screen
+            //     event.preventDefault();
+            //     if (this.currentState === 'full') {
+            //         this.setState('expanded');
+            //     } else {
+            //         this.setState('full');
+            //     }
+            // }
         });
 
         // Double-click sidebar toggle to enter full screen
