@@ -1,6 +1,13 @@
 // Main Application Entry Point
 // This file imports and initializes all the modular components
 
+// Create YouTube Music Library instance immediately
+window.ytmLibrary = new YouTubeMusicLibrary('', {
+    timeout: 30000,
+    retries: 3,
+    volume: 1
+});
+
 // Import all modules
 import './constants.js';
 import './utils.js';
@@ -15,13 +22,6 @@ import { setupEventDelegation } from './event-delegation.js';
 // Initialize the application
 function initializeApp() {
     console.log('Initializing YouTube Music API Proxy...');
-
-    // Create YouTube Music Library instance
-    window.ytmLibrary = new YouTubeMusicLibrary('', {
-        timeout: 30000,
-        retries: 3,
-        volume: 1
-    });
 
     // Update CSS breakpoints
     if (window.updateCSSBreakpoints) {
