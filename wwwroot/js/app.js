@@ -821,15 +821,10 @@ function displaySearchResults(results) {
         // Only show playable items (songs and videos)
         const isPlayable = result.type === 'SongSearchResult' || result.type === 'VideoSearchResult';
 
-        // Safely escape quotes for onclick
-        const safeTitle = title.replace(/'/g, "\\'");
-        const safeArtist = artist.replace(/'/g, "\\'");
-
         const thumbnail = result.thumbnails && result.thumbnails.length > 0 ? result.thumbnails[0].url : (result.thumbnail || '');
-        const safeThumbnail = thumbnail.replace(/'/g, "\\'");
 
         return `
-            <div class="result-card" ${isPlayable ? `onclick="playSong('${songId}', '${safeTitle}', '${safeArtist}', '${safeThumbnail}', null, -1)"` : ''}>
+            <div class="result-card" ${isPlayable ? `data-song-id="${songId}" data-song-name="${title}" data-song-artist="${artist}" data-song-thumbnail="${thumbnail}"` : ''}>
                 <div class="result-thumbnail">
                     ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
                 </div>
@@ -1722,7 +1717,6 @@ function displayPlaylistsInSidebar() {
         playlistsSection.style.display = 'block';
         playlistsList.innerHTML = playlists.map(playlist => {
             const title = playlist.name || playlist.title || 'Unknown Playlist';
-            const safeTitle = title.replace(/'/g, "\\'");
 
             // Get playlist thumbnail - try different possible properties
             const thumbnail = playlist.thumbnail ||
@@ -1734,7 +1728,7 @@ function displayPlaylistsInSidebar() {
             const activeClass = isActive ? ' active' : '';
 
             return `
-                <div class="playlist-item${activeClass}" onclick="loadPlaylist('${playlist.id || ''}', '${safeTitle}')">
+                <div class="playlist-item${activeClass}" data-playlist-id="${playlist.id || ''}" data-playlist-title="${title}">
                     <div class="playlist-thumbnail">
                         ${thumbnail ? `<img src="${thumbnail}" alt="${title}">` : '📋'}
                     </div>
@@ -1820,16 +1814,13 @@ function displayPlaylistContent(playlistData, playlistTitle) {
             const title = song.name || song.title || 'Unknown Title';
             const artist = song.artists && song.artists.length > 0 ? song.artists[0].name : '';
             const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : '';
-            const safeTitle = title.replace(/'/g, "\\'");
-            const safeArtist = artist.replace(/'/g, "\\'");
-            const safeThumbnail = thumbnail.replace(/'/g, "\\'");
 
             // Check if this song is currently playing
             const isCurrentlyPlaying = currentSongId === (song.id || '') && currentPlaylist === (playlistData.id || playlistData.browseId || '');
             const playingClass = isCurrentlyPlaying ? ' playing' : '';
 
             return `
-                        <div class="playlist-song-item${playingClass}" onclick="playSong('${song.id || ''}', '${safeTitle}', '${safeArtist}', '${safeThumbnail}', '${currentPlaylist}', ${index})">
+                        <div class="playlist-song-item${playingClass}" data-song-id="${song.id || ''}" data-song-name="${title}" data-song-artist="${artist}" data-song-thumbnail="${thumbnail}" data-playlist-id="${currentPlaylist}" data-song-index="${index}">
                             <div class="playlist-song-thumbnail">
                                 ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
                             </div>
@@ -1868,12 +1859,9 @@ function displayLibraryContent(libraryData) {
             const title = song.name || song.title || 'Unknown Title';
             const artist = song.artists && song.artists.length > 0 ? song.artists[0].name : '';
             const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : '';
-            const safeTitle = title.replace(/'/g, "\\'");
-            const safeArtist = artist.replace(/'/g, "\\'");
-            const safeThumbnail = thumbnail.replace(/'/g, "\\'");
 
             return `
-                <div class="library-item" onclick="playSong('${song.id || ''}', '${safeTitle}', '${safeArtist}', '${safeThumbnail}', null, -1)">
+                <div class="library-item" data-song-id="${song.id || ''}" data-song-name="${title}" data-song-artist="${artist}" data-song-thumbnail="${thumbnail}">
                     <div class="library-item-thumbnail">
                         ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
                     </div>
@@ -1896,10 +1884,9 @@ function displayLibraryContent(libraryData) {
         albumsContainer.innerHTML = libraryData.albums.slice(0, 10).map(album => {
             const title = album.name || album.title || 'Unknown Album';
             const artist = album.artist || '';
-            const safeTitle = title.replace(/'/g, "\\'");
 
             return `
-                <div class="library-item" onclick="loadAlbum('${album.browseId || ''}', '${safeTitle}')">
+                <div class="library-item" data-album-id="${album.browseId || ''}" data-album-title="${title}">
                     <div class="library-item-thumbnail">
                         ${album.thumbnail ? `<img src="${album.thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '💿'}
                     </div>
@@ -1922,10 +1909,9 @@ function displayLibraryContent(libraryData) {
         artistsContainer.innerHTML = libraryData.artists.slice(0, 10).map(artist => {
             const name = artist.name || 'Unknown Artist';
             const subscribers = artist.subscribers || '';
-            const safeName = name.replace(/'/g, "\\'");
 
             return `
-                <div class="library-item" onclick="loadArtist('${artist.browseId || ''}', '${safeName}')">
+                <div class="library-item" data-artist-id="${artist.browseId || ''}" data-artist-name="${name}">
                     <div class="library-item-thumbnail">
                         ${artist.thumbnail ? `<img src="${artist.thumbnail}" alt="${name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '👤'}
                     </div>
@@ -1966,12 +1952,9 @@ function displaySongsContent(libraryData) {
             const title = song.name || song.title || 'Unknown Title';
             const artist = song.artists && song.artists.length > 0 ? song.artists[0].name : '';
             const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : '';
-            const safeTitle = title.replace(/'/g, "\\'");
-            const safeArtist = artist.replace(/'/g, "\\'");
-            const safeThumbnail = thumbnail.replace(/'/g, "\\'");
 
             return `
-                <div class="result-card" onclick="playSong('${song.id || ''}', '${safeTitle}', '${safeArtist}', '${safeThumbnail}', null, -1)">
+                <div class="result-card" data-song-id="${song.id || ''}" data-song-name="${title}" data-song-artist="${artist}" data-song-thumbnail="${thumbnail}">
                     <div class="result-thumbnail">
                         ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
                     </div>
@@ -2010,10 +1993,9 @@ function displayArtistsContent(libraryData) {
             const name = artist.name || 'Unknown Artist';
             const subscribers = artist.subscribers || '';
             const thumbnail = artist.thumbnail || '';
-            const safeName = name.replace(/'/g, "\\'");
 
             return `
-                <div class="result-card" onclick="loadArtist('${artist.browseId || ''}', '${safeName}')">
+                <div class="result-card" data-artist-id="${artist.browseId || ''}" data-artist-name="${name}">
                     <div class="result-thumbnail">
                         ${thumbnail ? `<img src="${thumbnail}" alt="${name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '👤'}
                     </div>
@@ -2052,10 +2034,9 @@ function displayAlbumsContent(libraryData) {
             const title = album.name || album.title || 'Unknown Album';
             const artist = album.artist || '';
             const thumbnail = album.thumbnail || '';
-            const safeTitle = title.replace(/'/g, "\\'");
 
             return `
-                <div class="result-card" onclick="loadAlbum('${album.browseId || ''}', '${safeTitle}')">
+                <div class="result-card" data-album-id="${album.browseId || ''}" data-album-title="${title}">
                     <div class="result-thumbnail">
                         ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '💿'}
                     </div>
@@ -2140,12 +2121,9 @@ function displayAlbumContent(albumData, albumTitle) {
             const title = song.name || song.title || 'Unknown Title';
             const artist = song.artists && song.artists.length > 0 ? song.artists[0].name : '';
             const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : '';
-            const safeTitle = title.replace(/'/g, "\\'");
-            const safeArtist = artist.replace(/'/g, "\\'");
-            const safeThumbnail = thumbnail.replace(/'/g, "\\'");
 
             return `
-                <div class="result-card" onclick="playSong('${song.id || ''}', '${safeTitle}', '${safeArtist}', '${safeThumbnail}', null, -1)">
+                <div class="result-card" data-song-id="${song.id || ''}" data-song-name="${title}" data-song-artist="${artist}" data-song-thumbnail="${thumbnail}">
                     <div class="result-thumbnail">
                         ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
                     </div>
@@ -2182,12 +2160,9 @@ function displayArtistContent(artistData, artistName) {
             const title = song.name || song.title || 'Unknown Title';
             const artist = song.artists && song.artists.length > 0 ? song.artists[0].name : '';
             const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : '';
-            const safeTitle = title.replace(/'/g, "\\'");
-            const safeArtist = artist.replace(/'/g, "\\'");
-            const safeThumbnail = thumbnail.replace(/'/g, "\\'");
 
             return `
-                <div class="result-card" onclick="playSong('${song.id || ''}', '${safeTitle}', '${safeArtist}', '${safeThumbnail}', null, -1)">
+                <div class="result-card" data-song-id="${song.id || ''}" data-song-name="${title}" data-song-artist="${artist}" data-song-thumbnail="${thumbnail}">
                     <div class="result-thumbnail">
                         ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
                     </div>
@@ -2336,6 +2311,9 @@ function updateRepeatShuffleDisplay() {
 
 // Initialize
 updateCSSBreakpoints();
+
+// Initialize event delegation for data attributes
+setupEventDelegation();
 
 // Initialize other components
 initVolumeSlider();
@@ -2812,4 +2790,57 @@ function toggleRightSidebar() {
 
 function switchRightSidebarTab(tabName) {
     rightSidebarManager.switchTab(tabName);
+}
+
+// Event delegation for data attributes instead of inline onclick handlers
+function setupEventDelegation() {
+    // Handle song clicks with data attributes
+    document.addEventListener('click', function (event) {
+        const songElement = event.target.closest('[data-song-id]');
+        if (songElement) {
+            const songId = songElement.dataset.songId;
+            const songName = songElement.dataset.songName || '';
+            const songArtist = songElement.dataset.songArtist || '';
+            const songThumbnail = songElement.dataset.songThumbnail || '';
+            const playlistId = songElement.dataset.playlistId || null;
+            const songIndex = songElement.dataset.songIndex ? parseInt(songElement.dataset.songIndex) : -1;
+
+            playSong(songId, songName, songArtist, songThumbnail, playlistId, songIndex);
+            event.stopPropagation(); // Prevent event from bubbling up to parent elements
+            return; // Exit early to prevent other handlers from running
+        }
+
+        // Handle playlist clicks with data attributes
+        const playlistElement = event.target.closest('[data-playlist-id]');
+        if (playlistElement) {
+            const playlistId = playlistElement.dataset.playlistId;
+            const playlistTitle = playlistElement.dataset.playlistTitle || '';
+
+            loadPlaylist(playlistId, playlistTitle);
+            event.stopPropagation(); // Prevent event from bubbling up
+            return; // Exit early to prevent other handlers from running
+        }
+
+        // Handle album clicks with data attributes
+        const albumElement = event.target.closest('[data-album-id]');
+        if (albumElement) {
+            const albumId = albumElement.dataset.albumId;
+            const albumTitle = albumElement.dataset.albumTitle || '';
+
+            loadAlbum(albumId, albumTitle);
+            event.stopPropagation(); // Prevent event from bubbling up
+            return; // Exit early to prevent other handlers from running
+        }
+
+        // Handle artist clicks with data attributes
+        const artistElement = event.target.closest('[data-artist-id]');
+        if (artistElement) {
+            const artistId = artistElement.dataset.artistId;
+            const artistName = artistElement.dataset.artistName || '';
+
+            loadArtist(artistId, artistName);
+            event.stopPropagation(); // Prevent event from bubbling up
+            return; // Exit early to prevent other handlers from running
+        }
+    });
 }
