@@ -384,8 +384,24 @@ export class PlayerManager {
             document.removeEventListener('mouseup', handleMouseUp);
         };
 
+        // Add cleanup for touch events as well
+        const handleTouchEnd = () => {
+            document.removeEventListener('touchmove', handleMouseMove);
+            document.removeEventListener('touchend', handleTouchEnd);
+        };
+
         document.addEventListener('mousemove', handleMouseMove);
         document.addEventListener('mouseup', handleMouseUp);
+        document.addEventListener('touchmove', handleMouseMove, { passive: false });
+        document.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+        // Add a timeout to clean up event listeners if they're not removed normally
+        setTimeout(() => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+            document.removeEventListener('touchmove', handleMouseMove);
+            document.removeEventListener('touchend', handleTouchEnd);
+        }, 10000); // 10 second timeout
     }
 
     // Progress and seeking

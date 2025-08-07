@@ -7,21 +7,49 @@ console.log('YouTubeMusicAPI available:', typeof YouTubeMusicAPI);
 
 function createAPI() {
     if (typeof YouTubeMusicAPI !== 'undefined') {
-        window.ytmAPI = new YouTubeMusicAPI('', {
-            timeout: 30000,
-            retries: 3
-        });
-        console.log('YouTube Music API created:', window.ytmAPI);
-        return true;
+        try {
+            window.ytmAPI = new YouTubeMusicAPI('', {
+                timeout: 30000,
+                retries: 3
+            });
+            console.log('YouTube Music API created:', window.ytmAPI);
+            return true;
+        } catch (error) {
+            console.error('Error creating YouTube Music API:', error);
+            return false;
+        }
     }
     return false;
 }
 
+// Try to create API with retry mechanism
+function initializeAPI(maxRetries = 5, retryDelay = 1000) {
+    let retryCount = 0;
+    
+    function attemptCreate() {
+        if (createAPI()) {
+            return true;
+        }
+        
+        retryCount++;
+        if (retryCount < maxRetries) {
+            console.log(`YouTube Music API not available, retrying in ${retryDelay}ms (attempt ${retryCount}/${maxRetries})`);
+            setTimeout(attemptCreate, retryDelay);
+            return false;
+        } else {
+            console.error('YouTube Music API failed to initialize after maximum retries');
+            return false;
+        }
+    }
+    
+    return attemptCreate();
+}
+
 // Try to create API immediately
-if (!createAPI()) {
-    // If not available, wait for DOM content loaded
+if (!initializeAPI()) {
+    // If not available, wait for DOM content loaded and try again
     document.addEventListener('DOMContentLoaded', () => {
-        if (!createAPI()) {
+        if (!initializeAPI()) {
             console.error('YouTubeMusicAPI still not available after DOMContentLoaded');
         }
     });
@@ -44,7 +72,9 @@ function initializeApp() {
 
     // Update CSS breakpoints
     if (window.updateCSSBreakpoints) {
-        window.updateCSSBreakpoints();
+        window.updateCSSBreakpoints().catch(error => {
+            console.error('Error updating CSS breakpoints:', error);
+        });
     }
 
     // Initialize event delegation for data attributes

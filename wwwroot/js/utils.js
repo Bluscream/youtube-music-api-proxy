@@ -86,17 +86,24 @@ export function updateURL(params) {
 }
 
 // Update CSS variables to match JavaScript constants
-export function updateCSSBreakpoints() {
-    import('./constants.js').then(({ SIDEBAR_COLLAPSE_BREAKPOINT }) => {
+export async function updateCSSBreakpoints() {
+    try {
+        const { SIDEBAR_COLLAPSE_BREAKPOINT } = await import('./constants.js');
         document.documentElement.style.setProperty('--sidebar-collapse-breakpoint', `${SIDEBAR_COLLAPSE_BREAKPOINT}px`);
-    });
+    } catch (error) {
+        console.error('Error updating CSS breakpoints:', error);
+    }
 }
 
 // Check if sidebar should be collapsed based on screen width
-export function shouldCollapseSidebar() {
-    import('./constants.js').then(({ SIDEBAR_COLLAPSE_BREAKPOINT }) => {
+export async function shouldCollapseSidebar() {
+    try {
+        const { SIDEBAR_COLLAPSE_BREAKPOINT } = await import('./constants.js');
         return window.innerWidth <= SIDEBAR_COLLAPSE_BREAKPOINT;
-    });
+    } catch (error) {
+        console.error('Error checking sidebar collapse:', error);
+        return false; // Default to not collapsed on error
+    }
 }
 
 // Function to stop all audio elements in the document
@@ -221,3 +228,9 @@ window.stopAllAudio = stopAllAudio;
 window.showLoading = showLoading;
 window.showError = showError;
 window.updateActiveNavItem = updateActiveNavItem;
+
+// Add synchronous wrapper for shouldCollapseSidebar for backward compatibility
+window.shouldCollapseSidebarSync = () => {
+    // Default to false for synchronous calls
+    return window.innerWidth <= 800; // Default breakpoint
+};

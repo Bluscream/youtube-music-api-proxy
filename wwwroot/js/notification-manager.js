@@ -8,6 +8,11 @@ export class NotificationManager {
 
     showNotification(type, title, message, duration = DEFAULTS.NOTIFICATION_DURATION) {
         const container = document.getElementById('notificationContainer');
+        if (!container) {
+            console.error('Notification container not found');
+            return null;
+        }
+
         const notificationId = `notification-${++this.notificationCounter}`;
 
         const notification = document.createElement('div');
@@ -31,11 +36,15 @@ export class NotificationManager {
         }, 10);
 
         // Auto-remove after duration
+        let timeoutId = null;
         if (duration > 0) {
-            setTimeout(() => {
+            timeoutId = setTimeout(() => {
                 this.removeNotification(notificationId);
             }, duration);
         }
+
+        // Store timeout ID for potential cleanup
+        notification.dataset.timeoutId = timeoutId;
 
         return notificationId;
     }
@@ -43,6 +52,12 @@ export class NotificationManager {
     removeNotification(notificationId) {
         const notification = document.getElementById(notificationId);
         if (notification) {
+            // Clear the timeout if it exists
+            if (notification.dataset.timeoutId) {
+                clearTimeout(parseInt(notification.dataset.timeoutId));
+                delete notification.dataset.timeoutId;
+            }
+
             notification.classList.remove('show');
             setTimeout(() => {
                 if (notification.parentNode) {

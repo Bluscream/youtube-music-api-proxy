@@ -1,28 +1,56 @@
 import { getQueryParams, buildQueryString, updateURL, showLoading, showError, updateActiveNavItem } from './utils.js';
 
+// Helper function to escape HTML content to prevent XSS
+function escapeHtml(text) {
+    if (typeof text !== 'string') return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // Content Manager - Uses the YouTube Music API
 export class ContentManager {
     constructor(ytmAPI) {
         this.api = ytmAPI;
         this.playlists = [];
+        this.initialized = false;
 
         // Check if API is available
         if (!this.api) {
             console.warn('YouTube Music API not ready for content manager, will retry...');
-            setTimeout(() => {
-                if (window.ytmAPI) {
-                    this.api = window.ytmAPI;
-                    this.init();
-                }
-            }, 100);
+            this.initializeWithRetry();
         } else {
             this.init();
         }
     }
 
+    initializeWithRetry(maxRetries = 10, retryDelay = 200) {
+        let retryCount = 0;
+        
+        const attemptInit = () => {
+            if (window.ytmAPI) {
+                this.api = window.ytmAPI;
+                this.init();
+                return;
+            }
+            
+            retryCount++;
+            if (retryCount < maxRetries) {
+                console.log(`Content Manager: API not ready, retrying in ${retryDelay}ms (attempt ${retryCount}/${maxRetries})`);
+                setTimeout(attemptInit, retryDelay);
+            } else {
+                console.error('Content Manager: Failed to initialize after maximum retries');
+                this.initialized = false;
+            }
+        };
+        
+        attemptInit();
+    }
+
     init() {
         // Initialize content manager
         console.log('Content Manager initialized with YouTube Music API');
+        this.initialized = true;
     }
 
     // Search functionality
@@ -36,6 +64,12 @@ export class ContentManager {
     }
 
     async performSearch(query) {
+        if (!this.api || !this.initialized) {
+            console.error('Content manager not initialized or API not available');
+            showError('Content manager not ready. Please try again.');
+            return;
+        }
+
         showLoading();
         try {
             const data = await this.api.search(query);
@@ -51,6 +85,11 @@ export class ContentManager {
         const container = document.getElementById('searchResults');
         const welcomeSection = document.querySelector('.welcome-section');
         const libraryContent = document.getElementById('libraryContent');
+
+        if (!container || !welcomeSection || !libraryContent) {
+            console.error('Required DOM elements not found for search results display');
+            return;
+        }
 
         welcomeSection.style.display = 'none';
         libraryContent.style.display = 'none';
@@ -68,12 +107,12 @@ export class ContentManager {
             const thumbnail = result.thumbnails && result.thumbnails.length > 0 ? result.thumbnails[0].url : (result.thumbnail || '');
 
             return `
-                <div class="result-card" ${isPlayable ? `data-song-id="${songId}" data-song-name="${title}" data-song-artist="${artist}" data-song-thumbnail="${thumbnail}"` : ''}>
+                <div class="result-card" ${isPlayable ? `data-song-id="${escapeHtml(songId)}" data-song-name="${escapeHtml(title)}" data-song-artist="${escapeHtml(artist)}" data-song-thumbnail="${escapeHtml(thumbnail)}"` : ''}>
                     <div class="result-thumbnail">
-                        ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
+                        ${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(title)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
                     </div>
-                    <div class="result-title">${title}</div>
-                    <div class="result-artist">${artist}</div>
+                    <div class="result-title">${escapeHtml(title)}</div>
+                    <div class="result-artist">${escapeHtml(artist)}</div>
                     ${!isPlayable ? '<div style="font-size: 10px; color: #666; margin-top: 4px;">Not playable</div>' : ''}
                 </div>
             `;
@@ -136,6 +175,12 @@ export class ContentManager {
     }
 
     async loadLibraryData() {
+        if (!this.api || !this.initialized) {
+            console.error('Content manager not initialized or API not available');
+            showError('Content manager not ready. Please try again.');
+            return;
+        }
+
         showLoading();
         try {
             const libraryData = await this.api.getLibrary();
@@ -180,6 +225,11 @@ export class ContentManager {
     }
 
     async loadPlaylists() {
+        if (!this.api || !this.initialized) {
+            console.error('Content manager not initialized or API not available for playlists');
+            return;
+        }
+
         try {
             const playlistsData = await this.api.getLibraryPlaylists();
             this.playlists = playlistsData.playlists || [];
@@ -194,12 +244,17 @@ export class ContentManager {
         const playlistsSection = document.getElementById('playlistsSection');
         const playlistsList = document.getElementById('playlistsList');
 
+        if (!playlistsSection || !playlistsList) {
+            console.error('Required DOM elements not found for playlists sidebar');
+            return;
+        }
+
         if (this.playlists.length > 0) {
             playlistsSection.style.display = 'block';
             playlistsList.innerHTML = this.playlists.map(playlist => `
-                <div class="nav-item playlist-item" onclick="window.contentManager.loadPlaylist('${playlist.browseId}', '${playlist.name}')">
+                <div class="nav-item playlist-item" onclick="window.contentManager.loadPlaylist('${escapeHtml(playlist.browseId)}', '${escapeHtml(playlist.name)}')">
                     <div class="nav-icon">📜</div>
-                    <span class="nav-text">${playlist.name}</span>
+                    <span class="nav-text">${escapeHtml(playlist.name)}</span>
                 </div>
             `).join('');
         } else {
@@ -226,6 +281,11 @@ export class ContentManager {
         const welcomeSection = document.querySelector('.welcome-section');
         const libraryContent = document.getElementById('libraryContent');
 
+        if (!container || !welcomeSection || !libraryContent) {
+            console.error('Required DOM elements not found for playlist display');
+            return;
+        }
+
         welcomeSection.style.display = 'none';
         libraryContent.style.display = 'none';
         container.style.display = 'grid';
@@ -234,7 +294,7 @@ export class ContentManager {
 
         container.innerHTML = `
             <div class="playlist-header">
-                <h2>${playlistTitle}</h2>
+                <h2>${escapeHtml(playlistTitle)}</h2>
                 <p>${songs.length} songs</p>
             </div>
             ${songs.map(song => {
@@ -244,12 +304,12 @@ export class ContentManager {
             const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : (song.thumbnail || '');
 
             return `
-                    <div class="result-card" data-song-id="${songId}" data-song-name="${title}" data-song-artist="${artist}" data-song-thumbnail="${thumbnail}">
+                    <div class="result-card" data-song-id="${escapeHtml(songId)}" data-song-name="${escapeHtml(title)}" data-song-artist="${escapeHtml(artist)}" data-song-thumbnail="${escapeHtml(thumbnail)}">
                         <div class="result-thumbnail">
-                            ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
+                            ${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(title)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
                         </div>
-                        <div class="result-title">${title}</div>
-                        <div class="result-artist">${artist}</div>
+                        <div class="result-title">${escapeHtml(title)}</div>
+                        <div class="result-artist">${escapeHtml(artist)}</div>
                     </div>
                 `;
         }).join('')}
@@ -260,6 +320,11 @@ export class ContentManager {
         const container = document.getElementById('libraryContent');
         const welcomeSection = document.querySelector('.welcome-section');
         const searchResults = document.getElementById('searchResults');
+
+        if (!container || !welcomeSection || !searchResults) {
+            console.error('Required DOM elements not found for library display');
+            return;
+        }
 
         welcomeSection.style.display = 'none';
         searchResults.style.display = 'none';
@@ -283,12 +348,12 @@ export class ContentManager {
             const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : (song.thumbnail || '');
 
             return `
-                                    <div class="library-item" data-song-id="${songId}" data-song-name="${title}" data-song-artist="${artist}" data-song-thumbnail="${thumbnail}">
+                                    <div class="library-item" data-song-id="${escapeHtml(songId)}" data-song-name="${escapeHtml(title)}" data-song-artist="${escapeHtml(artist)}" data-song-thumbnail="${escapeHtml(thumbnail)}">
                                         <div class="library-item-thumbnail">
-                                            ${thumbnail ? `<img src="${thumbnail}" alt="${title}">` : '🎵'}
+                                            ${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(title)}">` : '🎵'}
                                         </div>
-                                        <div class="library-item-title">${title}</div>
-                                        <div class="library-item-artist">${artist}</div>
+                                        <div class="library-item-title">${escapeHtml(title)}</div>
+                                        <div class="library-item-artist">${escapeHtml(artist)}</div>
                                     </div>
                                 `;
         }).join('')}
@@ -304,12 +369,12 @@ export class ContentManager {
             const thumbnail = album.thumbnails && album.thumbnails.length > 0 ? album.thumbnails[0].url : (album.thumbnail || '');
 
             return `
-                                    <div class="library-item" onclick="window.contentManager.loadAlbum('${albumId}', '${title}')">
+                                    <div class="library-item" onclick="window.contentManager.loadAlbum('${escapeHtml(albumId)}', '${escapeHtml(title)}')">
                                         <div class="library-item-thumbnail">
-                                            ${thumbnail ? `<img src="${thumbnail}" alt="${title}">` : '💿'}
+                                            ${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(title)}">` : '💿'}
                                         </div>
-                                        <div class="library-item-title">${title}</div>
-                                        <div class="library-item-artist">${artist}</div>
+                                        <div class="library-item-title">${escapeHtml(title)}</div>
+                                        <div class="library-item-artist">${escapeHtml(artist)}</div>
                                     </div>
                                 `;
         }).join('')}
@@ -324,11 +389,11 @@ export class ContentManager {
             const thumbnail = artist.thumbnails && artist.thumbnails.length > 0 ? artist.thumbnails[0].url : (artist.thumbnail || '');
 
             return `
-                                    <div class="library-item" onclick="window.contentManager.loadArtist('${artistId}', '${name}')">
+                                    <div class="library-item" onclick="window.contentManager.loadArtist('${escapeHtml(artistId)}', '${escapeHtml(name)}')">
                                         <div class="library-item-thumbnail">
-                                            ${thumbnail ? `<img src="${thumbnail}" alt="${name}">` : '👤'}
+                                            ${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(name)}">` : '👤'}
                                         </div>
-                                        <div class="library-item-title">${name}</div>
+                                        <div class="library-item-title">${escapeHtml(name)}</div>
                                     </div>
                                 `;
         }).join('')}
@@ -343,6 +408,11 @@ export class ContentManager {
         const container = document.getElementById('libraryContent');
         const welcomeSection = document.querySelector('.welcome-section');
         const searchResults = document.getElementById('searchResults');
+
+        if (!container || !welcomeSection || !searchResults) {
+            console.error('Required DOM elements not found for songs display');
+            return;
+        }
 
         welcomeSection.style.display = 'none';
         searchResults.style.display = 'none';
@@ -361,12 +431,12 @@ export class ContentManager {
             const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : (song.thumbnail || '');
 
             return `
-                            <div class="library-item" data-song-id="${songId}" data-song-name="${title}" data-song-artist="${artist}" data-song-thumbnail="${thumbnail}">
+                            <div class="library-item" data-song-id="${escapeHtml(songId)}" data-song-name="${escapeHtml(title)}" data-song-artist="${escapeHtml(artist)}" data-song-thumbnail="${escapeHtml(thumbnail)}">
                                 <div class="library-item-thumbnail">
-                                    ${thumbnail ? `<img src="${thumbnail}" alt="${title}">` : '🎵'}
+                                    ${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(title)}">` : '🎵'}
                                 </div>
-                                <div class="library-item-title">${title}</div>
-                                <div class="library-item-artist">${artist}</div>
+                                <div class="library-item-title">${escapeHtml(title)}</div>
+                                <div class="library-item-artist">${escapeHtml(artist)}</div>
                             </div>
                         `;
         }).join('')}
@@ -379,6 +449,11 @@ export class ContentManager {
         const container = document.getElementById('libraryContent');
         const welcomeSection = document.querySelector('.welcome-section');
         const searchResults = document.getElementById('searchResults');
+
+        if (!container || !welcomeSection || !searchResults) {
+            console.error('Required DOM elements not found for artists display');
+            return;
+        }
 
         welcomeSection.style.display = 'none';
         searchResults.style.display = 'none';
@@ -396,11 +471,11 @@ export class ContentManager {
             const thumbnail = artist.thumbnails && artist.thumbnails.length > 0 ? artist.thumbnails[0].url : (artist.thumbnail || '');
 
             return `
-                            <div class="library-item" onclick="window.contentManager.loadArtist('${artistId}', '${name}')">
+                            <div class="library-item" onclick="window.contentManager.loadArtist('${escapeHtml(artistId)}', '${escapeHtml(name)}')">
                                 <div class="library-item-thumbnail">
-                                    ${thumbnail ? `<img src="${thumbnail}" alt="${name}">` : '👤'}
+                                    ${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(name)}">` : '👤'}
                                 </div>
-                                <div class="library-item-title">${name}</div>
+                                <div class="library-item-title">${escapeHtml(name)}</div>
                             </div>
                         `;
         }).join('')}
@@ -413,6 +488,11 @@ export class ContentManager {
         const container = document.getElementById('libraryContent');
         const welcomeSection = document.querySelector('.welcome-section');
         const searchResults = document.getElementById('searchResults');
+
+        if (!container || !welcomeSection || !searchResults) {
+            console.error('Required DOM elements not found for albums display');
+            return;
+        }
 
         welcomeSection.style.display = 'none';
         searchResults.style.display = 'none';
@@ -431,12 +511,12 @@ export class ContentManager {
             const thumbnail = album.thumbnails && album.thumbnails.length > 0 ? album.thumbnails[0].url : (album.thumbnail || '');
 
             return `
-                            <div class="library-item" onclick="window.contentManager.loadAlbum('${albumId}', '${title}')">
+                            <div class="library-item" onclick="window.contentManager.loadAlbum('${escapeHtml(albumId)}', '${escapeHtml(title)}')">
                                 <div class="library-item-thumbnail">
-                                    ${thumbnail ? `<img src="${thumbnail}" alt="${title}">` : '💿'}
+                                    ${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(title)}">` : '💿'}
                                 </div>
-                                <div class="library-item-title">${title}</div>
-                                <div class="library-item-artist">${artist}</div>
+                                <div class="library-item-title">${escapeHtml(title)}</div>
+                                <div class="library-item-artist">${escapeHtml(artist)}</div>
                             </div>
                         `;
         }).join('')}
@@ -478,6 +558,11 @@ export class ContentManager {
         const welcomeSection = document.querySelector('.welcome-section');
         const libraryContent = document.getElementById('libraryContent');
 
+        if (!container || !welcomeSection || !libraryContent) {
+            console.error('Required DOM elements not found for album display');
+            return;
+        }
+
         welcomeSection.style.display = 'none';
         libraryContent.style.display = 'none';
         container.style.display = 'grid';
@@ -486,7 +571,7 @@ export class ContentManager {
 
         container.innerHTML = `
             <div class="album-header">
-                <h2>${albumTitle}</h2>
+                <h2>${escapeHtml(albumTitle)}</h2>
                 <p>${songs.length} songs</p>
             </div>
             ${songs.map(song => {
@@ -496,12 +581,12 @@ export class ContentManager {
             const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : (song.thumbnail || '');
 
             return `
-                    <div class="result-card" data-song-id="${songId}" data-song-name="${title}" data-song-artist="${artist}" data-song-thumbnail="${thumbnail}">
+                    <div class="result-card" data-song-id="${escapeHtml(songId)}" data-song-name="${escapeHtml(title)}" data-song-artist="${escapeHtml(artist)}" data-song-thumbnail="${escapeHtml(thumbnail)}">
                         <div class="result-thumbnail">
-                            ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
+                            ${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(title)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
                         </div>
-                        <div class="result-title">${title}</div>
-                        <div class="result-artist">${artist}</div>
+                        <div class="result-title">${escapeHtml(title)}</div>
+                        <div class="result-artist">${escapeHtml(artist)}</div>
                     </div>
                 `;
         }).join('')}
@@ -513,6 +598,11 @@ export class ContentManager {
         const welcomeSection = document.querySelector('.welcome-section');
         const libraryContent = document.getElementById('libraryContent');
 
+        if (!container || !welcomeSection || !libraryContent) {
+            console.error('Required DOM elements not found for artist display');
+            return;
+        }
+
         welcomeSection.style.display = 'none';
         libraryContent.style.display = 'none';
         container.style.display = 'grid';
@@ -522,7 +612,7 @@ export class ContentManager {
 
         container.innerHTML = `
             <div class="artist-header">
-                <h2>${artistName}</h2>
+                <h2>${escapeHtml(artistName)}</h2>
             </div>
             <div class="artist-songs">
                 <h3>Songs (${songs.length})</h3>
@@ -532,12 +622,12 @@ export class ContentManager {
             const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : (song.thumbnail || '');
 
             return `
-                        <div class="result-card" data-song-id="${songId}" data-song-name="${title}" data-song-artist="${artistName}" data-song-thumbnail="${thumbnail}">
+                        <div class="result-card" data-song-id="${escapeHtml(songId)}" data-song-name="${escapeHtml(title)}" data-song-artist="${escapeHtml(artistName)}" data-song-thumbnail="${escapeHtml(thumbnail)}">
                             <div class="result-thumbnail">
-                                ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
+                                ${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(title)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
                             </div>
-                            <div class="result-title">${title}</div>
-                            <div class="result-artist">${artistName}</div>
+                            <div class="result-title">${escapeHtml(title)}</div>
+                            <div class="result-artist">${escapeHtml(artistName)}</div>
                         </div>
                     `;
         }).join('')}
@@ -550,12 +640,12 @@ export class ContentManager {
             const thumbnail = album.thumbnails && album.thumbnails.length > 0 ? album.thumbnails[0].url : (album.thumbnail || '');
 
             return `
-                        <div class="result-card" onclick="window.contentManager.loadAlbum('${albumId}', '${title}')">
+                        <div class="result-card" onclick="window.contentManager.loadAlbum('${escapeHtml(albumId)}', '${escapeHtml(title)}')">
                             <div class="result-thumbnail">
-                                ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '💿'}
+                                ${thumbnail ? `<img src="${escapeHtml(thumbnail)}" alt="${escapeHtml(title)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '💿'}
                             </div>
-                            <div class="result-title">${title}</div>
-                            <div class="result-artist">${artistName}</div>
+                            <div class="result-title">${escapeHtml(title)}</div>
+                            <div class="result-artist">${escapeHtml(artistName)}</div>
                         </div>
                     `;
         }).join('')}
@@ -567,6 +657,11 @@ export class ContentManager {
         const welcomeSection = document.querySelector('.welcome-section');
         const searchResults = document.getElementById('searchResults');
         const libraryContent = document.getElementById('libraryContent');
+
+        if (!welcomeSection || !searchResults || !libraryContent) {
+            console.error('Required DOM elements not found for welcome screen');
+            return;
+        }
 
         welcomeSection.style.display = 'block';
         searchResults.style.display = 'none';

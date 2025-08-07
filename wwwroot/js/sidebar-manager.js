@@ -127,7 +127,10 @@ export class SidebarManager {
         const hamburgerMenu = document.getElementById('hamburgerMenu');
         const playerBar = document.querySelector('.player-bar');
 
-        if (!sidebar || !mainContent) return;
+        if (!sidebar || !mainContent) {
+            console.error('Required DOM elements not found for sidebar layout update');
+            return;
+        }
 
         // Remove all state classes
         sidebar.classList.remove('full', 'expanded', 'icon', 'collapsed', 'mobile-open');
@@ -138,8 +141,8 @@ export class SidebarManager {
 
         if (this.isMobile) {
             // Mobile layout
-            sidebarToggle.style.display = 'none';
-            mobileMenuToggle.style.display = 'flex';
+            if (sidebarToggle) sidebarToggle.style.display = 'none';
+            if (mobileMenuToggle) mobileMenuToggle.style.display = 'flex';
             if (hamburgerMenu) hamburgerMenu.style.display = 'none';
 
             if (this.isMobileMenuOpen) {
@@ -159,8 +162,8 @@ export class SidebarManager {
             }
         } else {
             // Desktop layout
-            sidebarToggle.style.display = 'flex';
-            mobileMenuToggle.style.display = 'none';
+            if (sidebarToggle) sidebarToggle.style.display = 'flex';
+            if (mobileMenuToggle) mobileMenuToggle.style.display = 'none';
             this.removeMobileBackdrop();
 
             // Apply current state

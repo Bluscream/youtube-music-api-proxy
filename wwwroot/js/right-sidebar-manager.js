@@ -209,7 +209,10 @@ export class RightSidebarManager {
         const rightSidebarToggle = document.getElementById('rightSidebarToggle');
         const rightSidebarMobileToggle = document.getElementById('rightSidebarMobileToggle');
 
-        if (!rightSidebar) return;
+        if (!rightSidebar) {
+            console.error('Right sidebar element not found');
+            return;
+        }
 
         // Remove all state classes
         rightSidebar.classList.remove('collapsed', 'mobile-open');
@@ -224,7 +227,9 @@ export class RightSidebarManager {
         this.updateSidebarWidth();
 
         if (this.isMobile) {
-            // Mobile layout
+            // Mobile layout - ensure consistent state
+            this.isCollapsed = true; // Mobile always starts collapsed
+            
             if (rightSidebarToggle) {
                 rightSidebarToggle.style.display = 'none';
             }
