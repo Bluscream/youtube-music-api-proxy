@@ -1,16 +1,28 @@
 import { getQueryParams, buildQueryString, updateURL, showLoading, showError, updateActiveNavItem } from './utils.js';
 
-// Content Manager V2 - Uses the YouTube Music API Proxy Library
+// Content Manager - Uses the YouTube Music API
 export class ContentManager {
-    constructor(ytmLibrary) {
-        this.ytm = ytmLibrary;
+    constructor(ytmAPI) {
+        this.api = ytmAPI;
         this.playlists = [];
-        this.init();
+
+        // Check if API is available
+        if (!this.api) {
+            console.warn('YouTube Music API not ready for content manager, will retry...');
+            setTimeout(() => {
+                if (window.ytmAPI) {
+                    this.api = window.ytmAPI;
+                    this.init();
+                }
+            }, 100);
+        } else {
+            this.init();
+        }
     }
 
     init() {
         // Initialize content manager
-        console.log('Content Manager V2 initialized with YouTube Music Library');
+        console.log('Content Manager initialized with YouTube Music API');
     }
 
     // Search functionality
@@ -26,7 +38,7 @@ export class ContentManager {
     async performSearch(query) {
         showLoading();
         try {
-            const data = await this.ytm.search(query);
+            const data = await this.api.search(query);
             console.log('Search results:', data.results); // Debug log
             this.displaySearchResults(data.results || []);
         } catch (error) {
@@ -126,7 +138,7 @@ export class ContentManager {
     async loadLibraryData() {
         showLoading();
         try {
-            const libraryData = await this.ytm.getLibrary();
+            const libraryData = await this.api.getLibrary();
             this.displayLibraryContent(libraryData);
         } catch (error) {
             console.error('Error loading library:', error);
@@ -137,7 +149,7 @@ export class ContentManager {
     async loadSongsData() {
         showLoading();
         try {
-            const libraryData = await this.ytm.getLibrarySongs();
+            const libraryData = await this.api.getLibrarySongs();
             this.displaySongsContent(libraryData);
         } catch (error) {
             console.error('Error loading songs:', error);
@@ -148,7 +160,7 @@ export class ContentManager {
     async loadArtistsData() {
         showLoading();
         try {
-            const libraryData = await this.ytm.getLibraryArtists();
+            const libraryData = await this.api.getLibraryArtists();
             this.displayArtistsContent(libraryData);
         } catch (error) {
             console.error('Error loading artists:', error);
@@ -159,7 +171,7 @@ export class ContentManager {
     async loadAlbumsData() {
         showLoading();
         try {
-            const libraryData = await this.ytm.getLibraryAlbums();
+            const libraryData = await this.api.getLibraryAlbums();
             this.displayAlbumsContent(libraryData);
         } catch (error) {
             console.error('Error loading albums:', error);
@@ -169,7 +181,7 @@ export class ContentManager {
 
     async loadPlaylists() {
         try {
-            const playlistsData = await this.ytm.getLibraryPlaylists();
+            const playlistsData = await this.api.getLibraryPlaylists();
             this.playlists = playlistsData.playlists || [];
             this.displayPlaylistsInSidebar();
         } catch (error) {
@@ -198,7 +210,7 @@ export class ContentManager {
     async loadPlaylist(playlistId, playlistTitle) {
         showLoading();
         try {
-            const playlistData = await this.ytm.getPlaylist(playlistId);
+            const playlistData = await this.api.getPlaylist(playlistId);
             this.displayPlaylistContent(playlistData, playlistTitle);
 
             // Update URL
@@ -436,7 +448,7 @@ export class ContentManager {
     async loadAlbum(browseId, albumTitle) {
         showLoading();
         try {
-            const albumData = await this.ytm.getAlbumInfo(browseId);
+            const albumData = await this.api.getAlbumInfo(browseId);
             this.displayAlbumContent(albumData, albumTitle);
 
             // Update URL
@@ -450,7 +462,7 @@ export class ContentManager {
     async loadArtist(browseId, artistName) {
         showLoading();
         try {
-            const artistData = await this.ytm.getArtistInfo(browseId);
+            const artistData = await this.api.getArtistInfo(browseId);
             this.displayArtistContent(artistData, artistName);
 
             // Update URL
@@ -568,7 +580,7 @@ export class ContentManager {
 }
 
 // Create global instance
-window.contentManager = new ContentManager(window.ytmLibrary);
+window.contentManager = new ContentManager(window.ytmAPI);
 
 // Global functions for onclick handlers
 window.loadLibrary = (event) => window.contentManager.loadLibrary(event);

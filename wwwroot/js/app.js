@@ -1,12 +1,31 @@
 // Main Application Entry Point
 // This file imports and initializes all the modular components
 
-// Create YouTube Music Library instance immediately
-window.ytmLibrary = new YouTubeMusicLibrary('', {
-    timeout: 30000,
-    retries: 3,
-    volume: 1
-});
+// Create YouTube Music API instance immediately
+console.log('Creating YouTube Music API...');
+console.log('YouTubeMusicAPI available:', typeof YouTubeMusicAPI);
+
+function createAPI() {
+    if (typeof YouTubeMusicAPI !== 'undefined') {
+        window.ytmAPI = new YouTubeMusicAPI('', {
+            timeout: 30000,
+            retries: 3
+        });
+        console.log('YouTube Music API created:', window.ytmAPI);
+        return true;
+    }
+    return false;
+}
+
+// Try to create API immediately
+if (!createAPI()) {
+    // If not available, wait for DOM content loaded
+    document.addEventListener('DOMContentLoaded', () => {
+        if (!createAPI()) {
+            console.error('YouTubeMusicAPI still not available after DOMContentLoaded');
+        }
+    });
+}
 
 // Import all modules
 import './constants.js';

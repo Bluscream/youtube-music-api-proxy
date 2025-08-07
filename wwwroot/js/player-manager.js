@@ -1,9 +1,10 @@
 import { NotificationManager } from './notification-manager.js';
 
-// Player Manager V2 - Uses the YouTube Music API Proxy Library
+// Player Manager - Handles audio playback using the YouTube Music API
 export class PlayerManager {
-    constructor(ytmLibrary) {
-        this.ytm = ytmLibrary;
+    constructor(ytmAPI) {
+        this.api = ytmAPI;
+        this.audio = new Audio();
         this.currentPlaylist = [];
         this.currentIndex = -1;
         this.isShuffled = false;
@@ -13,13 +14,96 @@ export class PlayerManager {
         this.currentTrack = null;
         this.notificationManager = new NotificationManager();
 
+        // Player state
+        this.state = {
+            currentTime: 0,
+            duration: 0,
+            volume: 1,
+            muted: false
+        };
+
+        // Event listeners
+        this.listeners = {
+            play: [],
+            pause: [],
+            ended: [],
+            timeupdate: [],
+            volumechange: [],
+            error: [],
+            trackchange: []
+        };
+
         this.init();
     }
 
     init() {
-        console.log('Player Manager V2 initialized with YouTube Music Library');
+        console.log('Player Manager initialized with YouTube Music API');
+        this.setupAudioEvents();
         this.setupEventListeners();
-        this.setupPlayerEvents();
+        this.setVolume(this.volume);
+    }
+
+    setupAudioEvents() {
+        this.audio.addEventListener('play', () => {
+            this.isPlaying = true;
+            this.emit('play', this.currentTrack);
+        });
+
+        this.audio.addEventListener('pause', () => {
+            this.isPlaying = false;
+            this.emit('pause', this.currentTrack);
+        });
+
+        this.audio.addEventListener('ended', () => {
+            this.handleTrackEnd();
+        });
+
+        this.audio.addEventListener('timeupdate', () => {
+            this.state.currentTime = this.audio.currentTime;
+            this.state.duration = this.audio.duration;
+            this.emit('timeupdate', {
+                currentTime: this.audio.currentTime,
+                duration: this.audio.duration,
+                progress: this.audio.duration > 0 ? (this.audio.currentTime / this.audio.duration) * 100 : 0
+            });
+        });
+
+        this.audio.addEventListener('volumechange', () => {
+            this.state.volume = this.audio.volume;
+            this.state.muted = this.audio.muted;
+            this.emit('volumechange', {
+                volume: this.audio.volume,
+                muted: this.audio.muted
+            });
+        });
+
+        this.audio.addEventListener('error', (error) => {
+            this.emit('error', error);
+        });
+    }
+
+    on(event, callback) {
+        if (this.listeners[event]) {
+            this.listeners[event].push(callback);
+        }
+    }
+
+    off(event, callback) {
+        if (this.listeners[event]) {
+            this.listeners[event] = this.listeners[event].filter(cb => cb !== callback);
+        }
+    }
+
+    emit(event, data) {
+        if (this.listeners[event]) {
+            this.listeners[event].forEach(callback => {
+                try {
+                    callback(data);
+                } catch (error) {
+                    console.error('Error in event listener:', error);
+                }
+            });
+        }
     }
 
     setupEventListeners() {
@@ -64,8 +148,8 @@ export class PlayerManager {
     }
 
     setupPlayerEvents() {
-        // Listen to player events from the library
-        this.ytm.onPlayerEvent('play', (track) => {
+        // Listen to player events
+        this.on('play', (track) => {
             this.isPlaying = true;
             this.currentTrack = track;
             this.updatePlayButton();
@@ -73,39 +157,45 @@ export class PlayerManager {
             this.notificationManager.showInfoNotification(`Now playing: ${track.title}`);
         });
 
-        this.ytm.onPlayerEvent('pause', (track) => {
+        this.on('pause', (track) => {
             this.isPlaying = false;
             this.updatePlayButton();
         });
 
-        this.ytm.onPlayerEvent('ended', () => {
+        this.on('ended', () => {
             this.handleTrackEnd();
         });
 
-        this.ytm.onPlayerEvent('timeupdate', (data) => {
+        this.on('timeupdate', (data) => {
             this.updateProgress(data);
         });
 
-        this.ytm.onPlayerEvent('volumechange', (data) => {
+        this.on('volumechange', (data) => {
             this.updateVolumeDisplay(data.volume);
         });
 
-        this.ytm.onPlayerEvent('error', (error) => {
+        this.on('error', (error) => {
             console.error('Player error:', error);
             this.notificationManager.showErrorNotification('Playback error occurred');
         });
 
-        this.ytm.onPlayerEvent('trackchange', (track) => {
+        this.on('trackchange', (track) => {
             this.currentTrack = track;
             this.updateNowPlaying();
             this.notificationManager.showInfoNotification(`Now playing: ${track.title}`);
         });
+
+        console.log('Player events setup complete');
     }
 
     // Playback controls
     async togglePlay() {
         try {
-            await this.ytm.togglePlay();
+            if (this.isPlaying) {
+                this.audio.pause();
+            } else {
+                await this.audio.play();
+            }
         } catch (error) {
             console.error('Error toggling play:', error);
             this.notificationManager.showErrorNotification('Failed to toggle playback');
@@ -114,7 +204,18 @@ export class PlayerManager {
 
     async playPreviousSong() {
         try {
-            await this.ytm.previous();
+            if (this.currentPlaylist.length === 0) return;
+
+            let prevIndex = this.currentIndex - 1;
+            if (prevIndex < 0) {
+                if (this.repeatMode === 'all') {
+                    prevIndex = this.currentPlaylist.length - 1;
+                } else {
+                    return;
+                }
+            }
+
+            await this.playTrackByIndex(prevIndex);
         } catch (error) {
             console.error('Error playing previous song:', error);
             this.notificationManager.showErrorNotification('Failed to play previous song');
@@ -123,7 +224,18 @@ export class PlayerManager {
 
     async playNextSong() {
         try {
-            await this.ytm.next();
+            if (this.currentPlaylist.length === 0) return;
+
+            let nextIndex = this.currentIndex + 1;
+            if (nextIndex >= this.currentPlaylist.length) {
+                if (this.repeatMode === 'all') {
+                    nextIndex = 0;
+                } else {
+                    return;
+                }
+            }
+
+            await this.playTrackByIndex(nextIndex);
         } catch (error) {
             console.error('Error playing next song:', error);
             this.notificationManager.showErrorNotification('Failed to play next song');
@@ -132,7 +244,7 @@ export class PlayerManager {
 
     async playSong(songId, songInfo = null) {
         try {
-            const success = await this.ytm.playTrack(songId, songInfo);
+            const success = await this.playTrack(songId, songInfo);
             if (success) {
                 this.currentTrack = songInfo || { id: songId };
             }
@@ -144,27 +256,78 @@ export class PlayerManager {
         }
     }
 
+    async playTrack(trackId, trackInfo = null) {
+        try {
+            // Get streaming data
+            const streamingData = await this.api.getStreamingData(trackId);
+
+            // Find the best audio stream
+            const audioStream = streamingData.StreamInfo
+                ?.filter(stream => stream.Url && stream.Bitrate)
+                .sort((a, b) => b.Bitrate - a.Bitrate)[0];
+
+            if (!audioStream) {
+                throw new Error('No audio stream available');
+            }
+
+            // Set track info
+            this.currentTrack = {
+                id: trackId,
+                title: trackInfo?.title || 'Unknown Title',
+                artist: trackInfo?.artist || 'Unknown Artist',
+                thumbnail: trackInfo?.thumbnail || '',
+                duration: trackInfo?.duration || 0,
+                ...trackInfo
+            };
+
+            // Set audio source
+            this.audio.src = this.api.getAudioStreamUrl(trackId);
+
+            // Play the audio
+            await this.audio.play();
+
+            this.emit('trackchange', this.currentTrack);
+            return true;
+        } catch (error) {
+            this.emit('error', error);
+            return false;
+        }
+    }
+
+    async playTrackByIndex(index) {
+        if (index < 0 || index >= this.currentPlaylist.length) {
+            return false;
+        }
+
+        this.currentIndex = index;
+        const track = this.currentPlaylist[index];
+        return this.playTrack(track.id, track);
+    }
+
     // Playlist management
     setPlaylist(playlist) {
         this.currentPlaylist = playlist;
-        this.ytm.setPlaylist(playlist);
+        this.currentIndex = -1;
     }
 
     addToPlaylist(track) {
         this.currentPlaylist.push(track);
-        this.ytm.addToPlaylist(track);
     }
 
     removeFromPlaylist(index) {
         if (index >= 0 && index < this.currentPlaylist.length) {
             this.currentPlaylist.splice(index, 1);
-            this.ytm.removeFromPlaylist(index);
+            if (index <= this.currentIndex) {
+                this.currentIndex--;
+            }
         }
     }
 
     clearPlaylist() {
         this.currentPlaylist = [];
-        this.ytm.clearPlaylist();
+        this.currentIndex = -1;
+        this.audio.pause();
+        this.audio.currentTime = 0;
     }
 
     // Repeat and shuffle
@@ -174,22 +337,30 @@ export class PlayerManager {
         const nextIndex = (currentIndex + 1) % modes.length;
         this.repeatMode = modes[nextIndex];
 
-        this.ytm.setRepeatMode(this.repeatMode);
         this.updateRepeatButton();
         this.notificationManager.showInfoNotification(`Repeat: ${this.repeatMode}`);
     }
 
     toggleShuffle() {
         this.isShuffled = !this.isShuffled;
-        this.ytm.setShuffle(this.isShuffled);
+        if (this.isShuffled && this.currentPlaylist.length > 0) {
+            this.shufflePlaylist();
+        }
         this.updateShuffleButton();
         this.notificationManager.showInfoNotification(`Shuffle: ${this.isShuffled ? 'on' : 'off'}`);
+    }
+
+    shufflePlaylist() {
+        for (let i = this.currentPlaylist.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [this.currentPlaylist[i], this.currentPlaylist[j]] = [this.currentPlaylist[j], this.currentPlaylist[i]];
+        }
     }
 
     // Volume control
     setVolume(volume) {
         this.volume = Math.max(0, Math.min(1, volume));
-        this.ytm.setVolume(this.volume);
+        this.audio.volume = this.volume;
         this.updateVolumeDisplay(this.volume);
     }
 
@@ -223,10 +394,9 @@ export class PlayerManager {
         const clickX = event.clientX - rect.left;
         const progress = clickX / rect.width;
 
-        const playerState = this.ytm.getPlayerState();
-        if (playerState.duration) {
-            const seekTime = progress * playerState.duration;
-            this.ytm.seek(seekTime);
+        if (this.audio.duration) {
+            const seekTime = progress * this.audio.duration;
+            this.audio.currentTime = seekTime;
         }
     }
 
@@ -308,8 +478,12 @@ export class PlayerManager {
 
     // Event handlers
     handleTrackEnd() {
-        // The library handles track ending automatically
-        console.log('Track ended');
+        if (this.repeatMode === 'one') {
+            this.audio.currentTime = 0;
+            this.audio.play();
+        } else {
+            this.playNextSong();
+        }
     }
 
     handleKeyboardShortcuts(event) {
@@ -399,7 +573,15 @@ export class PlayerManager {
     }
 
     getPlayerState() {
-        return this.ytm.getPlayerState();
+        return {
+            ...this.state,
+            isPlaying: this.isPlaying,
+            currentTrack: this.currentTrack,
+            currentIndex: this.currentIndex,
+            playlistLength: this.currentPlaylist.length,
+            repeatMode: this.repeatMode,
+            isShuffled: this.isShuffled
+        };
     }
 
     isCurrentlyPlaying() {
@@ -411,18 +593,22 @@ export class PlayerManager {
     }
 
     getCurrentIndex() {
-        return this.ytm.getCurrentIndex();
+        return this.currentIndex;
     }
 
     // Cleanup
     destroy() {
-        // Remove event listeners if needed
-        console.log('Player Manager V2 destroyed');
+        this.audio.pause();
+        this.audio.src = '';
+        this.listeners = {};
+        this.currentPlaylist = [];
+        this.currentTrack = null;
+        console.log('Player Manager destroyed');
     }
 }
 
 // Create global instance
-window.playerManager = new PlayerManager(window.ytmLibrary);
+window.playerManager = new PlayerManager(window.ytmAPI);
 
 // Global functions for onclick handlers
 window.togglePlay = () => window.playerManager.togglePlay();
