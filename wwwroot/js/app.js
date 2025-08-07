@@ -1547,7 +1547,7 @@ function updateActiveNavItem(clickedItem) {
     clickedItem.classList.add('active');
 
     // Close mobile menu after navigation
-    if (shouldCollapseSidebar() && isMobileMenuOpen) {loadSongsData
+    if (shouldCollapseSidebar() && isMobileMenuOpen) {
         toggleSidebar();
     }
 }
