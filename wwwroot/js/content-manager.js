@@ -1,7 +1,7 @@
 import { getQueryParams, buildQueryString, updateURL, showLoading, showError, updateActiveNavItem } from './utils.js';
 
 // Content Manager V2 - Uses the YouTube Music API Proxy Library
-export class ContentManagerV2 {
+export class ContentManager {
     constructor(ytmLibrary) {
         this.ytm = ytmLibrary;
         this.playlists = [];
@@ -566,3 +566,15 @@ export class ContentManagerV2 {
         this.showWelcomeScreen();
     }
 }
+
+// Create global instance
+window.contentManager = new ContentManager(window.ytmLibrary);
+
+// Global functions for onclick handlers
+window.loadLibrary = (event) => window.contentManager.loadLibrary(event);
+window.loadSongs = (event) => window.contentManager.loadSongs(event);
+window.loadArtists = (event) => window.contentManager.loadArtists(event);
+window.loadAlbums = (event) => window.contentManager.loadAlbums(event);
+window.loadHome = (event) => window.contentManager.loadHome(event);
+window.loadExplore = (event) => window.contentManager.loadExplore(event);
+window.handleSearch = (event) => window.contentManager.handleSearch(event);

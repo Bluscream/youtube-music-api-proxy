@@ -16,6 +16,13 @@ import { setupEventDelegation } from './event-delegation.js';
 function initializeApp() {
     console.log('Initializing YouTube Music API Proxy...');
 
+    // Create YouTube Music Library instance
+    window.ytmLibrary = new YouTubeMusicLibrary('', {
+        timeout: 30000,
+        retries: 3,
+        volume: 1
+    });
+
     // Update CSS breakpoints
     if (window.updateCSSBreakpoints) {
         window.updateCSSBreakpoints();

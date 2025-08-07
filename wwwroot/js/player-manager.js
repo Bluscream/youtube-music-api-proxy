@@ -1,7 +1,7 @@
 import { NotificationManager } from './notification-manager.js';
 
 // Player Manager V2 - Uses the YouTube Music API Proxy Library
-export class PlayerManagerV2 {
+export class PlayerManager {
     constructor(ytmLibrary) {
         this.ytm = ytmLibrary;
         this.currentPlaylist = [];
@@ -420,3 +420,14 @@ export class PlayerManagerV2 {
         console.log('Player Manager V2 destroyed');
     }
 }
+
+// Create global instance
+window.playerManager = new PlayerManager(window.ytmLibrary);
+
+// Global functions for onclick handlers
+window.togglePlay = () => window.playerManager.togglePlay();
+window.playPreviousSong = () => window.playerManager.playPreviousSong();
+window.playNextSong = () => window.playerManager.playNextSong();
+window.toggleRepeatMode = () => window.playerManager.toggleRepeatMode();
+window.toggleShuffle = () => window.playerManager.toggleShuffle();
+window.seek = (event) => window.playerManager.handleSeek(event);
