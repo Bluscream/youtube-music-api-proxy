@@ -44,7 +44,15 @@ public class ConfigurationService : BaseConfigurationService, IConfigurationServ
     /// </summary>
     public string GetGeographicalLocation(string? queryLocation = null, bool print = false)
     {
-        return GetStringValue(queryLocation, _config.GeographicalLocation, YouTubeMusicConfigSources.GeographicalLocation, print) ?? "US";
+        // Priority 1: Query parameter
+        if (!string.IsNullOrWhiteSpace(queryLocation))
+        {
+            if (print) Console.WriteLine($"Query parameter YTM_GEOGRAPHICAL_LOCATION: {queryLocation}");
+            return queryLocation;
+        }
+
+        // Priority 2: Appsettings and environment variable
+        return GetStringValue(_config.GeographicalLocation, YouTubeMusicConfigSources.GeographicalLocation, print);
     }
 
     /// <summary>
@@ -52,7 +60,7 @@ public class ConfigurationService : BaseConfigurationService, IConfigurationServ
     /// </summary>
     public string GetUserAgent(bool print = false)
     {
-        return GetStringValue(_config.UserAgent, YouTubeMusicConfigSources.UserAgent, print) ?? "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+        return GetStringValue(_config.UserAgent, YouTubeMusicConfigSources.UserAgent, print);
     }
 
     /// <summary>

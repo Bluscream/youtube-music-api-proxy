@@ -28,7 +28,7 @@ public class YouTubeMusicConfig
     /// <summary>
     /// User agent string (from appsettings, environment variable YTM_USER_AGENT, or defaults to standard browser UA)
     /// </summary>
-    public string? UserAgent { get; set; }
+    public string UserAgent { get; set; } = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
     /// <summary>
     /// Request timeout in seconds (from appsettings, environment variable YTM_TIMEOUT, defaults to 30)

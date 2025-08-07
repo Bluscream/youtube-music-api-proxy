@@ -1,14 +1,16 @@
 import { getQueryParams, buildQueryString, updateURL, showLoading, showError, updateActiveNavItem } from './utils.js';
 
-// Content Manager
-export class ContentManager {
-    constructor() {
+// Content Manager V2 - Uses the YouTube Music API Proxy Library
+export class ContentManagerV2 {
+    constructor(ytmLibrary) {
+        this.ytm = ytmLibrary;
         this.playlists = [];
         this.init();
     }
 
     init() {
         // Initialize content manager
+        console.log('Content Manager V2 initialized with YouTube Music Library');
     }
 
     // Search functionality
@@ -24,22 +26,12 @@ export class ContentManager {
     async performSearch(query) {
         showLoading();
         try {
-            const queryParams = getQueryParams();
-            queryParams.query = query;
-            const queryString = buildQueryString(queryParams);
-
-            const response = await fetch(`/api/search?${queryString}`);
-            const data = await response.json();
-
-            if (response.ok) {
-                console.log('Search results:', data.results); // Debug log
-                this.displaySearchResults(data.results || []);
-            } else {
-                showError(data.error || 'Search failed');
-            }
+            const data = await this.ytm.search(query);
+            console.log('Search results:', data.results); // Debug log
+            this.displaySearchResults(data.results || []);
         } catch (error) {
             console.error('Search error:', error); // Debug log
-            showError('Network error');
+            showError(error.message || 'Search failed');
         }
     }
 
@@ -116,15 +108,10 @@ export class ContentManager {
     loadHome(event) {
         if (event && event.target) {
             updateActiveNavItem(event.target.closest('.nav-item'));
-            // Only clear URL parameters when explicitly navigating to home
-            updateURL({ playlist: null, song: null });
         }
-
-        document.querySelector('.welcome-section').style.display = 'block';
-        document.getElementById('searchResults').style.display = 'none';
-        document.getElementById('libraryContent').style.display = 'none';
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('error').style.display = 'none';
+        // Clear URL parameters when going to home
+        updateURL({ playlist: null, song: null });
+        this.showWelcomeScreen();
     }
 
     loadExplore(event) {
@@ -133,111 +120,61 @@ export class ContentManager {
         }
         // Clear URL parameters when going to explore
         updateURL({ playlist: null, song: null });
-
-        // TODO: Implement explore loading
-        document.querySelector('.welcome-section').style.display = 'block';
-        document.getElementById('searchResults').style.display = 'none';
-        document.getElementById('libraryContent').style.display = 'none';
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('error').style.display = 'none';
+        this.showExploreScreen();
     }
 
-    // Library data loading
     async loadLibraryData() {
         showLoading();
         try {
-            const queryParams = getQueryParams();
-            const queryString = buildQueryString(queryParams);
-
-            const response = await fetch(`/api/library?${queryString}`);
-            if (response.ok) {
-                const data = await response.json();
-                this.displayLibraryContent(data);
-            } else {
-                showError('Failed to load library. Please check your authentication.');
-            }
+            const libraryData = await this.ytm.getLibrary();
+            this.displayLibraryContent(libraryData);
         } catch (error) {
-            console.error('Library error:', error);
-            showError('Failed to load library');
+            console.error('Error loading library:', error);
+            showError('Failed to load library. Please check your authentication.');
         }
     }
 
     async loadSongsData() {
         showLoading();
         try {
-            const queryParams = getQueryParams();
-            const queryString = buildQueryString(queryParams);
-
-            const response = await fetch(`/api/library/songs?${queryString}`);
-            if (response.ok) {
-                const data = await response.json();
-                this.displaySongsContent(data);
-            } else {
-                showError('Failed to load songs. Please check your authentication.');
-            }
+            const libraryData = await this.ytm.getLibrarySongs();
+            this.displaySongsContent(libraryData);
         } catch (error) {
-            console.error('Songs error:', error);
-            showError('Failed to load songs');
+            console.error('Error loading songs:', error);
+            showError('Failed to load songs. Please check your authentication.');
         }
     }
 
     async loadArtistsData() {
         showLoading();
         try {
-            const queryParams = getQueryParams();
-            const queryString = buildQueryString(queryParams);
-
-            const response = await fetch(`/api/library/artists?${queryString}`);
-            if (response.ok) {
-                const data = await response.json();
-                this.displayArtistsContent(data);
-            } else {
-                showError('Failed to load artists. Please check your authentication.');
-            }
+            const libraryData = await this.ytm.getLibraryArtists();
+            this.displayArtistsContent(libraryData);
         } catch (error) {
-            console.error('Artists error:', error);
-            showError('Failed to load artists');
+            console.error('Error loading artists:', error);
+            showError('Failed to load artists. Please check your authentication.');
         }
     }
 
     async loadAlbumsData() {
         showLoading();
         try {
-            const queryParams = getQueryParams();
-            const queryString = buildQueryString(queryParams);
-
-            const response = await fetch(`/api/library/albums?${queryString}`);
-            if (response.ok) {
-                const data = await response.json();
-                this.displayAlbumsContent(data);
-            } else {
-                showError('Failed to load albums. Please check your authentication.');
-            }
+            const libraryData = await this.ytm.getLibraryAlbums();
+            this.displayAlbumsContent(libraryData);
         } catch (error) {
-            console.error('Albums error:', error);
-            showError('Failed to load albums');
+            console.error('Error loading albums:', error);
+            showError('Failed to load albums. Please check your authentication.');
         }
     }
 
-    // Playlist management
     async loadPlaylists() {
         try {
-            const queryParams = getQueryParams();
-            const queryString = buildQueryString(queryParams);
-
-            const response = await fetch(`/api/library/playlists?${queryString}`);
-            if (response.ok) {
-                const data = await response.json();
-                this.playlists = data.playlists || [];
-                this.displayPlaylistsInSidebar();
-
-                if (this.playlists.length > 0) {
-                    // showSuccessNotification(`Loaded ${this.playlists.length} playlist${this.playlists.length > 1 ? 's' : ''}`);
-                }
-            }
+            const playlistsData = await this.ytm.getLibraryPlaylists();
+            this.playlists = playlistsData.playlists || [];
+            this.displayPlaylistsInSidebar();
         } catch (error) {
-            console.error('Playlists error:', error);
-            window.notificationManager.showErrorNotification('Failed to load playlists');
+            console.error('Error loading playlists:', error);
+            // Don't show error for playlists as they're loaded in background
         }
     }
 
@@ -247,64 +184,27 @@ export class ContentManager {
 
         if (this.playlists.length > 0) {
             playlistsSection.style.display = 'block';
-            playlistsList.innerHTML = this.playlists.map(playlist => {
-                const title = playlist.name || playlist.title || 'Unknown Playlist';
-
-                // Get playlist thumbnail - try different possible properties
-                const thumbnail = playlist.thumbnail ||
-                    (playlist.thumbnails && playlist.thumbnails.length > 0 ? playlist.thumbnails[0].url : null) ||
-                    (playlist.art && playlist.art.sources && playlist.art.sources.length > 0 ? playlist.art.sources[0].url : null);
-
-                // Check if this playlist is currently active
-                const isActive = window.playerManager.currentPlaylist === (playlist.id || '');
-                const activeClass = isActive ? ' active' : '';
-
-                return `
-                    <div class="playlist-item${activeClass}" data-playlist-id="${playlist.id || ''}" data-playlist-title="${title}">
-                        <div class="playlist-thumbnail">
-                            ${thumbnail ? `<img src="${thumbnail}" alt="${title}">` : '📋'}
-                        </div>
-                        <div style="flex: 1; overflow: hidden;">
-                            <div style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${title}</div>
-                            <div style="font-size: 12px; color: ${isActive ? '#000000' : '#666'}; opacity: ${isActive ? '0.7' : '1'};">
-                                ${playlist.songCount || 0} songs
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
+            playlistsList.innerHTML = this.playlists.map(playlist => `
+                <div class="nav-item playlist-item" onclick="window.contentManager.loadPlaylist('${playlist.browseId}', '${playlist.name}')">
+                    <div class="nav-icon">📜</div>
+                    <span class="nav-text">${playlist.name}</span>
+                </div>
+            `).join('');
         } else {
             playlistsSection.style.display = 'none';
         }
     }
 
     async loadPlaylist(playlistId, playlistTitle) {
-        // Close mobile menu after playlist selection
-        if (window.sidebarManager && window.sidebarManager.isMobile && window.sidebarManager.isMobileMenuOpen) {
-            window.sidebarManager.toggle();
-        }
-
-        // Update URL with playlist parameter
-        updateURL({ playlist: playlistId, song: null });
-
         showLoading();
         try {
-            const queryParams = getQueryParams();
-            const queryString = buildQueryString(queryParams);
+            const playlistData = await this.ytm.getPlaylist(playlistId);
+            this.displayPlaylistContent(playlistData, playlistTitle);
 
-            const response = await fetch(`/api/playlist/${playlistId}?${queryString}`);
-            if (response.ok) {
-                const data = await response.json();
-                this.displayPlaylistContent(data, playlistTitle);
-
-                // Update current playlist and highlight it in sidebar
-                window.playerManager.setCurrentPlaylist(playlistId);
-                window.playerManager.highlightCurrentPlaylist();
-            } else {
-                showError('Failed to load playlist');
-            }
+            // Update URL
+            updateURL({ playlist: playlistId, song: null });
         } catch (error) {
-            console.error('Playlist error:', error);
+            console.error('Error loading playlist:', error);
             showError('Failed to load playlist');
         }
     }
@@ -316,321 +216,247 @@ export class ContentManager {
 
         welcomeSection.style.display = 'none';
         libraryContent.style.display = 'none';
-        container.style.display = 'block'; // Changed from 'grid' to 'block' for list layout
+        container.style.display = 'grid';
 
-        // Store playlist information for queue management
-        const playlistId = playlistData.id || playlistData.browseId || '';
         const songs = playlistData.songs || [];
-        
-        window.playerManager.setCurrentPlaylist(playlistId);
-        window.playerManager.setCurrentPlaylistSongs(songs);
 
-        // Initialize shuffle order if shuffle is enabled
-        if (window.playerManager.shuffleEnabled && songs.length > 0) {
-            window.playerManager.createShuffledOrder();
-        }
-
-        // Highlight the current playlist in sidebar
-        window.playerManager.highlightCurrentPlaylist();
-
-        // Add playlist header
         container.innerHTML = `
-            <div style="margin-bottom: 20px;">
-                <h2 style="color: #ffffff; margin-bottom: 8px;">${playlistTitle}</h2>
-                <p style="color: #b3b3b3; margin: 0;">${songs.length} songs</p>
+            <div class="playlist-header">
+                <h2>${playlistTitle}</h2>
+                <p>${songs.length} songs</p>
             </div>
+            ${songs.map(song => {
+            const songId = song.id || song.browseId || '';
+            const title = song.title || song.name || 'Unknown Title';
+            const artist = song.artist || song.author || '';
+            const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : (song.thumbnail || '');
+
+            return `
+                    <div class="result-card" data-song-id="${songId}" data-song-name="${title}" data-song-artist="${artist}" data-song-thumbnail="${thumbnail}">
+                        <div class="result-thumbnail">
+                            ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
+                        </div>
+                        <div class="result-title">${title}</div>
+                        <div class="result-artist">${artist}</div>
+                    </div>
+                `;
+        }).join('')}
         `;
-
-        // Add playlist songs as a list
-        if (songs.length > 0) {
-            container.innerHTML += `
-                <div class="playlist-songs-list">
-                    ${songs.map((song, index) => {
-                const title = song.name || song.title || 'Unknown Title';
-                const artist = song.artists && song.artists.length > 0 ? song.artists[0].name : '';
-                const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : '';
-
-                // Check if this song is currently playing
-                const isCurrentlyPlaying = window.playerManager.currentSongId === (song.id || '') && window.playerManager.currentPlaylist === playlistId;
-                const playingClass = isCurrentlyPlaying ? ' playing' : '';
-
-                return `
-                            <div class="playlist-song-item${playingClass}" data-song-id="${song.id || ''}" data-song-name="${title}" data-song-artist="${artist}" data-song-thumbnail="${thumbnail}" data-playlist-id="${playlistId}" data-song-index="${index}">
-                                <div class="playlist-song-thumbnail">
-                                    ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
-                                </div>
-                                <div class="playlist-song-info">
-                                    <div class="playlist-song-title">${title}</div>
-                                    <div class="playlist-song-artist">${artist}</div>
-                                </div>
-                                <div class="playlist-song-number">${index + 1}</div>
-                            </div>
-                        `;
-            }).join('')}
-                </div>
-            `;
-        } else {
-            container.innerHTML += '<div style="text-align: center; color: #b3b3b3;">No songs in this playlist</div>';
-        }
     }
 
-    // Content display methods
     displayLibraryContent(libraryData) {
-        const libraryContent = document.getElementById('libraryContent');
+        const container = document.getElementById('libraryContent');
         const welcomeSection = document.querySelector('.welcome-section');
         const searchResults = document.getElementById('searchResults');
 
         welcomeSection.style.display = 'none';
         searchResults.style.display = 'none';
-        libraryContent.style.display = 'block';
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('error').style.display = 'none';
+        container.style.display = 'block';
 
-        // Display songs
-        const songsContainer = document.getElementById('librarySongs');
-        const songsSection = songsContainer.parentElement;
-        if (libraryData.songs && libraryData.songs.length > 0) {
-            songsSection.style.display = 'block';
-            songsContainer.innerHTML = libraryData.songs.slice(0, 10).map(song => {
-                const title = song.name || song.title || 'Unknown Title';
-                const artist = song.artists && song.artists.length > 0 ? song.artists[0].name : '';
-                const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : '';
+        const songs = libraryData.songs || [];
+        const albums = libraryData.albums || [];
+        const artists = libraryData.artists || [];
 
-                return `
-                    <div class="library-item" data-song-id="${song.id || ''}" data-song-name="${title}" data-song-artist="${artist}" data-song-thumbnail="${thumbnail}">
-                        <div class="library-item-thumbnail">
-                            ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
-                        </div>
-                        <div class="library-item-info">
-                            <div class="library-item-title">${title}</div>
-                            <div class="library-item-subtitle">${artist}</div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        } else {
-            songsSection.style.display = 'none';
-        }
+        container.innerHTML = `
+            <div class="library-section">
+                <h2>Your Library</h2>
+                <div class="library-grid">
+                    <div class="library-category">
+                        <h3>Songs (${songs.length})</h3>
+                        <div class="library-items">
+                            ${songs.slice(0, 6).map(song => {
+            const songId = song.id || song.browseId || '';
+            const title = song.title || song.name || 'Unknown Title';
+            const artist = song.artist || song.author || '';
+            const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : (song.thumbnail || '');
 
-        // Display albums
-        const albumsContainer = document.getElementById('libraryAlbums');
-        const albumsSection = albumsContainer.parentElement;
-        if (libraryData.albums && libraryData.albums.length > 0) {
-            albumsSection.style.display = 'block';
-            albumsContainer.innerHTML = libraryData.albums.slice(0, 10).map(album => {
-                const title = album.name || album.title || 'Unknown Album';
-                const artist = album.artist || '';
-
-                return `
-                    <div class="library-item" data-album-id="${album.browseId || ''}" data-album-title="${title}">
-                        <div class="library-item-thumbnail">
-                            ${album.thumbnail ? `<img src="${album.thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '💿'}
-                        </div>
-                        <div class="library-item-info">
-                            <div class="library-item-title">${title}</div>
-                            <div class="library-item-subtitle">${artist}</div>
+            return `
+                                    <div class="library-item" data-song-id="${songId}" data-song-name="${title}" data-song-artist="${artist}" data-song-thumbnail="${thumbnail}">
+                                        <div class="library-item-thumbnail">
+                                            ${thumbnail ? `<img src="${thumbnail}" alt="${title}">` : '🎵'}
+                                        </div>
+                                        <div class="library-item-title">${title}</div>
+                                        <div class="library-item-artist">${artist}</div>
+                                    </div>
+                                `;
+        }).join('')}
                         </div>
                     </div>
-                `;
-            }).join('');
-        } else {
-            albumsSection.style.display = 'none';
-        }
+                    <div class="library-category">
+                        <h3>Albums (${albums.length})</h3>
+                        <div class="library-items">
+                            ${albums.slice(0, 6).map(album => {
+            const albumId = album.browseId || '';
+            const title = album.title || album.name || 'Unknown Album';
+            const artist = album.artist || album.author || '';
+            const thumbnail = album.thumbnails && album.thumbnails.length > 0 ? album.thumbnails[0].url : (album.thumbnail || '');
 
-        // Display artists
-        const artistsContainer = document.getElementById('libraryArtists');
-        const artistsSection = artistsContainer.parentElement;
-        if (libraryData.artists && libraryData.artists.length > 0) {
-            artistsSection.style.display = 'block';
-            artistsContainer.innerHTML = libraryData.artists.slice(0, 10).map(artist => {
-                const name = artist.name || 'Unknown Artist';
-                const subscribers = artist.subscribers || '';
-
-                return `
-                    <div class="library-item" data-artist-id="${artist.browseId || ''}" data-artist-name="${name}">
-                        <div class="library-item-thumbnail">
-                            ${artist.thumbnail ? `<img src="${artist.thumbnail}" alt="${name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '👤'}
-                        </div>
-                        <div class="library-item-info">
-                            <div class="library-item-title">${name}</div>
-                            <div class="library-item-subtitle">${subscribers}</div>
+            return `
+                                    <div class="library-item" onclick="window.contentManager.loadAlbum('${albumId}', '${title}')">
+                                        <div class="library-item-thumbnail">
+                                            ${thumbnail ? `<img src="${thumbnail}" alt="${title}">` : '💿'}
+                                        </div>
+                                        <div class="library-item-title">${title}</div>
+                                        <div class="library-item-artist">${artist}</div>
+                                    </div>
+                                `;
+        }).join('')}
                         </div>
                     </div>
-                `;
-            }).join('');
-        } else {
-            artistsSection.style.display = 'none';
-        }
+                    <div class="library-category">
+                        <h3>Artists (${artists.length})</h3>
+                        <div class="library-items">
+                            ${artists.slice(0, 6).map(artist => {
+            const artistId = artist.browseId || '';
+            const name = artist.name || 'Unknown Artist';
+            const thumbnail = artist.thumbnails && artist.thumbnails.length > 0 ? artist.thumbnails[0].url : (artist.thumbnail || '');
+
+            return `
+                                    <div class="library-item" onclick="window.contentManager.loadArtist('${artistId}', '${name}')">
+                                        <div class="library-item-thumbnail">
+                                            ${thumbnail ? `<img src="${thumbnail}" alt="${name}">` : '👤'}
+                                        </div>
+                                        <div class="library-item-title">${name}</div>
+                                    </div>
+                                `;
+        }).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     displaySongsContent(libraryData) {
-        const container = document.getElementById('searchResults');
+        const container = document.getElementById('libraryContent');
         const welcomeSection = document.querySelector('.welcome-section');
-        const libraryContent = document.getElementById('libraryContent');
+        const searchResults = document.getElementById('searchResults');
 
         welcomeSection.style.display = 'none';
-        libraryContent.style.display = 'none';
-        container.style.display = 'grid';
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('error').style.display = 'none';
+        searchResults.style.display = 'none';
+        container.style.display = 'block';
 
-        // Add songs header
+        const songs = libraryData.songs || [];
+
         container.innerHTML = `
-            <div style="grid-column: 1 / -1; margin-bottom: 20px;">
-                <h2 style="color: #ffffff; margin-bottom: 8px;">Your Songs</h2>
-                <p style="color: #b3b3b3; margin: 0;">${libraryData.songs?.length || 0} songs</p>
+            <div class="library-section">
+                <h2>Your Songs (${songs.length})</h2>
+                <div class="library-grid">
+                    ${songs.map(song => {
+            const songId = song.id || song.browseId || '';
+            const title = song.title || song.name || 'Unknown Title';
+            const artist = song.artist || song.author || '';
+            const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : (song.thumbnail || '');
+
+            return `
+                            <div class="library-item" data-song-id="${songId}" data-song-name="${title}" data-song-artist="${artist}" data-song-thumbnail="${thumbnail}">
+                                <div class="library-item-thumbnail">
+                                    ${thumbnail ? `<img src="${thumbnail}" alt="${title}">` : '🎵'}
+                                </div>
+                                <div class="library-item-title">${title}</div>
+                                <div class="library-item-artist">${artist}</div>
+                            </div>
+                        `;
+        }).join('')}
+                </div>
             </div>
         `;
-
-        // Display songs
-        if (libraryData.songs && libraryData.songs.length > 0) {
-            container.innerHTML += libraryData.songs.map(song => {
-                const title = song.name || song.title || 'Unknown Title';
-                const artist = song.artists && song.artists.length > 0 ? song.artists[0].name : '';
-                const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : '';
-
-                return `
-                    <div class="result-card" data-song-id="${song.id || ''}" data-song-name="${title}" data-song-artist="${artist}" data-song-thumbnail="${thumbnail}">
-                        <div class="result-thumbnail">
-                            ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
-                        </div>
-                        <div class="result-title">${title}</div>
-                        <div class="result-artist">${artist}</div>
-                    </div>
-                `;
-            }).join('');
-        } else {
-            container.innerHTML += '<div style="grid-column: 1 / -1; text-align: center; color: #b3b3b3;">No songs in your library</div>';
-        }
     }
 
     displayArtistsContent(libraryData) {
-        const container = document.getElementById('searchResults');
+        const container = document.getElementById('libraryContent');
         const welcomeSection = document.querySelector('.welcome-section');
-        const libraryContent = document.getElementById('libraryContent');
+        const searchResults = document.getElementById('searchResults');
 
         welcomeSection.style.display = 'none';
-        libraryContent.style.display = 'none';
-        container.style.display = 'grid';
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('error').style.display = 'none';
+        searchResults.style.display = 'none';
+        container.style.display = 'block';
 
-        // Add artists header
+        const artists = libraryData.artists || [];
+
         container.innerHTML = `
-            <div style="grid-column: 1 / -1; margin-bottom: 20px;">
-                <h2 style="color: #ffffff; margin-bottom: 8px;">Your Artists</h2>
-                <p style="color: #b3b3b3; margin: 0;">${libraryData.artists?.length || 0} artists</p>
+            <div class="library-section">
+                <h2>Your Artists (${artists.length})</h2>
+                <div class="library-grid">
+                    ${artists.map(artist => {
+            const artistId = artist.browseId || '';
+            const name = artist.name || 'Unknown Artist';
+            const thumbnail = artist.thumbnails && artist.thumbnails.length > 0 ? artist.thumbnails[0].url : (artist.thumbnail || '');
+
+            return `
+                            <div class="library-item" onclick="window.contentManager.loadArtist('${artistId}', '${name}')">
+                                <div class="library-item-thumbnail">
+                                    ${thumbnail ? `<img src="${thumbnail}" alt="${name}">` : '👤'}
+                                </div>
+                                <div class="library-item-title">${name}</div>
+                            </div>
+                        `;
+        }).join('')}
+                </div>
             </div>
         `;
-
-        // Display artists
-        if (libraryData.artists && libraryData.artists.length > 0) {
-            container.innerHTML += libraryData.artists.map(artist => {
-                const name = artist.name || 'Unknown Artist';
-                const subscribers = artist.subscribers || '';
-                const thumbnail = artist.thumbnail || '';
-
-                return `
-                    <div class="result-card" data-artist-id="${artist.browseId || ''}" data-artist-name="${name}">
-                        <div class="result-thumbnail">
-                            ${thumbnail ? `<img src="${thumbnail}" alt="${name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '👤'}
-                        </div>
-                        <div class="result-title">${name}</div>
-                        <div class="result-artist">${subscribers}</div>
-                    </div>
-                `;
-            }).join('');
-        } else {
-            container.innerHTML += '<div style="grid-column: 1 / -1; text-align: center; color: #b3b3b3;">No artists in your library</div>';
-        }
     }
 
     displayAlbumsContent(libraryData) {
-        const container = document.getElementById('searchResults');
+        const container = document.getElementById('libraryContent');
         const welcomeSection = document.querySelector('.welcome-section');
-        const libraryContent = document.getElementById('libraryContent');
+        const searchResults = document.getElementById('searchResults');
 
         welcomeSection.style.display = 'none';
-        libraryContent.style.display = 'none';
-        container.style.display = 'grid';
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('error').style.display = 'none';
+        searchResults.style.display = 'none';
+        container.style.display = 'block';
 
-        // Add albums header
+        const albums = libraryData.albums || [];
+
         container.innerHTML = `
-            <div style="grid-column: 1 / -1; margin-bottom: 20px;">
-                <h2 style="color: #ffffff; margin-bottom: 8px;">Your Albums</h2>
-                <p style="color: #b3b3b3; margin: 0;">${libraryData.albums?.length || 0} albums</p>
+            <div class="library-section">
+                <h2>Your Albums (${albums.length})</h2>
+                <div class="library-grid">
+                    ${albums.map(album => {
+            const albumId = album.browseId || '';
+            const title = album.title || album.name || 'Unknown Album';
+            const artist = album.artist || album.author || '';
+            const thumbnail = album.thumbnails && album.thumbnails.length > 0 ? album.thumbnails[0].url : (album.thumbnail || '');
+
+            return `
+                            <div class="library-item" onclick="window.contentManager.loadAlbum('${albumId}', '${title}')">
+                                <div class="library-item-thumbnail">
+                                    ${thumbnail ? `<img src="${thumbnail}" alt="${title}">` : '💿'}
+                                </div>
+                                <div class="library-item-title">${title}</div>
+                                <div class="library-item-artist">${artist}</div>
+                            </div>
+                        `;
+        }).join('')}
+                </div>
             </div>
         `;
-
-        // Display albums
-        if (libraryData.albums && libraryData.albums.length > 0) {
-            container.innerHTML += libraryData.albums.map(album => {
-                const title = album.name || album.title || 'Unknown Album';
-                const artist = album.artist || '';
-                const thumbnail = album.thumbnail || '';
-
-                return `
-                    <div class="result-card" data-album-id="${album.browseId || ''}" data-album-title="${title}">
-                        <div class="result-thumbnail">
-                            ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '💿'}
-                        </div>
-                        <div class="result-title">${title}</div>
-                        <div class="result-artist">${artist}</div>
-                    </div>
-                `;
-            }).join('');
-        } else {
-            container.innerHTML += '<div style="grid-column: 1 / -1; text-align: center; color: #b3b3b3;">No albums in your library</div>';
-        }
     }
 
-    // Album and artist loading
     async loadAlbum(browseId, albumTitle) {
-        // Close mobile menu after album selection
-        if (window.sidebarManager && window.sidebarManager.isMobile && window.sidebarManager.isMobileMenuOpen) {
-            window.sidebarManager.toggle();
-        }
-
         showLoading();
         try {
-            const queryParams = getQueryParams();
-            const queryString = buildQueryString(queryParams);
+            const albumData = await this.ytm.getAlbumInfo(browseId);
+            this.displayAlbumContent(albumData, albumTitle);
 
-            const response = await fetch(`/api/album/${browseId}?${queryString}`);
-            if (response.ok) {
-                const data = await response.json();
-                this.displayAlbumContent(data, albumTitle);
-            } else {
-                showError('Failed to load album');
-            }
+            // Update URL
+            updateURL({ album: browseId, song: null });
         } catch (error) {
-            console.error('Album error:', error);
+            console.error('Error loading album:', error);
             showError('Failed to load album');
         }
     }
 
     async loadArtist(browseId, artistName) {
-        // Close mobile menu after artist selection
-        if (window.sidebarManager && window.sidebarManager.isMobile && window.sidebarManager.isMobileMenuOpen) {
-            window.sidebarManager.toggle();
-        }
-
         showLoading();
         try {
-            const queryParams = getQueryParams();
-            const queryString = buildQueryString(queryParams);
+            const artistData = await this.ytm.getArtistInfo(browseId);
+            this.displayArtistContent(artistData, artistName);
 
-            const response = await fetch(`/api/artist/${browseId}?${queryString}`);
-            if (response.ok) {
-                const data = await response.json();
-                this.displayArtistContent(data, artistName);
-            } else {
-                showError('Failed to load artist');
-            }
+            // Update URL
+            updateURL({ artist: browseId, song: null });
         } catch (error) {
-            console.error('Artist error:', error);
+            console.error('Error loading artist:', error);
             showError('Failed to load artist');
         }
     }
@@ -644,23 +470,21 @@ export class ContentManager {
         libraryContent.style.display = 'none';
         container.style.display = 'grid';
 
-        // Add album header
+        const songs = albumData.songs || [];
+
         container.innerHTML = `
-            <div style="grid-column: 1 / -1; margin-bottom: 20px;">
-                <h2 style="color: #ffffff; margin-bottom: 8px;">${albumTitle}</h2>
-                <p style="color: #b3b3b3; margin: 0;">${albumData.songs?.length || 0} songs</p>
+            <div class="album-header">
+                <h2>${albumTitle}</h2>
+                <p>${songs.length} songs</p>
             </div>
-        `;
+            ${songs.map(song => {
+            const songId = song.id || song.browseId || '';
+            const title = song.title || song.name || 'Unknown Title';
+            const artist = song.artist || song.author || '';
+            const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : (song.thumbnail || '');
 
-        // Add album songs
-        if (albumData.songs && albumData.songs.length > 0) {
-            container.innerHTML += albumData.songs.map(song => {
-                const title = song.name || song.title || 'Unknown Title';
-                const artist = song.artists && song.artists.length > 0 ? song.artists[0].name : '';
-                const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : '';
-
-                return `
-                    <div class="result-card" data-song-id="${song.id || ''}" data-song-name="${title}" data-song-artist="${artist}" data-song-thumbnail="${thumbnail}">
+            return `
+                    <div class="result-card" data-song-id="${songId}" data-song-name="${title}" data-song-artist="${artist}" data-song-thumbnail="${thumbnail}">
                         <div class="result-thumbnail">
                             ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
                         </div>
@@ -668,10 +492,8 @@ export class ContentManager {
                         <div class="result-artist">${artist}</div>
                     </div>
                 `;
-            }).join('');
-        } else {
-            container.innerHTML += '<div style="grid-column: 1 / -1; text-align: center; color: #b3b3b3;">No songs in this album</div>';
-        }
+        }).join('')}
+        `;
     }
 
     displayArtistContent(artistData, artistName) {
@@ -683,48 +505,64 @@ export class ContentManager {
         libraryContent.style.display = 'none';
         container.style.display = 'grid';
 
-        // Add artist header
+        const songs = artistData.songs || [];
+        const albums = artistData.albums || [];
+
         container.innerHTML = `
-            <div style="grid-column: 1 / -1; margin-bottom: 20px;">
-                <h2 style="color: #ffffff; margin-bottom: 8px;">${artistName}</h2>
-                <p style="color: #b3b3b3; margin: 0;">${artistData.songs?.length || 0} songs</p>
+            <div class="artist-header">
+                <h2>${artistName}</h2>
+            </div>
+            <div class="artist-songs">
+                <h3>Songs (${songs.length})</h3>
+                ${songs.map(song => {
+            const songId = song.id || song.browseId || '';
+            const title = song.title || song.name || 'Unknown Title';
+            const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : (song.thumbnail || '');
+
+            return `
+                        <div class="result-card" data-song-id="${songId}" data-song-name="${title}" data-song-artist="${artistName}" data-song-thumbnail="${thumbnail}">
+                            <div class="result-thumbnail">
+                                ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
+                            </div>
+                            <div class="result-title">${title}</div>
+                            <div class="result-artist">${artistName}</div>
+                        </div>
+                    `;
+        }).join('')}
+            </div>
+            <div class="artist-albums">
+                <h3>Albums (${albums.length})</h3>
+                ${albums.map(album => {
+            const albumId = album.browseId || '';
+            const title = album.title || album.name || 'Unknown Album';
+            const thumbnail = album.thumbnails && album.thumbnails.length > 0 ? album.thumbnails[0].url : (album.thumbnail || '');
+
+            return `
+                        <div class="result-card" onclick="window.contentManager.loadAlbum('${albumId}', '${title}')">
+                            <div class="result-thumbnail">
+                                ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '💿'}
+                            </div>
+                            <div class="result-title">${title}</div>
+                            <div class="result-artist">${artistName}</div>
+                        </div>
+                    `;
+        }).join('')}
             </div>
         `;
+    }
 
-        // Add artist songs
-        if (artistData.songs && artistData.songs.length > 0) {
-            container.innerHTML += artistData.songs.map(song => {
-                const title = song.name || song.title || 'Unknown Title';
-                const artist = song.artists && song.artists.length > 0 ? song.artists[0].name : '';
-                const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : '';
+    showWelcomeScreen() {
+        const welcomeSection = document.querySelector('.welcome-section');
+        const searchResults = document.getElementById('searchResults');
+        const libraryContent = document.getElementById('libraryContent');
 
-                return `
-                    <div class="result-card" data-song-id="${song.id || ''}" data-song-name="${title}" data-song-artist="${artist}" data-song-thumbnail="${thumbnail}">
-                        <div class="result-thumbnail">
-                            ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
-                        </div>
-                        <div class="result-title">${title}</div>
-                        <div class="result-artist">${artist}</div>
-                    </div>
-                `;
-            }).join('');
-        } else {
-            container.innerHTML += '<div style="grid-column: 1 / -1; text-align: center; color: #b3b3b3;">No songs by this artist</div>';
-        }
+        welcomeSection.style.display = 'block';
+        searchResults.style.display = 'none';
+        libraryContent.style.display = 'none';
+    }
+
+    showExploreScreen() {
+        // For now, just show the welcome screen
+        this.showWelcomeScreen();
     }
 }
-
-// Create global instance
-window.contentManager = new ContentManager();
-
-// Make functions globally accessible for onclick handlers
-window.loadLibrary = (event) => window.contentManager.loadLibrary(event);
-window.loadSongs = (event) => window.contentManager.loadSongs(event);
-window.loadArtists = (event) => window.contentManager.loadArtists(event);
-window.loadAlbums = (event) => window.contentManager.loadAlbums(event);
-window.loadHome = (event) => window.contentManager.loadHome(event);
-window.loadExplore = (event) => window.contentManager.loadExplore(event);
-window.handleSearch = (event) => window.contentManager.handleSearch(event);
-window.loadPlaylist = (playlistId, playlistTitle) => window.contentManager.loadPlaylist(playlistId, playlistTitle);
-window.loadAlbum = (browseId, albumTitle) => window.contentManager.loadAlbum(browseId, albumTitle);
-window.loadArtist = (browseId, artistName) => window.contentManager.loadArtist(browseId, artistName);
