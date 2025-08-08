@@ -10,7 +10,6 @@ A .NET API wrapper around YouTubeMusicAPI for accessing YouTube Music data and s
 - 🎤 **Lyrics Support**: Automatic lyrics fetching for songs (configurable
 - 🔐 **Authentication**: Support for YouTube cookies authentication
 - 🐳 **Docker Support**: Ready-to-use Docker containers
-- 🌐 **Tailscale Support**: Built-in Tailscale VPN integration for secure remote access
 - 📖 **API Documentation**: Built-in Swagger/OpenAPI documentation
 - 🔒 **HTTPS Support**: Self-signed certificate generation on first start
 
@@ -84,13 +83,38 @@ The application supports both HTTP and HTTPS with configurable ports:
 ```json
 {
   "HttpPort": 80,
-  "HttpsPort": 443
+  "HttpsPort": 443,
+  "EnableHttpsRedirection": false
 }
 ```
 
 You can also set these via environment variables:
 ```bash
 export ASPNETCORE_URLS="http://localhost:80;https://localhost:443"
+export ENABLE_HTTPS_REDIRECTION=false
+```
+
+### HTTPS Redirection
+
+By default, the application does not automatically redirect HTTP requests to HTTPS. You can enable this behavior:
+
+**Enable HTTPS redirection:**
+```json
+{
+  "EnableHttpsRedirection": true
+}
+```
+
+**Disable HTTPS redirection (default):**
+```json
+{
+  "EnableHttpsRedirection": false
+}
+```
+
+**Via environment variable:**
+```bash
+export ENABLE_HTTPS_REDIRECTION=true
 ```
 
 ### HTTPS Development Certificate
@@ -130,6 +154,7 @@ export LYRICS_ADD_TO_SONG_RESPONSE=false
 {
   "HttpPort": 80,
   "HttpsPort": 443,
+  "EnableHttpsRedirection": false,
   "YouTubeMusic": {
     "GeographicalLocation": "US",
     "Cookies": null,
@@ -204,27 +229,6 @@ docker run -d -p 80:80 -p 443:443 \
   -e YTM_COOKIES=your_cookies_here \
   -e LYRICS_ADD_TO_SONG_RESPONSE=false \
   --name ytm-api bluscream/youtube-music-api-proxy:latest
-
-### With Tailscale Support
-
-For secure remote access with Tailscale VPN:
-
-```bash
-# Using Docker Compose (recommended)
-docker-compose -f docker/docker-compose.tailscale.yml up -d
-
-# Or manually with privileged mode
-docker run -d -p 80:80 -p 443:443 \
-  --privileged \
-  --cap-add=NET_ADMIN \
-  --cap-add=SYS_MODULE \
-  --security-opt seccomp=unconfined \
-  -e TS_AUTHKEY=your_tailscale_auth_key \
-  -e YTM_GEOGRAPHICAL_LOCATION=US \
-  --name ytm-api-tailscale bluscream/youtube-music-api-proxy:latest
-```
-
-**Note**: Tailscale deployment requires privileged mode and additional capabilities. See [Tailscale Deployment Guide](unraid/TAILSCALE_DEPLOYMENT.md) for detailed instructions.
 ```
 
 ## Authentication

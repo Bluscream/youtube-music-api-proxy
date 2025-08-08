@@ -131,14 +131,25 @@
     Mask="false"
   />
   <Config
-    Name="Tailscale Auth Key"
-    Target="TS_AUTHKEY"
-    Default=""
+    Name="Enable HTTPS Redirection"
+    Target="ENABLE_HTTPS_REDIRECTION"
+    Default="false"
     Mode=""
-    Description="Tailscale authentication key for VPN access (optional)"
+    Description="Enable automatic HTTP to HTTPS redirection (true/false)"
     Type="Variable"
     Display="always"
     Required="false"
-    Mask="true"
+    Mask="false"
+  />
+  <Config
+    Name="Tailscale State Directory"
+    Target="TailscaleStateDir"
+    Default="/app/.tailscale_state"
+    Mode=""
+    Description="Directory to store Tailscale state files"
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false"
   />
 </Container>

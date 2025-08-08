@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 using Microsoft.Extensions.FileProviders;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,8 +21,9 @@ builder.Services.Configure<StaticFileOptions>(options =>
 var urls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS");
 if (string.IsNullOrEmpty(urls))
 {
-    var httpPort = builder.Configuration.GetValue<int>("HttpPort", 80);
-    var httpsPort = builder.Configuration.GetValue<int>("HttpsPort", 443);
+    var kestrelConfig = builder.Configuration.Get<AppConfig>() ?? new AppConfig();
+    var httpPort = kestrelConfig.HttpPort;
+    var httpsPort = kestrelConfig.HttpsPort;
     
     // Configure Kestrel with HTTPS fallback
     builder.WebHost.ConfigureKestrel(serverOptions =>
@@ -144,6 +146,7 @@ builder.Services.AddSwaggerGen(c =>
 // Add configuration
 builder.Services.Configure<YouTubeMusicConfig>(builder.Configuration.GetSection("YouTubeMusic"));
 builder.Services.Configure<LyricsConfig>(builder.Configuration.GetSection("Lyrics"));
+builder.Services.Configure<AppConfig>(builder.Configuration);
 
 // Add services
 builder.Services.AddScoped<IYouTubeMusicService, YouTubeMusicService>();
@@ -164,8 +167,9 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// Only use HTTPS redirection if we're not in development or if HTTPS is explicitly configured
-if (!app.Environment.IsDevelopment() || Environment.GetEnvironmentVariable("ASPNETCORE_URLS")?.Contains("https") == true)
+// Only use HTTPS redirection if explicitly enabled in config or if we're not in development and HTTPS is configured
+var appConfig = app.Services.GetRequiredService<IOptions<AppConfig>>().Value;
+if (appConfig.EnableHttpsRedirection)
 {
     app.UseHttpsRedirection();
 }
