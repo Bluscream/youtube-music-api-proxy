@@ -2,31 +2,47 @@
 // This file imports and initializes all the modular components
 // Note: API readiness system is now defined in api-ready.js and loaded before this module
 
+// Reference types
+/// <reference path="./types.d.ts" />
+
+// Import CSS
+import '../css/main.css';
+
+// Import all modules (but don't initialize them yet)
+import './api-ready';
+import './constants';
+import './utils';
+import './notification-manager';
+import './sidebar-manager';
+import './right-sidebar-manager';
+import './player-manager';
+import './content-manager';
+import './url-manager';
+import { setupEventDelegation } from './event-delegation';
+import YouTubeMusicAPI from './lib/youtube-music-api-proxy/youtube-music-api-proxy';
+
 console.log('Creating YouTube Music API...');
 console.log('YouTubeMusicAPI available:', typeof YouTubeMusicAPI);
 
-function createAPI() {
-    if (typeof YouTubeMusicAPI !== 'undefined') {
-        try {
-            window.ytmAPI = new YouTubeMusicAPI('', {
-                timeout: 30000,
-                retries: 3
-            });
-            console.log('YouTube Music API created:', window.ytmAPI);
-            return true;
-        } catch (error) {
-            console.error('Error creating YouTube Music API:', error);
-            return false;
-        }
+function createAPI(): boolean {
+    try {
+        window.ytmAPI = new YouTubeMusicAPI('', {
+            timeout: 30000,
+            retries: 3
+        });
+        console.log('YouTube Music API created:', window.ytmAPI);
+        return true;
+    } catch (error) {
+        console.error('Error creating YouTube Music API:', error);
+        return false;
     }
-    return false;
 }
 
 // Enhanced API initialization with better error handling
-async function initializeAPI(maxRetries = 10, retryDelay = 1000) {
+async function initializeAPI(maxRetries: number = 10, retryDelay: number = 1000): Promise<boolean> {
     let retryCount = 0;
 
-    const attemptCreate = async () => {
+    const attemptCreate = async (): Promise<boolean> => {
         if (createAPI()) {
             // Test the API to make sure it's working
             try {
@@ -72,19 +88,8 @@ async function initializeAPI(maxRetries = 10, retryDelay = 1000) {
     return await attemptCreate();
 }
 
-// Import all modules (but don't initialize them yet)
-import './constants.js';
-import './utils.js';
-import './notification-manager.js';
-import './sidebar-manager.js';
-import './right-sidebar-manager.js';
-import './player-manager.js';
-import './content-manager.js';
-import './url-manager.js';
-import { setupEventDelegation } from './event-delegation.js';
-
 // Initialize the application only after API is ready
-function initializeApp() {
+function initializeApp(): void {
     console.log('Initializing YouTube Music API Proxy...');
 
     // Update CSS breakpoints
@@ -98,7 +103,7 @@ function initializeApp() {
     setupEventDelegation();
 
     // Track user interaction to enable AudioContext
-    const trackUserInteraction = () => {
+    const trackUserInteraction = (): void => {
         document.body.classList.add('user-interacted');
         // Remove the event listeners after first interaction
         document.removeEventListener('click', trackUserInteraction);
@@ -134,7 +139,7 @@ function initializeApp() {
         const songsNavItem = document.getElementById('songsNavItem');
         const artistsNavItem = document.getElementById('artistsNavItem');
         const albumsNavItem = document.getElementById('albumsNavItem');
-        const searchInput = document.getElementById('searchInput');
+        const searchInput = document.getElementById('searchInput') as HTMLInputElement;
 
         if (libraryNavItem) {
             libraryNavItem.addEventListener('click', window.loadLibrary);
@@ -191,7 +196,7 @@ function initializeApp() {
 }
 
 // Main initialization function
-async function startApplication() {
+async function startApplication(): Promise<void> {
     console.log('Starting YouTube Music API Proxy application...');
 
     // Show loading state

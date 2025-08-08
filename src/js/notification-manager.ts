@@ -1,12 +1,14 @@
-import { NOTIFICATION_ICONS, DEFAULTS } from './constants.js';
+import { NOTIFICATION_ICONS, DEFAULTS, NotificationType } from './constants';
 
 // Notification System
 export class NotificationManager {
+    private notificationCounter: number = 0;
+
     constructor() {
         this.notificationCounter = 0;
     }
 
-    showNotification(type, title, message, duration = DEFAULTS.NOTIFICATION_DURATION) {
+    showNotification(type: NotificationType, title: string, message: string, duration: number = DEFAULTS.NOTIFICATION_DURATION): string | null {
         const container = document.getElementById('notificationContainer');
         if (!container) {
             console.error('Notification container not found');
@@ -56,20 +58,20 @@ export class NotificationManager {
         }, 10);
 
         // Auto-remove after duration
-        let timeoutId = null;
+        let timeoutId: number | null = null;
         if (duration > 0) {
-            timeoutId = setTimeout(() => {
+            timeoutId = window.setTimeout(() => {
                 this.removeNotification(notificationId);
             }, duration);
         }
 
         // Store timeout ID for potential cleanup
-        notification.dataset.timeoutId = timeoutId;
+        notification.dataset.timeoutId = timeoutId?.toString() || '';
 
         return notificationId;
     }
 
-    removeNotification(notificationId) {
+    removeNotification(notificationId: string): void {
         const notification = document.getElementById(notificationId);
         if (notification) {
             // Clear the timeout if it exists
@@ -87,19 +89,19 @@ export class NotificationManager {
         }
     }
 
-    showErrorNotification(message) {
+    showErrorNotification(message: string): string | null {
         return this.showNotification('error', 'Error', message, DEFAULTS.ERROR_NOTIFICATION_DURATION);
     }
 
-    showSuccessNotification(message) {
+    showSuccessNotification(message: string): string | null {
         return this.showNotification('success', 'Success', message, DEFAULTS.SUCCESS_NOTIFICATION_DURATION);
     }
 
-    showWarningNotification(message) {
+    showWarningNotification(message: string): string | null {
         return this.showNotification('warning', 'Warning', message, DEFAULTS.WARNING_NOTIFICATION_DURATION);
     }
 
-    showInfoNotification(message) {
+    showInfoNotification(message: string): string | null {
         return this.showNotification('info', 'Info', message, DEFAULTS.INFO_NOTIFICATION_DURATION);
     }
 }
@@ -108,4 +110,4 @@ export class NotificationManager {
 window.notificationManager = new NotificationManager();
 
 // Make functions globally accessible for onclick handlers
-window.removeNotification = (notificationId) => window.notificationManager.removeNotification(notificationId);
+window.removeNotification = (notificationId: string) => window.notificationManager.removeNotification(notificationId);

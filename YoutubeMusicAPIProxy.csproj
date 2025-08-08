@@ -40,6 +40,12 @@
     <Compile Remove="references\**" />
     <EmbeddedResource Remove="references\**" />
   </ItemGroup>
+  <ItemGroup>
+    <None Remove="src\**" />
+    <Content Remove="src\**" />
+    <Compile Remove="src\**" />
+    <EmbeddedResource Remove="src\**" />
+  </ItemGroup>
   <!-- Embed wwwroot files -->
   <ItemGroup>
     <EmbeddedResource Include="wwwroot\**\*" />

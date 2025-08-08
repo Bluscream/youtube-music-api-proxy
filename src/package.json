@@ -1,0 +1,41 @@
+{
+    "name": "youtube-music-api-proxy-frontend",
+    "version": "1.0.0",
+    "description": "Frontend TypeScript project for YouTube Music API Proxy",
+    "main": "dist/app.js",
+    "scripts": {
+        "build": "webpack --mode production",
+        "build:dev": "webpack --mode development",
+        "watch": "webpack --mode development --watch",
+        "clean": "rimraf dist",
+        "type-check": "tsc --noEmit",
+        "lint": "eslint src/**/*.ts",
+        "lint:fix": "eslint src/**/*.ts --fix"
+    },
+    "devDependencies": {
+        "@types/node": "^20.0.0",
+        "@typescript-eslint/eslint-plugin": "^6.0.0",
+        "@typescript-eslint/parser": "^6.0.0",
+        "css-loader": "^6.8.0",
+        "css-minimizer-webpack-plugin": "^5.0.0",
+        "eslint": "^8.0.0",
+        "html-webpack-plugin": "^5.5.0",
+        "mini-css-extract-plugin": "^2.7.0",
+        "rimraf": "^5.0.0",
+        "sass": "^1.69.0",
+        "sass-loader": "^13.3.0",
+        "terser-webpack-plugin": "^5.3.0",
+        "ts-loader": "^9.4.0",
+        "typescript": "^5.0.0",
+        "webpack": "^5.88.0",
+        "webpack-cli": "^5.1.0"
+    },
+    "keywords": [
+        "typescript",
+        "webpack",
+        "youtube-music",
+        "api-proxy"
+    ],
+    "author": "Bluscream",
+    "license": "MIT"
+}

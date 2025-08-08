@@ -1,7 +1,7 @@
-import { DEFAULT_TITLE } from './constants.js';
+import { DEFAULT_TITLE, SIDEBAR_COLLAPSE_BREAKPOINT } from './constants';
 
 // Helper function to format duration
-export function formatDuration(duration) {
+export function formatDuration(duration: any): string {
     if (!duration) return 'Unknown';
 
     // If it's already formatted (HH:MM:SS), return as is
@@ -27,7 +27,7 @@ export function formatDuration(duration) {
 }
 
 // Helper function to format numbers (e.g., 1000000 -> 1M)
-export function formatNumber(num) {
+export function formatNumber(num: number): string {
     if (num >= 1000000000) {
         return (num / 1000000000).toFixed(1) + 'B';
     } else if (num >= 1000000) {
@@ -39,7 +39,7 @@ export function formatNumber(num) {
 }
 
 // Helper function to format date
-export function formatDate(dateString) {
+export function formatDate(dateString: string): string {
     if (!dateString) return 'Unknown';
 
     try {
@@ -55,9 +55,9 @@ export function formatDate(dateString) {
 }
 
 // Get all query parameters from the current URL
-export function getQueryParams() {
+export function getQueryParams(): Record<string, string> {
     const urlParams = new URLSearchParams(window.location.search);
-    const params = {};
+    const params: Record<string, string> = {};
     for (const [key, value] of urlParams) {
         params[key] = value;
     }
@@ -65,7 +65,7 @@ export function getQueryParams() {
 }
 
 // Convert query parameters to URL string
-export function buildQueryString(params) {
+export function buildQueryString(params: Record<string, any>): string {
     return Object.keys(params)
         .filter(key => params[key] !== null && params[key] !== undefined && params[key] !== '')
         .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
@@ -73,8 +73,8 @@ export function buildQueryString(params) {
 }
 
 // Update URL with new parameters
-export function updateURL(params) {
-    const url = new URL(window.location);
+export function updateURL(params: Record<string, any>): void {
+    const url = new URL(window.location.href);
     Object.keys(params).forEach(key => {
         if (params[key] === null || params[key] === undefined || params[key] === '') {
             url.searchParams.delete(key);
@@ -86,9 +86,8 @@ export function updateURL(params) {
 }
 
 // Update CSS variables to match JavaScript constants
-export async function updateCSSBreakpoints() {
+export async function updateCSSBreakpoints(): Promise<void> {
     try {
-        const { SIDEBAR_COLLAPSE_BREAKPOINT } = await import('./constants.js');
         document.documentElement.style.setProperty('--sidebar-collapse-breakpoint', `${SIDEBAR_COLLAPSE_BREAKPOINT}px`);
     } catch (error) {
         console.error('Error updating CSS breakpoints:', error);
@@ -96,9 +95,8 @@ export async function updateCSSBreakpoints() {
 }
 
 // Check if sidebar should be collapsed based on screen width
-export async function shouldCollapseSidebar() {
+export async function shouldCollapseSidebar(): Promise<boolean> {
     try {
-        const { SIDEBAR_COLLAPSE_BREAKPOINT } = await import('./constants.js');
         return window.innerWidth <= SIDEBAR_COLLAPSE_BREAKPOINT;
     } catch (error) {
         console.error('Error checking sidebar collapse:', error);
@@ -107,7 +105,7 @@ export async function shouldCollapseSidebar() {
 }
 
 // Function to stop all audio elements in the document
-export function stopAllAudio() {
+export function stopAllAudio(): void {
     // Stop the current audio
     if (window.currentAudio) {
         window.currentAudio.pause();
@@ -127,19 +125,20 @@ export function stopAllAudio() {
     // Stop any video elements that might have audio
     const allVideoElements = document.querySelectorAll('video');
     allVideoElements.forEach(video => {
-        if (video.audioTracks && video.audioTracks.length > 0) {
+        if ((video as any).audioTracks && (video as any).audioTracks.length > 0) {
             video.pause();
             video.currentTime = 0;
         }
     });
 
     // Also stop any HTML5 audio elements that might be created dynamically
-    if (window.AudioContext || window.webkitAudioContext) {
+    if (window.AudioContext || (window as any).webkitAudioContext) {
         // Stop any active audio contexts
         try {
             // Only create AudioContext if it's allowed (user has interacted with page)
             if (document.body.classList.contains('user-interacted')) {
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+                const audioContext = new AudioContextClass();
                 if (audioContext.state === 'running') {
                     audioContext.suspend();
                 }
@@ -153,9 +152,9 @@ export function stopAllAudio() {
     // This handles cases where audio might be playing from other sources
     const mediaElements = document.querySelectorAll('audio, video');
     mediaElements.forEach(media => {
-        if (!media.paused) {
-            media.pause();
-            media.currentTime = 0;
+        if (!(media as HTMLMediaElement).paused) {
+            (media as HTMLMediaElement).pause();
+            (media as HTMLMediaElement).currentTime = 0;
         }
     });
 
@@ -169,40 +168,40 @@ export function stopAllAudio() {
 }
 
 // Show loading state
-export function showLoading() {
+export function showLoading(): void {
     const loading = document.getElementById('loading');
     const error = document.getElementById('error');
     const welcomeSection = document.querySelector('.welcome-section');
     const searchResults = document.getElementById('searchResults');
     const libraryContent = document.getElementById('libraryContent');
-    
-    if (loading) loading.style.display = 'block';
-    if (error) error.style.display = 'none';
-    if (welcomeSection) welcomeSection.style.display = 'none';
-    if (searchResults) searchResults.style.display = 'none';
-    if (libraryContent) libraryContent.style.display = 'none';
+
+    if (loading) (loading as HTMLElement).style.display = 'block';
+    if (error) (error as HTMLElement).style.display = 'none';
+    if (welcomeSection) (welcomeSection as HTMLElement).style.display = 'none';
+    if (searchResults) (searchResults as HTMLElement).style.display = 'none';
+    if (libraryContent) (libraryContent as HTMLElement).style.display = 'none';
 }
 
 // Show error state
-export function showError(message) {
+export function showError(message: string): void {
     const error = document.getElementById('error');
     const loading = document.getElementById('loading');
     const welcomeSection = document.querySelector('.welcome-section');
     const searchResults = document.getElementById('searchResults');
     const libraryContent = document.getElementById('libraryContent');
-    
+
     if (error) {
         error.textContent = message;
-        error.style.display = 'block';
+        (error as HTMLElement).style.display = 'block';
     }
-    if (loading) loading.style.display = 'none';
-    if (welcomeSection) welcomeSection.style.display = 'none';
-    if (searchResults) searchResults.style.display = 'none';
-    if (libraryContent) libraryContent.style.display = 'none';
+    if (loading) (loading as HTMLElement).style.display = 'none';
+    if (welcomeSection) (welcomeSection as HTMLElement).style.display = 'none';
+    if (searchResults) (searchResults as HTMLElement).style.display = 'none';
+    if (libraryContent) (libraryContent as HTMLElement).style.display = 'none';
 }
 
 // Update active navigation item
-export function updateActiveNavItem(clickedItem) {
+export function updateActiveNavItem(clickedItem: Element): void {
     // Remove active class from all nav items
     document.querySelectorAll('.nav-item').forEach(item => {
         item.classList.remove('active');
@@ -247,7 +246,7 @@ window.showError = showError;
 window.updateActiveNavItem = updateActiveNavItem;
 
 // Add synchronous wrapper for shouldCollapseSidebar for backward compatibility
-window.shouldCollapseSidebarSync = () => {
+window.shouldCollapseSidebarSync = (): boolean => {
     // Default to false for synchronous calls
     return window.innerWidth <= 800; // Default breakpoint
 };

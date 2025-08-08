@@ -1,26 +1,30 @@
-import { SIDEBAR_COLLAPSE_BREAKPOINT, SIDEBAR_STATES } from './constants.js';
+import { SIDEBAR_COLLAPSE_BREAKPOINT, SIDEBAR_STATES, SidebarState } from './constants';
 
 // Sidebar state management
 export class SidebarManager {
+    public isMobile: boolean = false;
+    private currentState: SidebarState = SIDEBAR_STATES.EXPANDED;
+    public isMobileMenuOpen: boolean = false;
+
     constructor() {
         this.isMobile = false;
-        this.currentState = SIDEBAR_STATES.EXPANDED; // 'full', 'expanded', 'icon', 'collapsed'
+        this.currentState = SIDEBAR_STATES.EXPANDED;
         this.isMobileMenuOpen = false;
         this.init();
     }
 
-    init() {
+    init(): void {
         this.updateBreakpoint();
         this.setupEventListeners();
         this.restoreState();
         this.updateLayout();
     }
 
-    updateBreakpoint() {
+    updateBreakpoint(): void {
         this.isMobile = window.innerWidth <= SIDEBAR_COLLAPSE_BREAKPOINT;
     }
 
-    setupEventListeners() {
+    setupEventListeners(): void {
         // Window resize handler
         window.addEventListener('resize', () => {
             const wasMobile = this.isMobile;
@@ -35,19 +39,21 @@ export class SidebarManager {
         });
 
         // Close mobile menu when clicking outside
-        document.addEventListener('click', (event) => {
+        document.addEventListener('click', (event: Event) => {
             if (this.isMobile && this.isMobileMenuOpen) {
                 const sidebar = document.getElementById('sidebar');
                 const mobileMenuToggle = document.getElementById('mobileMenuToggle');
 
-                if (!sidebar.contains(event.target) && !mobileMenuToggle.contains(event.target)) {
+                if (sidebar && mobileMenuToggle &&
+                    !sidebar.contains(event.target as Node) &&
+                    !mobileMenuToggle.contains(event.target as Node)) {
                     this.closeMobileMenu();
                 }
             }
         });
 
         // Keyboard shortcuts for desktop
-        document.addEventListener('keydown', (event) => {
+        document.addEventListener('keydown', (event: KeyboardEvent) => {
             if (this.isMobile) return;
 
             if ((event.ctrlKey || event.metaKey) && event.key === 'b') { // Ctrl/Cmd + B to cycle through states
@@ -59,7 +65,7 @@ export class SidebarManager {
         // Double-click sidebar toggle to enter full screen
         const sidebarToggle = document.getElementById('sidebarToggle');
         if (sidebarToggle) {
-            sidebarToggle.addEventListener('dblclick', (event) => {
+            sidebarToggle.addEventListener('dblclick', (event: Event) => {
                 event.preventDefault();
                 if (this.currentState === SIDEBAR_STATES.FULL) {
                     this.setState(SIDEBAR_STATES.EXPANDED);
@@ -70,7 +76,7 @@ export class SidebarManager {
         }
     }
 
-    handleBreakpointChange() {
+    handleBreakpointChange(): void {
         if (this.isMobile) {
             // Transitioning to mobile - use collapsed state
             this.currentState = SIDEBAR_STATES.COLLAPSED;
@@ -82,7 +88,7 @@ export class SidebarManager {
         }
     }
 
-    toggle() {
+    toggle(): void {
         if (this.isMobile) {
             this.toggleMobileMenu();
         } else {
@@ -90,8 +96,8 @@ export class SidebarManager {
         }
     }
 
-    cycleState() {
-        const states = [SIDEBAR_STATES.EXPANDED, SIDEBAR_STATES.ICON, SIDEBAR_STATES.COLLAPSED];
+    cycleState(): void {
+        const states: SidebarState[] = [SIDEBAR_STATES.EXPANDED, SIDEBAR_STATES.ICON, SIDEBAR_STATES.COLLAPSED];
         const currentIndex = states.indexOf(this.currentState);
         const nextIndex = (currentIndex + 1) % states.length;
         this.currentState = states[nextIndex];
@@ -99,7 +105,7 @@ export class SidebarManager {
         this.updateLayout();
     }
 
-    setState(state) {
+    setState(state: SidebarState): void {
         if (Object.values(SIDEBAR_STATES).includes(state)) {
             this.currentState = state;
             this.saveState();
@@ -107,19 +113,19 @@ export class SidebarManager {
         }
     }
 
-    toggleMobileMenu() {
+    toggleMobileMenu(): void {
         this.isMobileMenuOpen = !this.isMobileMenuOpen;
         this.saveState();
         this.updateLayout();
     }
 
-    closeMobileMenu() {
+    closeMobileMenu(): void {
         this.isMobileMenuOpen = false;
         this.saveState();
         this.updateLayout();
     }
 
-    updateLayout() {
+    updateLayout(): void {
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('mainContent');
         const sidebarToggle = document.getElementById('sidebarToggle');
@@ -183,11 +189,11 @@ export class SidebarManager {
         }
     }
 
-    updateToggleButton() {
+    updateToggleButton(): void {
         const sidebarToggle = document.getElementById('sidebarToggle');
         if (!sidebarToggle) return;
 
-        const buttonConfig = {
+        const buttonConfig: Record<SidebarState, { text: string; title: string; left: string }> = {
             full: { text: '✕', title: 'Exit full screen', left: '20px' },
             expanded: { text: '◀', title: 'Collapse to icons', left: '260px' },
             icon: { text: '◀', title: 'Collapse sidebar', left: '80px' },
@@ -202,7 +208,7 @@ export class SidebarManager {
         }
     }
 
-    addMobileBackdrop() {
+    addMobileBackdrop(): void {
         if (!document.getElementById('mobileMenuBackdrop')) {
             const backdrop = document.createElement('div');
             backdrop.id = 'mobileMenuBackdrop';
@@ -231,7 +237,7 @@ export class SidebarManager {
         }
     }
 
-    removeMobileBackdrop() {
+    removeMobileBackdrop(): void {
         const backdrop = document.getElementById('mobileMenuBackdrop');
         if (backdrop) {
             backdrop.style.opacity = '0';
@@ -243,7 +249,7 @@ export class SidebarManager {
         }
     }
 
-    saveState() {
+    saveState(): void {
         if (!this.isMobile) {
             localStorage.setItem('sidebarState', JSON.stringify({
                 state: this.currentState
@@ -257,7 +263,7 @@ export class SidebarManager {
         }
     }
 
-    restoreState() {
+    restoreState(): void {
         try {
             const savedState = localStorage.getItem('sidebarState');
             if (savedState) {

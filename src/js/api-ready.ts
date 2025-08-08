@@ -6,7 +6,7 @@ window.apiReady = false;
 window.apiReadyCallbacks = [];
 
 // Function to register callbacks that should run when API is ready
-window.onApiReady = (callback) => {
+window.onApiReady = (callback: () => void): void => {
     if (window.apiReady) {
         callback();
     } else {
@@ -15,7 +15,7 @@ window.onApiReady = (callback) => {
 };
 
 // Function to notify all callbacks that API is ready
-window.notifyApiReady = () => {
+window.notifyApiReady = (): void => {
     window.apiReady = true;
     window.apiReadyCallbacks.forEach(callback => {
         try {

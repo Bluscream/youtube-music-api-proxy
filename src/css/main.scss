@@ -1,0 +1,19 @@
+// Main SCSS file that imports all component styles
+// This will be compiled to wwwroot/app.css
+
+// Base styles
+@import 'base';
+
+// Layout components
+@import 'layout';
+@import 'leftsidebar';
+@import 'rightsidebar';
+
+// Feature-specific styles
+@import 'player';
+@import 'search';
+@import 'library';
+@import 'notifications';
+
+// Responsive design
+@import 'responsive';

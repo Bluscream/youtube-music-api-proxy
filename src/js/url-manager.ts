@@ -1,4 +1,4 @@
-import { getQueryParams, buildQueryString, updateURL } from './utils.js';
+import { getQueryParams, buildQueryString, updateURL } from './utils';
 
 // URL Manager
 export class URLManager {
@@ -6,12 +6,12 @@ export class URLManager {
         this.init();
     }
 
-    init() {
+    init(): void {
         // Initialize URL manager
     }
 
     // Load content from URL parameters on page load
-    async loadFromURL() {
+    async loadFromURL(): Promise<void> {
         const params = getQueryParams();
 
         if (params.playlist) {
@@ -35,7 +35,7 @@ export class URLManager {
                         if (params.song) {
                             // Try to find the song in the playlist data
                             const songs = data.songs || data.tracks || [];
-                            const songIndex = songs.findIndex(song => song.id === params.song || song.videoId === params.song);
+                            const songIndex = songs.findIndex((song: any) => song.id === params.song || song.videoId === params.song);
                             if (songIndex !== -1) {
                                 const song = songs[songIndex];
                                 const title = song.name || song.title || 'Unknown Title';
