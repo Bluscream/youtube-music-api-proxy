@@ -1,11 +1,28 @@
 import { formatNumber, formatDate } from './utils';
 import apiService from './services/api-service';
+import {
+    SearchResponse,
+    SearchResult,
+    SongSearchResult,
+    AlbumSearchResult,
+    ArtistSearchResult,
+    LibraryResponse,
+    LibrarySongsResponse,
+    LibraryArtistsResponse,
+    LibraryAlbumsResponse,
+    LibraryPlaylistsResponse,
+    PlaylistResponse,
+    AlbumInfo,
+    ArtistInfo,
+    SongVideoInfoResponse,
+    SearchCategory
+} from './lib/youtube-music-api-proxy/youtube-music-api-proxy';
 
 // Content Manager
 export class ContentManager {
     private currentView: string = 'home';
     private playlists: any[] = [];
-    private searchResults: any[] = [];
+    private searchResults: SearchResult[] = [];
 
     constructor() {
         this.init();
@@ -62,7 +79,7 @@ export class ContentManager {
 
         try {
             const api = apiService.getAPI();
-            const data = await api.getLibrary();
+            const data: LibraryResponse = await api.getLibrary();
             this.displayLibraryContent(data);
         } catch (error) {
             console.error('Error loading library:', error);
@@ -78,7 +95,7 @@ export class ContentManager {
 
         try {
             const api = apiService.getAPI();
-            const data = await api.getLibrarySongs();
+            const data: LibrarySongsResponse = await api.getLibrarySongs();
             this.displaySongsContent(data);
         } catch (error) {
             console.error('Error loading songs:', error);
@@ -94,7 +111,7 @@ export class ContentManager {
 
         try {
             const api = apiService.getAPI();
-            const data = await api.getLibraryArtists();
+            const data: LibraryArtistsResponse = await api.getLibraryArtists();
             this.displayArtistsContent(data);
         } catch (error) {
             console.error('Error loading artists:', error);
@@ -110,7 +127,7 @@ export class ContentManager {
 
         try {
             const api = apiService.getAPI();
-            const data = await api.getLibraryAlbums();
+            const data: LibraryAlbumsResponse = await api.getLibraryAlbums();
             this.displayAlbumsContent(data);
         } catch (error) {
             console.error('Error loading albums:', error);
@@ -123,8 +140,8 @@ export class ContentManager {
     async loadPlaylists(): Promise<void> {
         try {
             const api = apiService.getAPI();
-            const data = await api.getLibraryPlaylists();
-            this.playlists = data.playlists || data || [];
+            const data: LibraryPlaylistsResponse = await api.getLibraryPlaylists();
+            this.playlists = data.playlists;
             this.updatePlaylistsSidebar();
         } catch (error) {
             console.error('Error loading playlists:', error);
@@ -137,7 +154,7 @@ export class ContentManager {
 
         try {
             const api = apiService.getAPI();
-            const data = await api.getPlaylist(id);
+            const data: PlaylistResponse = await api.getPlaylist(id);
             this.displayPlaylistContent(data, title);
         } catch (error) {
             console.error('Error loading playlist:', error);
@@ -153,7 +170,7 @@ export class ContentManager {
 
         try {
             const api = apiService.getAPI();
-            const data = await api.getAlbumInfo(id);
+            const data: AlbumInfo = await api.getAlbumInfo(id);
             this.displayAlbumContent(data, title);
         } catch (error) {
             console.error('Error loading album:', error);
@@ -169,7 +186,7 @@ export class ContentManager {
 
         try {
             const api = apiService.getAPI();
-            const data = await api.getArtistInfo(id);
+            const data: ArtistInfo = await api.getArtistInfo(id);
             this.displayArtistContent(data, name);
         } catch (error) {
             console.error('Error loading artist:', error);
@@ -190,7 +207,8 @@ export class ContentManager {
 
         try {
             const api = apiService.getAPI();
-            const data = await api.search(query);
+            const data: SearchResponse = await api.search(query);
+            this.searchResults = data.results;
             this.displaySearchResults(data, query);
         } catch (error) {
             console.error('Error searching:', error);
@@ -200,7 +218,7 @@ export class ContentManager {
         }
     }
 
-    displayLibraryContent(data: any): void {
+    displayLibraryContent(data: LibraryResponse): void {
         const mainContent = document.getElementById('mainContent');
         if (!mainContent) return;
 
@@ -229,19 +247,19 @@ export class ContentManager {
         `;
     }
 
-    displaySongsContent(data: any): void {
+    displaySongsContent(data: LibrarySongsResponse): void {
         const mainContent = document.getElementById('mainContent');
         if (!mainContent) return;
 
-        const songs = data.songs || data || [];
-        const songsHtml = songs.map((song: any) => `
-            <div class="song-item" data-song-id="${song.id || song.videoId}" 
-                 data-song-name="${song.name || song.title}" 
+        const songs = data.songs || [];
+        const songsHtml = songs.map((song) => `
+            <div class="song-item" data-song-id="${song.id}" 
+                 data-song-name="${song.name}" 
                  data-song-artist="${song.artists && song.artists.length > 0 ? song.artists[0].name : ''}"
                  data-song-thumbnail="${song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : ''}">
-                <img src="${song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : ''}" alt="${song.name || song.title}">
+                <img src="${song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : ''}" alt="${song.name}">
                 <div class="song-info">
-                    <h3>${song.name || song.title}</h3>
+                    <h3>${song.name}</h3>
                     <p>${song.artists && song.artists.length > 0 ? song.artists[0].name : 'Unknown Artist'}</p>
                 </div>
                 <div class="song-duration">${song.duration || ''}</div>
@@ -258,13 +276,13 @@ export class ContentManager {
         `;
     }
 
-    displayArtistsContent(data: any): void {
+    displayArtistsContent(data: LibraryArtistsResponse): void {
         const mainContent = document.getElementById('mainContent');
         if (!mainContent) return;
 
-        const artists = data.artists || data || [];
-        const artistsHtml = artists.map((artist: any) => `
-            <div class="artist-item" data-artist-id="${artist.browseId || artist.id}" 
+        const artists = data.artists || [];
+        const artistsHtml = artists.map((artist) => `
+            <div class="artist-item" data-artist-id="${artist.id}" 
                  data-artist-name="${artist.name}">
                 <img src="${artist.thumbnails && artist.thumbnails.length > 0 ? artist.thumbnails[0].url : ''}" alt="${artist.name}">
                 <div class="artist-info">
@@ -277,24 +295,24 @@ export class ContentManager {
         mainContent.innerHTML = `
             <div class="artists-content">
                 <h2>Your Artists (${artists.length})</h2>
-                <div class="artists-grid">
+                <div class="artists-list">
                     ${artistsHtml}
                 </div>
             </div>
         `;
     }
 
-    displayAlbumsContent(data: any): void {
+    displayAlbumsContent(data: LibraryAlbumsResponse): void {
         const mainContent = document.getElementById('mainContent');
         if (!mainContent) return;
 
-        const albums = data.albums || data || [];
-        const albumsHtml = albums.map((album: any) => `
-            <div class="album-item" data-album-id="${album.browseId || album.id}" 
-                 data-album-title="${album.name || album.title}">
-                <img src="${album.thumbnails && album.thumbnails.length > 0 ? album.thumbnails[0].url : ''}" alt="${album.name || album.title}">
+        const albums = data.albums || [];
+        const albumsHtml = albums.map((album) => `
+            <div class="album-item" data-album-id="${album.id}" 
+                 data-album-title="${album.name}">
+                <img src="${album.thumbnails && album.thumbnails.length > 0 ? album.thumbnails[0].url : ''}" alt="${album.name}">
                 <div class="album-info">
-                    <h3>${album.name || album.title}</h3>
+                    <h3>${album.name}</h3>
                     <p>${album.artists && album.artists.length > 0 ? album.artists[0].name : 'Unknown Artist'}</p>
                     <p>${album.year || ''}</p>
                 </div>
@@ -304,34 +322,37 @@ export class ContentManager {
         mainContent.innerHTML = `
             <div class="albums-content">
                 <h2>Your Albums (${albums.length})</h2>
-                <div class="albums-grid">
+                <div class="albums-list">
                     ${albumsHtml}
                 </div>
             </div>
         `;
     }
 
-    displayPlaylistContent(data: any, title: string): void {
+    displayPlaylistContent(data: PlaylistResponse, title: string): void {
         const mainContent = document.getElementById('mainContent');
         if (!mainContent) return;
 
-        const songs = data.songs || data.tracks || [];
-        const songsHtml = songs.map((song: any, index: number) => `
-            <div class="song-item" data-song-id="${song.id || song.videoId}" 
-                 data-song-name="${song.name || song.title}" 
-                 data-song-artist="${song.artists && song.artists.length > 0 ? song.artists[0].name : ''}"
-                 data-song-thumbnail="${song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : ''}"
-                 data-playlist-id="${data.id || data.playlistId}"
-                 data-song-index="${index}">
-                <div class="song-number">${index + 1}</div>
-                <img src="${song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : ''}" alt="${song.name || song.title}">
-                <div class="song-info">
-                    <h3>${song.name || song.title}</h3>
-                    <p>${song.artists && song.artists.length > 0 ? song.artists[0].name : 'Unknown Artist'}</p>
-                </div>
-                <div class="song-duration">${song.duration || ''}</div>
-            </div>
-        `).join('');
+        const songs = data.songs || [];
+        const songsHtml = songs.map((song: SearchResult) => {
+            if (song instanceof SongSearchResult) {
+                const songItem = song as SongSearchResult;
+                return `
+                    <div class="song-item" data-song-id="${songItem.id}" 
+                         data-song-name="${songItem.name}" 
+                         data-song-artist="${songItem.artists && songItem.artists.length > 0 ? songItem.artists[0].name : ''}"
+                         data-song-thumbnail="${songItem.thumbnails && songItem.thumbnails.length > 0 ? songItem.thumbnails[0].url : ''}">
+                        <img src="${songItem.thumbnails && songItem.thumbnails.length > 0 ? songItem.thumbnails[0].url : ''}" alt="${songItem.name}">
+                        <div class="song-info">
+                            <h3>${songItem.name}</h3>
+                            <p>${songItem.artists && songItem.artists.length > 0 ? songItem.artists[0].name : 'Unknown Artist'}</p>
+                        </div>
+                        <div class="song-duration">${songItem.duration || ''}</div>
+                    </div>
+                `;
+            }
+            return '';
+        }).join('');
 
         mainContent.innerHTML = `
             <div class="playlist-content">
@@ -344,20 +365,19 @@ export class ContentManager {
         `;
     }
 
-    displayAlbumContent(data: any, title: string): void {
+    displayAlbumContent(data: AlbumInfo, title: string): void {
         const mainContent = document.getElementById('mainContent');
         if (!mainContent) return;
 
-        const songs = data.songs || data.tracks || [];
-        const songsHtml = songs.map((song: any, index: number) => `
-            <div class="song-item" data-song-id="${song.id || song.videoId}" 
-                 data-song-name="${song.name || song.title}" 
+        const songs = data.songs || [];
+        const songsHtml = songs.map((song) => `
+            <div class="song-item" data-song-id="${song.id}" 
+                 data-song-name="${song.name}" 
                  data-song-artist="${song.artists && song.artists.length > 0 ? song.artists[0].name : ''}"
                  data-song-thumbnail="${song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : ''}">
-                <div class="song-number">${index + 1}</div>
-                <img src="${song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : ''}" alt="${song.name || song.title}">
+                <img src="${song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : ''}" alt="${song.name}">
                 <div class="song-info">
-                    <h3>${song.name || song.title}</h3>
+                    <h3>${song.name}</h3>
                     <p>${song.artists && song.artists.length > 0 ? song.artists[0].name : 'Unknown Artist'}</p>
                 </div>
                 <div class="song-duration">${song.duration || ''}</div>
@@ -375,20 +395,20 @@ export class ContentManager {
         `;
     }
 
-    displayArtistContent(data: any, name: string): void {
+    displayArtistContent(data: ArtistInfo, name: string): void {
         const mainContent = document.getElementById('mainContent');
         if (!mainContent) return;
 
-        const songs = data.songs || data.tracks || [];
-        const songsHtml = songs.map((song: any) => `
-            <div class="song-item" data-song-id="${song.id || song.videoId}" 
-                 data-song-name="${song.name || song.title}" 
+        const songs = data.songs || [];
+        const songsHtml = songs.map((song) => `
+            <div class="song-item" data-song-id="${song.id}" 
+                 data-song-name="${song.name}" 
                  data-song-artist="${song.artists && song.artists.length > 0 ? song.artists[0].name : ''}"
                  data-song-thumbnail="${song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : ''}">
-                <img src="${song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : ''}" alt="${song.name || song.title}">
+                <img src="${song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : ''}" alt="${song.name}">
                 <div class="song-info">
-                    <h3>${song.name || song.title}</h3>
-                    <p>${song.album || ''}</p>
+                    <h3>${song.name}</h3>
+                    <p>${song.artists && song.artists.length > 0 ? song.artists[0].name : 'Unknown Artist'}</p>
                 </div>
                 <div class="song-duration">${song.duration || ''}</div>
             </div>
@@ -405,44 +425,47 @@ export class ContentManager {
         `;
     }
 
-    displaySearchResults(data: any, query: string): void {
+    displaySearchResults(data: SearchResponse, query: string): void {
         const mainContent = document.getElementById('mainContent');
         if (!mainContent) return;
 
-        const results = data.results || data || [];
-        const resultsHtml = results.map((item: any) => {
-            if (item.type === 'song') {
+        const results = data.results || [];
+        const resultsHtml = results.map((item: SearchResult) => {
+            if (item instanceof SongSearchResult) {
+                const songItem = item as SongSearchResult;
                 return `
-                    <div class="song-item" data-song-id="${item.id || item.videoId}" 
-                         data-song-name="${item.name || item.title}" 
-                         data-song-artist="${item.artists && item.artists.length > 0 ? item.artists[0].name : ''}"
-                         data-song-thumbnail="${item.thumbnails && item.thumbnails.length > 0 ? item.thumbnails[0].url : ''}">
-                        <img src="${item.thumbnails && item.thumbnails.length > 0 ? item.thumbnails[0].url : ''}" alt="${item.name || item.title}">
+                    <div class="song-item" data-song-id="${songItem.id}" 
+                         data-song-name="${songItem.name}" 
+                         data-song-artist="${songItem.artists && songItem.artists.length > 0 ? songItem.artists[0].name : ''}"
+                         data-song-thumbnail="${songItem.thumbnails && songItem.thumbnails.length > 0 ? songItem.thumbnails[0].url : ''}">
+                        <img src="${songItem.thumbnails && songItem.thumbnails.length > 0 ? songItem.thumbnails[0].url : ''}" alt="${songItem.name}">
                         <div class="song-info">
-                            <h3>${item.name || item.title}</h3>
-                            <p>${item.artists && item.artists.length > 0 ? item.artists[0].name : 'Unknown Artist'}</p>
+                            <h3>${songItem.name}</h3>
+                            <p>${songItem.artists && songItem.artists.length > 0 ? songItem.artists[0].name : 'Unknown Artist'}</p>
                         </div>
-                        <div class="song-duration">${item.duration || ''}</div>
+                        <div class="song-duration">${songItem.duration || ''}</div>
                     </div>
                 `;
-            } else if (item.type === 'album') {
+            } else if (item instanceof AlbumSearchResult) {
+                const albumItem = item as AlbumSearchResult;
                 return `
-                    <div class="album-item" data-album-id="${item.browseId || item.id}" 
-                         data-album-title="${item.name || item.title}">
-                        <img src="${item.thumbnails && item.thumbnails.length > 0 ? item.thumbnails[0].url : ''}" alt="${item.name || item.title}">
+                    <div class="album-item" data-album-id="${albumItem.id}" 
+                         data-album-title="${albumItem.name}">
+                        <img src="${albumItem.thumbnails && albumItem.thumbnails.length > 0 ? albumItem.thumbnails[0].url : ''}" alt="${albumItem.name}">
                         <div class="album-info">
-                            <h3>${item.name || item.title}</h3>
-                            <p>${item.artists && item.artists.length > 0 ? item.artists[0].name : 'Unknown Artist'}</p>
+                            <h3>${albumItem.name}</h3>
+                            <p>${albumItem.artists && albumItem.artists.length > 0 ? albumItem.artists[0].name : 'Unknown Artist'}</p>
                         </div>
                     </div>
                 `;
-            } else if (item.type === 'artist') {
+            } else if (item instanceof ArtistSearchResult) {
+                const artistItem = item as ArtistSearchResult;
                 return `
-                    <div class="artist-item" data-artist-id="${item.browseId || item.id}" 
-                         data-artist-name="${item.name}">
-                        <img src="${item.thumbnails && item.thumbnails.length > 0 ? item.thumbnails[0].url : ''}" alt="${item.name}">
+                    <div class="artist-item" data-artist-id="${artistItem.id}" 
+                         data-artist-name="${artistItem.name}">
+                        <img src="${artistItem.thumbnails && artistItem.thumbnails.length > 0 ? artistItem.thumbnails[0].url : ''}" alt="${artistItem.name}">
                         <div class="artist-info">
-                            <h3>${item.name}</h3>
+                            <h3>${artistItem.name}</h3>
                         </div>
                     </div>
                 `;

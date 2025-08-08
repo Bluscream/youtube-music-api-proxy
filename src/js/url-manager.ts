@@ -1,5 +1,6 @@
 import { getQueryParams, buildQueryString, updateURL } from './utils';
 import apiService from './services/api-service';
+import { PlaylistResponse, SongVideoInfoResponse, SearchResult, SongSearchResult } from './lib/youtube-music-api-proxy/youtube-music-api-proxy';
 
 // URL Manager
 export class URLManager {
@@ -19,8 +20,8 @@ export class URLManager {
             // Load playlist from URL parameter
             try {
                 const api = apiService.getAPI();
-                const data = await api.getPlaylist(params.playlist);
-                const playlistTitle = data.name || data.title || 'Playlist';
+                const data: PlaylistResponse = await api.getPlaylist(params.playlist);
+                const playlistTitle = data.playlist?.name || data.playlist?.title || 'Playlist';
 
                 if (window.contentManager) {
                     window.contentManager.displayPlaylistContent(data, playlistTitle);
@@ -34,26 +35,37 @@ export class URLManager {
                     // If song parameter is also present, load that specific song
                     if (params.song) {
                         // Try to find the song in the playlist data
-                        const songs = data.songs || data.tracks || [];
-                        const songIndex = songs.findIndex((song: any) => song.id === params.song || song.videoId === params.song);
+                        const songs = data.songs || [];
+                        const songIndex = songs.findIndex((song) => song.id === params.song);
                         if (songIndex !== -1) {
                             const song = songs[songIndex];
-                            const title = song.name || song.title || 'Unknown Title';
-                            const artist = song.artists && song.artists.length > 0 ? song.artists[0].name : '';
-                            const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : '';
+                            const title = song.name || 'Unknown Title';
+                            let artist = '';
+                            let thumbnail = '';
+
+                            // Handle different song types
+                            if (song instanceof SongSearchResult) {
+                                const songItem = song as SongSearchResult;
+                                if (songItem.artists && songItem.artists.length > 0) {
+                                    artist = songItem.artists[0].name;
+                                }
+                                if (songItem.thumbnails && songItem.thumbnails.length > 0) {
+                                    thumbnail = songItem.thumbnails[0].url;
+                                }
+                            }
 
                             // If play parameter is present, auto-play the song
                             if (params.play) {
-                                window.playerManager.playSong(song.id || song.videoId || '', title, artist, thumbnail, songs, songIndex);
+                                window.playerManager.playSong(song.id, title, artist, thumbnail, songs, songIndex);
                             } else {
-                                window.playerManager.loadSong(song.id || song.videoId || '', title, artist, thumbnail, songs, songIndex);
+                                window.playerManager.loadSong(song.id, title, artist, thumbnail, songs, songIndex);
                             }
                         } else {
                             // Song not found in playlist, try to load it directly
                             if (params.play) {
-                                window.playerManager.playSong(params.song, 'Unknown Title', 'Unknown Artist', '', data, -1);
+                                window.playerManager.playSong(params.song, 'Unknown Title', 'Unknown Artist', '', data.songs, -1);
                             } else {
-                                window.playerManager.loadSong(params.song, 'Unknown Title', 'Unknown Artist', '', data, -1);
+                                window.playerManager.loadSong(params.song, 'Unknown Title', 'Unknown Artist', '', data.songs, -1);
                             }
                         }
                     }
@@ -68,8 +80,8 @@ export class URLManager {
             // Load specific song from URL parameter
             try {
                 const api = apiService.getAPI();
-                const data = await api.getSongInfo(params.song);
-                const title = data.name || data.title || 'Unknown Title';
+                const data: SongVideoInfoResponse = await api.getSongInfo(params.song);
+                const title = data.name || 'Unknown Title';
                 const artist = data.artists && data.artists.length > 0 ? data.artists[0].name : '';
                 const thumbnail = data.thumbnails && data.thumbnails.length > 0 ? data.thumbnails[0].url : '';
 
