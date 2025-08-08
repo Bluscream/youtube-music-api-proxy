@@ -4,43 +4,40 @@ services:
   youtube-music-api-proxy:
     build:
       context: ..
-      dockerfile: docker/Dockerfile
+      dockerfile: docker/Dockerfile.tailscale
     container_name: youtube-music-api-proxy-tailscale
-    # Use host network mode for Tailscale compatibility
-    network_mode: host
+    ports:
+      - "80:80"
+      - "443:443"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:80;https://+:443
       - YTM_GEOGRAPHICAL_LOCATION=US
-      # Tailscale specific environment variables
-      - TAILSCALE_ENABLED=true
-      - TAILSCALE_HOSTNAME=youtube-music-api-proxy
-      # Set these environment variables for production
+      # Tailscale configuration
+      - TS_AUTHKEY=${TS_AUTHKEY:-}
+      # Optional: Set these for authentication
       # - YTM_COOKIES=your_base64_encoded_cookies_here
       # - YTM_VISITORDATA=your_visitor_data_here
       # - YTM_POTOKEN=your_proof_of_origin_token_here
     volumes:
-      # Mount logs directory for production
+      # Optional: Mount logs directory for debugging
       - ./logs:/app/logs
-      # Mount Tailscale socket for authentication
-      - /var/run/tailscale/tailscaled.sock:/var/run/tailscale/tailscaled.sock
     restart: unless-stopped
+    privileged: true  # Required for Tailscale
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    security_opt:
+      - seccomp:unconfined
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80/"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
-    # Optional: Add resource limits
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '0.5'
-        reservations:
-          memory: 256M
-          cpus: '0.25'
-    # Add labels for Tailscale discovery
-    labels:
-      - "tailscale.com/ts-hostname=youtube-music-api-proxy"
-      - "tailscale.com/ts-tags=tag:youtube-music,env:production"
+    networks:
+      - ytm-network
+
+networks:
+  ytm-network:
+    driver: bridge 

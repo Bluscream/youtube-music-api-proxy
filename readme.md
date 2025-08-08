@@ -10,7 +10,7 @@ A .NET API wrapper around YouTubeMusicAPI for accessing YouTube Music data and s
 - 🎤 **Lyrics Support**: Automatic lyrics fetching for songs (configurable
 - 🔐 **Authentication**: Support for YouTube cookies authentication
 - 🐳 **Docker Support**: Ready-to-use Docker containers
-- 🌐 **Tailscale Support**: Native Tailscale networking for secure remote access
+- 🌐 **Tailscale Support**: Built-in Tailscale VPN integration for secure remote access
 - 📖 **API Documentation**: Built-in Swagger/OpenAPI documentation
 - 🔒 **HTTPS Support**: Self-signed certificate generation on first start
 
@@ -25,21 +25,6 @@ docker run -d -p 80:80 -p 443:443 --name ytm-api bluscream/youtube-music-api-pro
 # Access the API
 curl "http://localhost:80/api/search?query=despacito"
 ```
-
-### Using Docker with Tailscale (Unraid)
-
-For secure remote access via Tailscale on Unraid:
-
-```bash
-# Use the Tailscale-specific compose file
-docker-compose -f docker/docker-compose.tailscale.yml up -d
-
-# Or build the Tailscale-enabled image
-docker build -f docker/Dockerfile.tailscale -t youtube-music-api-proxy:tailscale .
-docker run -d --network host --name ytm-api-tailscale youtube-music-api-proxy:tailscale
-```
-
-See [Tailscale Deployment Guide](docker/TAILSCALE_DEPLOYMENT.md) for detailed instructions.
 
 ### Local Development
 
@@ -219,6 +204,27 @@ docker run -d -p 80:80 -p 443:443 \
   -e YTM_COOKIES=your_cookies_here \
   -e LYRICS_ADD_TO_SONG_RESPONSE=false \
   --name ytm-api bluscream/youtube-music-api-proxy:latest
+
+### With Tailscale Support
+
+For secure remote access with Tailscale VPN:
+
+```bash
+# Using Docker Compose (recommended)
+docker-compose -f docker/docker-compose.tailscale.yml up -d
+
+# Or manually with privileged mode
+docker run -d -p 80:80 -p 443:443 \
+  --privileged \
+  --cap-add=NET_ADMIN \
+  --cap-add=SYS_MODULE \
+  --security-opt seccomp=unconfined \
+  -e TS_AUTHKEY=your_tailscale_auth_key \
+  -e YTM_GEOGRAPHICAL_LOCATION=US \
+  --name ytm-api-tailscale bluscream/youtube-music-api-proxy:latest
+```
+
+**Note**: Tailscale deployment requires privileged mode and additional capabilities. See [Tailscale Deployment Guide](unraid/TAILSCALE_DEPLOYMENT.md) for detailed instructions.
 ```
 
 ## Authentication

@@ -59,27 +59,25 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user first
-RUN groupadd -r appuser && useradd -r -g appuser appuser
-
-# Copy HTTPS certificates from build stage and set proper permissions
-COPY --from=build /root/.dotnet/corefx/cryptography/x509stores/my /home/appuser/.dotnet/corefx/cryptography/x509stores/my
-RUN chown -R appuser:appuser /home/appuser/.dotnet
+# Copy HTTPS certificates from build stage
+COPY --from=build /root/.dotnet/corefx/cryptography/x509stores/my /root/.dotnet/corefx/cryptography/x509stores/my
 
 # Copy published app
 COPY --from=publish /app/publish .
-RUN chown -R appuser:appuser /app
 
-# Create Tailscale directories and set permissions
-RUN mkdir -p /var/run/tailscale /var/lib/tailscale \
-    && chown -R appuser:appuser /var/run/tailscale /var/lib/tailscale
-
-# Copy Tailscale startup script
-COPY docker/tailscale-start.sh /usr/local/bin/tailscale-start.sh
-RUN chmod +x /usr/local/bin/tailscale-start.sh
-
-# Switch to non-root user
-USER appuser
+# Create startup script for Tailscale integration
+RUN echo '#!/bin/bash\n\
+# Start Tailscale if TS_AUTHKEY is provided\n\
+if [ ! -z "$TS_AUTHKEY" ]; then\n\
+    echo "Starting Tailscale..."\n\
+    tailscaled --tun=userspace-networking --socks5-server=localhost:1055 &\n\
+    sleep 2\n\
+    tailscale up --authkey=$TS_AUTHKEY --hostname=youtube-music-api-proxy\n\
+    echo "Tailscale started successfully"\n\
+fi\n\
+\n\
+# Start the application\n\
+exec dotnet YoutubeMusicAPIProxy.dll' > /app/start.sh && chmod +x /app/start.sh
 
 # Expose ports
 EXPOSE 80 443
@@ -87,12 +85,10 @@ EXPOSE 80 443
 # Set environment variables for container deployment
 ENV ASPNETCORE_URLS=http://+:80;https://+:443
 ENV ASPNETCORE_ENVIRONMENT=${BUILD_CONFIGURATION}
-ENV TAILSCALE_ENABLED=false
-ENV TAILSCALE_HOSTNAME=youtube-music-api-proxy
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:80/ || exit 1
 
-# Use the Tailscale startup script
-ENTRYPOINT ["/usr/local/bin/tailscale-start.sh"]
+# Use startup script instead of direct dotnet command
+ENTRYPOINT ["/app/start.sh"] 
