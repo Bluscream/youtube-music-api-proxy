@@ -1,0 +1,98 @@
+# Multi-stage build for YouTube Music API Proxy with Tailscale support
+# Supports: Linux (amd64, arm64), Windows (with Docker Desktop), macOS (with Docker Desktop)
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+
+# Build arguments
+ARG BUILD_CONFIGURATION=Release
+
+# Copy csproj and restore dependencies
+COPY ["YoutubeMusicAPIProxy.csproj", "./"]
+# RUN dotnet clean
+RUN dotnet restore "YoutubeMusicAPIProxy.csproj"
+
+# Copy everything else and build
+COPY . .
+RUN dotnet build "YoutubeMusicAPIProxy.csproj" -c ${BUILD_CONFIGURATION} -o /app/build
+
+# Generate HTTPS development certificate in build stage
+RUN dotnet dev-certs https --clean && \
+    dotnet dev-certs https
+
+# Publish
+FROM build AS publish
+RUN dotnet publish "YoutubeMusicAPIProxy.csproj" -c ${BUILD_CONFIGURATION} -o /app/publish \
+    /p:UseAppHost=true \
+    /p:OptimizeImplicitlyTriggeredBuild=true \
+    /p:EnableCompressionInSingleFile=true \
+    /p:DebugType=None \
+    /p:DebugSymbols=false \
+    /p:PublishTrimmed=false \
+    /p:EnableUnsafeBinaryFormatterSerialization=false \
+    /p:EnableUnsafeUTF7Encoding=false \
+    /p:EventSourceSupport=false \
+    /p:HttpActivityPropagationSupport=false \
+    /p:InvariantGlobalization=true \
+    /p:MetadataUpdaterSupport=false \
+    /p:TrimMode=None
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
+LABEL org.opencontainers.image.source=https://github.com/bluscream/youtube-music-api-proxy
+WORKDIR /app
+
+# Build arguments
+ARG BUILD_CONFIGURATION=Release
+
+# Install Node.js and Tailscale
+RUN apt-get update && apt-get install -y \
+    curl \
+    ca-certificates \
+    gnupg \
+    lsb-release \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && curl -fsSL https://pkgs.tailscale.com/stable/debian/bullseye.noarmor.gpg | tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null \
+    && curl -fsSL https://pkgs.tailscale.com/stable/debian/bullseye.tailscale-keyring.list | tee /etc/apt/sources.list.d/tailscale.list \
+    && apt-get update \
+    && apt-get install -y tailscale \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user first
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# Copy HTTPS certificates from build stage and set proper permissions
+COPY --from=build /root/.dotnet/corefx/cryptography/x509stores/my /home/appuser/.dotnet/corefx/cryptography/x509stores/my
+RUN chown -R appuser:appuser /home/appuser/.dotnet
+
+# Copy published app
+COPY --from=publish /app/publish .
+RUN chown -R appuser:appuser /app
+
+# Create Tailscale directories and set permissions
+RUN mkdir -p /var/run/tailscale /var/lib/tailscale \
+    && chown -R appuser:appuser /var/run/tailscale /var/lib/tailscale
+
+# Copy Tailscale startup script
+COPY docker/tailscale-start.sh /usr/local/bin/tailscale-start.sh
+RUN chmod +x /usr/local/bin/tailscale-start.sh
+
+# Switch to non-root user
+USER appuser
+
+# Expose ports
+EXPOSE 80 443
+
+# Set environment variables for container deployment
+ENV ASPNETCORE_URLS=http://+:80;https://+:443
+ENV ASPNETCORE_ENVIRONMENT=${BUILD_CONFIGURATION}
+ENV TAILSCALE_ENABLED=false
+ENV TAILSCALE_HOSTNAME=youtube-music-api-proxy
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:80/ || exit 1
+
+# Use the Tailscale startup script
+ENTRYPOINT ["/usr/local/bin/tailscale-start.sh"]
