@@ -48,17 +48,13 @@
 
     <div class="main-content" id="mainContent">
         <div class="header">
-            <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Toggle sidebar"
-                style="align-self: left;">◀</button>
-            <button class="mobile-menu-toggle" id="mobileMenuToggle" onclick="toggleSidebar()"
-                style="align-self: left;">☰</button>
+            <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Toggle sidebar" style="align-self: left;">◀</button>
+            <button class="mobile-menu-toggle" id="mobileMenuToggle" onclick="toggleSidebar()" style="align-self: left;">☰</button>
             <div class="search-container">
                 <div class="search-icon">🔍</div>
-                <input type="text" class="search-input" id="searchInput"
-                    placeholder="Search for songs, artists, or albums">
+                <input type="text" class="search-input" id="searchInput" placeholder="Search for songs, artists, or albums">
             </div>
-            <button class="right-sidebar-mobile-toggle" id="rightSidebarMobileToggle" onclick="toggleRightSidebar()"
-                title="Toggle right sidebar">ℹ️</button>
+            <button class="right-sidebar-mobile-toggle" id="rightSidebarMobileToggle" onclick="toggleRightSidebar()" title="Toggle right sidebar">ℹ️</button>
         </div>
 
         <div class="content-area">
@@ -93,8 +89,7 @@
     </div>
 
     <!-- Right Sidebar Toggle Button (outside sidebar) -->
-    <button class="right-sidebar-toggle" id="rightSidebarToggle" onclick="toggleRightSidebar()"
-        title="Toggle right sidebar">▶</button>
+    <button class="right-sidebar-toggle" id="rightSidebarToggle" onclick="toggleRightSidebar()" title="Toggle right sidebar">▶</button>
 
     <!-- Right Sidebar -->
     <div class="right-sidebar" id="rightSidebar">
@@ -142,13 +137,11 @@
 
         <div class="player-controls">
             <div class="control-buttons">
+                <button class="control-button" id="repeatButton" onclick="toggleRepeatMode()" title="No repeat">🔁</button>
                 <button class="control-button" onclick="playPreviousSong()" title="Previous song">⏮</button>
                 <button class="control-button play-button" id="playButton" onclick="togglePlay()">▶</button>
                 <button class="control-button" onclick="playNextSong()" title="Next song">⏭</button>
-                <button class="control-button" id="repeatButton" onclick="toggleRepeatMode()"
-                    title="No repeat">🔁</button>
-                <button class="control-button" id="shuffleButton" onclick="toggleShuffle()"
-                    title="Shuffle off">🔀</button>
+                <button class="control-button" id="shuffleButton" onclick="toggleShuffle()" title="Shuffle off">🔀</button>
             </div>
             <div class="progress-bar" onclick="seek(event)">
                 <div class="progress-fill" id="progressFill"></div>
