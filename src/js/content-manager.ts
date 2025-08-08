@@ -485,7 +485,9 @@ export class ContentManager {
     }
 
     updatePlaylistsSidebar(): void {
-        const playlistsContainer = document.getElementById('playlistsContainer');
+        const playlistsContainer = document.getElementById('playlistsList');
+        const playlistsSection = document.getElementById('playlistsSection');
+
         if (!playlistsContainer) return;
 
         const playlistsHtml = this.playlists.map((playlist: any) => `
@@ -499,6 +501,11 @@ export class ContentManager {
         `).join('');
 
         playlistsContainer.innerHTML = playlistsHtml;
+
+        // Show the playlists section if we have playlists
+        if (playlistsSection && this.playlists.length > 0) {
+            playlistsSection.style.display = 'block';
+        }
     }
 
     updateActiveNavItem(view: string): void {

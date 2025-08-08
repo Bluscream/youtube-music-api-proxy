@@ -48,16 +48,15 @@
 
     <div class="main-content" id="mainContent">
         <div class="header">
-            <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Toggle sidebar"
+            <button class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar"
                 style="align-self: left;">◀</button>
-            <button class="mobile-menu-toggle" id="mobileMenuToggle" onclick="toggleSidebar()"
-                style="align-self: left;">☰</button>
+            <button class="mobile-menu-toggle" id="mobileMenuToggle" style="align-self: left;">☰</button>
             <div class="search-container">
                 <div class="search-icon">🔍</div>
                 <input type="text" class="search-input" id="searchInput"
                     placeholder="Search for songs, artists, or albums">
             </div>
-            <button class="right-sidebar-mobile-toggle" id="rightSidebarMobileToggle" onclick="toggleRightSidebar()"
+            <button class="right-sidebar-mobile-toggle" id="rightSidebarMobileToggle"
                 title="Toggle right sidebar">ℹ️</button>
         </div>
 
@@ -93,18 +92,17 @@
     </div>
 
     <!-- Right Sidebar Toggle Button (outside sidebar) -->
-    <button class="right-sidebar-toggle" id="rightSidebarToggle" onclick="toggleRightSidebar()"
-        title="Toggle right sidebar">▶</button>
+    <button class="right-sidebar-toggle" id="rightSidebarToggle" title="Toggle right sidebar">▶</button>
 
     <!-- Right Sidebar -->
     <div class="right-sidebar" id="rightSidebar">
         <div class="right-sidebar-resize-handle" id="rightSidebarResizeHandle"></div>
         <div class="right-sidebar-header">
             <div class="right-sidebar-tabs">
-                <div class="right-sidebar-tab active" id="infoTab" onclick="switchRightSidebarTab('info')">
+                <div class="right-sidebar-tab active" id="infoTab">
                     <span class="tab-text">Info</span>
                 </div>
-                <div class="right-sidebar-tab" id="lyricsTab" onclick="switchRightSidebarTab('lyrics')">
+                <div class="right-sidebar-tab" id="lyricsTab">
                     <span class="tab-text">Lyrics</span>
                 </div>
             </div>
@@ -141,15 +139,13 @@
         </div>
 
         <div class="player-controls">
-            <div class="control-buttons"><button class="control-button" id="repeatButton" onclick="toggleRepeatMode()"
-                    title="No repeat">🔁</button>
-                <button class="control-button" onclick="playPreviousSong()" title="Previous song">⏮</button>
-                <button class="control-button play-button" id="playButton" onclick="togglePlay()">▶</button>
-                <button class="control-button" onclick="playNextSong()" title="Next song">⏭</button>
-                <button class="control-button" id="shuffleButton" onclick="toggleShuffle()"
-                    title="Shuffle off">🔀</button>
+            <div class="control-buttons"><button class="control-button" id="repeatButton" title="No repeat">🔁</button>
+                <button class="control-button" id="prevButton" title="Previous song">⏮</button>
+                <button class="control-button play-button" id="playButton">▶</button>
+                <button class="control-button" id="nextButton" title="Next song">⏭</button>
+                <button class="control-button" id="shuffleButton" title="Shuffle off">🔀</button>
             </div>
-            <div class="progress-bar" onclick="seek(event)">
+            <div class="progress-bar" id="progressBar">
                 <div class="progress-fill" id="progressFill"></div>
             </div>
         </div>
@@ -168,7 +164,7 @@
     <!-- Notification Container -->
     <div class="notification-container" id="notificationContainer"></div>
 
-    <script type="module" src="/app.js"></script>
+    <script src="/app.js"></script>
 </body>
 
 </html>
