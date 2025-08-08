@@ -67,13 +67,7 @@ declare global {
 
     // Global window interface extensions
     interface Window {
-        // API readiness system
-        apiReady: boolean;
-        apiReadyCallbacks: (() => void)[];
-        onApiReady: (callback: () => void) => void;
-        notifyApiReady: () => void;
-
-        // YouTube Music API
+        // YouTube Music API (for backward compatibility)
         ytmAPI: import('./lib/youtube-music-api-proxy/youtube-music-api-proxy').YouTubeMusicAPI;
 
         // Utility functions

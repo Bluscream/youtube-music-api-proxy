@@ -1,4 +1,5 @@
 import { getQueryParams, buildQueryString, updateURL } from './utils';
+import apiService from './services/api-service';
 
 // URL Manager
 export class URLManager {
@@ -17,51 +18,44 @@ export class URLManager {
         if (params.playlist) {
             // Load playlist from URL parameter
             try {
-                const response = await fetch(`/api/playlist/${params.playlist}?${buildQueryString(params)}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    const playlistTitle = data.name || data.title || 'Playlist';
+                const api = apiService.getAPI();
+                const data = await api.getPlaylist(params.playlist);
+                const playlistTitle = data.name || data.title || 'Playlist';
 
-                    if (window.contentManager) {
-                        window.contentManager.displayPlaylistContent(data, playlistTitle);
-                    }
+                if (window.contentManager) {
+                    window.contentManager.displayPlaylistContent(data, playlistTitle);
+                }
 
-                    // Set current playlist
-                    if (window.playerManager) {
-                        window.playerManager.setCurrentPlaylist(params.playlist);
-                        window.playerManager.highlightCurrentPlaylist();
+                // Set current playlist
+                if (window.playerManager) {
+                    window.playerManager.setCurrentPlaylist(params.playlist);
+                    window.playerManager.highlightCurrentPlaylist();
 
-                        // If song parameter is also present, load that specific song
-                        if (params.song) {
-                            // Try to find the song in the playlist data
-                            const songs = data.songs || data.tracks || [];
-                            const songIndex = songs.findIndex((song: any) => song.id === params.song || song.videoId === params.song);
-                            if (songIndex !== -1) {
-                                const song = songs[songIndex];
-                                const title = song.name || song.title || 'Unknown Title';
-                                const artist = song.artists && song.artists.length > 0 ? song.artists[0].name : '';
-                                const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : '';
+                    // If song parameter is also present, load that specific song
+                    if (params.song) {
+                        // Try to find the song in the playlist data
+                        const songs = data.songs || data.tracks || [];
+                        const songIndex = songs.findIndex((song: any) => song.id === params.song || song.videoId === params.song);
+                        if (songIndex !== -1) {
+                            const song = songs[songIndex];
+                            const title = song.name || song.title || 'Unknown Title';
+                            const artist = song.artists && song.artists.length > 0 ? song.artists[0].name : '';
+                            const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : '';
 
-                                // If play parameter is present, auto-play the song
-                                if (params.play) {
-                                    window.playerManager.playSong(song.id || song.videoId || '', title, artist, thumbnail, songs, songIndex);
-                                } else {
-                                    window.playerManager.loadSong(song.id || song.videoId || '', title, artist, thumbnail, songs, songIndex);
-                                }
+                            // If play parameter is present, auto-play the song
+                            if (params.play) {
+                                window.playerManager.playSong(song.id || song.videoId || '', title, artist, thumbnail, songs, songIndex);
                             } else {
-                                // Song not found in playlist, try to load it directly
-                                if (params.play) {
-                                    window.playerManager.playSong(params.song, 'Unknown Title', 'Unknown Artist', '', data, -1);
-                                } else {
-                                    window.playerManager.loadSong(params.song, 'Unknown Title', 'Unknown Artist', '', data, -1);
-                                }
+                                window.playerManager.loadSong(song.id || song.videoId || '', title, artist, thumbnail, songs, songIndex);
+                            }
+                        } else {
+                            // Song not found in playlist, try to load it directly
+                            if (params.play) {
+                                window.playerManager.playSong(params.song, 'Unknown Title', 'Unknown Artist', '', data, -1);
+                            } else {
+                                window.playerManager.loadSong(params.song, 'Unknown Title', 'Unknown Artist', '', data, -1);
                             }
                         }
-                    }
-                } else {
-                    console.error(`Failed to load playlist: HTTP ${response.status}`);
-                    if (window.notificationManager) {
-                        window.notificationManager.showErrorNotification('Failed to load playlist from URL');
                     }
                 }
             } catch (error) {
@@ -73,25 +67,18 @@ export class URLManager {
         } else if (params.song) {
             // Load specific song from URL parameter
             try {
-                const response = await fetch(`/api/song/${params.song}?${buildQueryString(params)}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    const title = data.name || data.title || 'Unknown Title';
-                    const artist = data.artists && data.artists.length > 0 ? data.artists[0].name : '';
-                    const thumbnail = data.thumbnails && data.thumbnails.length > 0 ? data.thumbnails[0].url : '';
+                const api = apiService.getAPI();
+                const data = await api.getSongInfo(params.song);
+                const title = data.name || data.title || 'Unknown Title';
+                const artist = data.artists && data.artists.length > 0 ? data.artists[0].name : '';
+                const thumbnail = data.thumbnails && data.thumbnails.length > 0 ? data.thumbnails[0].url : '';
 
-                    // If play parameter is present, auto-play the song
-                    if (window.playerManager) {
-                        if (params.play) {
-                            window.playerManager.playSong(params.song, title, artist, thumbnail, null, -1);
-                        } else {
-                            window.playerManager.loadSong(params.song, title, artist, thumbnail, null, -1);
-                        }
-                    }
-                } else {
-                    console.error(`Failed to load song: HTTP ${response.status}`);
-                    if (window.notificationManager) {
-                        window.notificationManager.showErrorNotification('Failed to load song from URL');
+                // If play parameter is present, auto-play the song
+                if (window.playerManager) {
+                    if (params.play) {
+                        window.playerManager.playSong(params.song, title, artist, thumbnail, null, -1);
+                    } else {
+                        window.playerManager.loadSong(params.song, title, artist, thumbnail, null, -1);
                     }
                 }
             } catch (error) {
@@ -104,10 +91,8 @@ export class URLManager {
     }
 }
 
-// Create global instance when API is ready
-window.onApiReady(() => {
-    window.urlManager = new URLManager();
+// Create global instance immediately
+window.urlManager = new URLManager();
 
-    // Make functions globally accessible
-    window.loadFromURL = () => window.urlManager.loadFromURL();
-});
+// Make functions globally accessible
+window.loadFromURL = () => window.urlManager.loadFromURL();

@@ -1,4 +1,5 @@
 import { formatNumber, formatDate } from './utils';
+import apiService from './services/api-service';
 
 // Content Manager
 export class ContentManager {
@@ -60,13 +61,9 @@ export class ContentManager {
         this.updateActiveNavItem('library');
 
         try {
-            const response = await fetch('/api/library');
-            if (response.ok) {
-                const data = await response.json();
-                this.displayLibraryContent(data);
-            } else {
-                throw new Error(`HTTP ${response.status}`);
-            }
+            const api = apiService.getAPI();
+            const data = await api.getLibrary();
+            this.displayLibraryContent(data);
         } catch (error) {
             console.error('Error loading library:', error);
             if (window.notificationManager) {
@@ -80,13 +77,9 @@ export class ContentManager {
         this.updateActiveNavItem('songs');
 
         try {
-            const response = await fetch('/api/library/songs');
-            if (response.ok) {
-                const data = await response.json();
-                this.displaySongsContent(data);
-            } else {
-                throw new Error(`HTTP ${response.status}`);
-            }
+            const api = apiService.getAPI();
+            const data = await api.getLibrarySongs();
+            this.displaySongsContent(data);
         } catch (error) {
             console.error('Error loading songs:', error);
             if (window.notificationManager) {
@@ -100,13 +93,9 @@ export class ContentManager {
         this.updateActiveNavItem('artists');
 
         try {
-            const response = await fetch('/api/library/artists');
-            if (response.ok) {
-                const data = await response.json();
-                this.displayArtistsContent(data);
-            } else {
-                throw new Error(`HTTP ${response.status}`);
-            }
+            const api = apiService.getAPI();
+            const data = await api.getLibraryArtists();
+            this.displayArtistsContent(data);
         } catch (error) {
             console.error('Error loading artists:', error);
             if (window.notificationManager) {
@@ -120,13 +109,9 @@ export class ContentManager {
         this.updateActiveNavItem('albums');
 
         try {
-            const response = await fetch('/api/library/albums');
-            if (response.ok) {
-                const data = await response.json();
-                this.displayAlbumsContent(data);
-            } else {
-                throw new Error(`HTTP ${response.status}`);
-            }
+            const api = apiService.getAPI();
+            const data = await api.getLibraryAlbums();
+            this.displayAlbumsContent(data);
         } catch (error) {
             console.error('Error loading albums:', error);
             if (window.notificationManager) {
@@ -137,12 +122,10 @@ export class ContentManager {
 
     async loadPlaylists(): Promise<void> {
         try {
-            const response = await fetch('/api/library/playlists');
-            if (response.ok) {
-                const data = await response.json();
-                this.playlists = data.playlists || data || [];
-                this.updatePlaylistsSidebar();
-            }
+            const api = apiService.getAPI();
+            const data = await api.getLibraryPlaylists();
+            this.playlists = data.playlists || data || [];
+            this.updatePlaylistsSidebar();
         } catch (error) {
             console.error('Error loading playlists:', error);
         }
@@ -153,13 +136,9 @@ export class ContentManager {
         this.updateActiveNavItem('playlist');
 
         try {
-            const response = await fetch(`/api/playlist/${id}`);
-            if (response.ok) {
-                const data = await response.json();
-                this.displayPlaylistContent(data, title);
-            } else {
-                throw new Error(`HTTP ${response.status}`);
-            }
+            const api = apiService.getAPI();
+            const data = await api.getPlaylist(id);
+            this.displayPlaylistContent(data, title);
         } catch (error) {
             console.error('Error loading playlist:', error);
             if (window.notificationManager) {
@@ -173,13 +152,9 @@ export class ContentManager {
         this.updateActiveNavItem('album');
 
         try {
-            const response = await fetch(`/api/album/${id}`);
-            if (response.ok) {
-                const data = await response.json();
-                this.displayAlbumContent(data, title);
-            } else {
-                throw new Error(`HTTP ${response.status}`);
-            }
+            const api = apiService.getAPI();
+            const data = await api.getAlbumInfo(id);
+            this.displayAlbumContent(data, title);
         } catch (error) {
             console.error('Error loading album:', error);
             if (window.notificationManager) {
@@ -193,13 +168,9 @@ export class ContentManager {
         this.updateActiveNavItem('artist');
 
         try {
-            const response = await fetch(`/api/artist/${id}`);
-            if (response.ok) {
-                const data = await response.json();
-                this.displayArtistContent(data, name);
-            } else {
-                throw new Error(`HTTP ${response.status}`);
-            }
+            const api = apiService.getAPI();
+            const data = await api.getArtistInfo(id);
+            this.displayArtistContent(data, name);
         } catch (error) {
             console.error('Error loading artist:', error);
             if (window.notificationManager) {
@@ -218,13 +189,9 @@ export class ContentManager {
         this.updateActiveNavItem('search');
 
         try {
-            const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-            if (response.ok) {
-                const data = await response.json();
-                this.displaySearchResults(data, query);
-            } else {
-                throw new Error(`HTTP ${response.status}`);
-            }
+            const api = apiService.getAPI();
+            const data = await api.search(query);
+            this.displaySearchResults(data, query);
         } catch (error) {
             console.error('Error searching:', error);
             if (window.notificationManager) {

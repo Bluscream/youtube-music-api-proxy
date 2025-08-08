@@ -1,6 +1,5 @@
 // Main Application Entry Point
 // This file imports and initializes all the modular components
-// Note: API readiness system is now defined in api-ready.js and loaded before this module
 
 // Reference types
 /// <reference path="./types.d.ts" />
@@ -9,7 +8,6 @@
 import '../css/main.css';
 
 // Import all modules (but don't initialize them yet)
-import './api-ready';
 import './constants';
 import './utils';
 import './notification-manager';
@@ -19,69 +17,45 @@ import './player-manager';
 import './content-manager';
 import './url-manager';
 import { setupEventDelegation } from './event-delegation';
-import YouTubeMusicAPI from './lib/youtube-music-api-proxy/youtube-music-api-proxy';
+import apiService from './services/api-service';
 
-console.log('Creating YouTube Music API...');
-console.log('YouTubeMusicAPI available:', typeof YouTubeMusicAPI);
-
-function createAPI(): boolean {
-    try {
-        window.ytmAPI = new YouTubeMusicAPI('', {
-            timeout: 30000,
-            retries: 3
-        });
-        console.log('YouTube Music API created:', window.ytmAPI);
-        return true;
-    } catch (error) {
-        console.error('Error creating YouTube Music API:', error);
-        return false;
-    }
-}
+console.log('Initializing API service...');
 
 // Enhanced API initialization with better error handling
 async function initializeAPI(maxRetries: number = 10, retryDelay: number = 1000): Promise<boolean> {
     let retryCount = 0;
 
     const attemptCreate = async (): Promise<boolean> => {
-        if (createAPI()) {
-            // Test the API to make sure it's working
-            try {
-                // Try a simple health check or basic operation
-                if (window.ytmAPI.getHealth) {
-                    await window.ytmAPI.getHealth();
-                } else {
-                    // If getHealth doesn't exist, just assume the API is working
-                    console.log('YouTube Music API created successfully (no health check available)');
-                }
-                console.log('YouTube Music API is ready and working');
-                window.notifyApiReady();
-                return true;
-            } catch (error) {
-                console.error('API health check failed:', error);
-                // Even if health check fails, we can still proceed if the API object exists
-                if (window.ytmAPI) {
-                    console.log('YouTube Music API created but health check failed, proceeding anyway');
-                    window.notifyApiReady();
-                    return true;
+        try {
+            // Initialize the API service
+            const api = await apiService.initialize('', {
+                timeout: 30000,
+                retries: 3
+            });
+
+            // Set the global API instance for backward compatibility
+            window.ytmAPI = api;
+
+            console.log('YouTube Music API is ready and working');
+            return true;
+        } catch (error) {
+            console.error('Error creating YouTube Music API:', error);
+
+            retryCount++;
+            if (retryCount < maxRetries) {
+                console.log(`YouTube Music API not available, retrying in ${retryDelay}ms (attempt ${retryCount}/${maxRetries})`);
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+                return await attemptCreate();
+            } else {
+                console.error('YouTube Music API failed to initialize after maximum retries');
+                // Show error to user
+                const errorDiv = document.getElementById('error');
+                if (errorDiv) {
+                    errorDiv.textContent = 'Failed to initialize YouTube Music API. Please refresh the page.';
+                    errorDiv.style.display = 'block';
                 }
                 return false;
             }
-        }
-
-        retryCount++;
-        if (retryCount < maxRetries) {
-            console.log(`YouTube Music API not available, retrying in ${retryDelay}ms (attempt ${retryCount}/${maxRetries})`);
-            await new Promise(resolve => setTimeout(resolve, retryDelay));
-            return await attemptCreate();
-        } else {
-            console.error('YouTube Music API failed to initialize after maximum retries');
-            // Show error to user
-            const errorDiv = document.getElementById('error');
-            if (errorDiv) {
-                errorDiv.textContent = 'Failed to initialize YouTube Music API. Please refresh the page.';
-                errorDiv.style.display = 'block';
-            }
-            return false;
         }
     };
 
