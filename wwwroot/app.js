@@ -127,16 +127,6 @@ function loadAllSettings() {
 }
 
 function applySettings(settings) {
-    // Apply playlist setting
-    if (settings.playlist) {
-        currentPlaylist = settings.playlist;
-    }
-
-    // Apply song setting
-    if (settings.song) {
-        currentSongId = settings.song;
-    }
-
     // Apply all settings to global settings object
     window.settings = { ...window.settings, ...settings };
 
@@ -163,8 +153,6 @@ function applySettings(settings) {
 
 function saveAllSettings() {
     // Update global settings with current state
-    window.settings.playlist = currentPlaylist;
-    window.settings.song = currentSongId;
     window.settings.tab = window.rightSidebarManager ? window.rightSidebarManager.currentTab : 'info';
     window.settings.pos = currentAudio ? currentAudio.currentTime : 0;
     window.settings.split = window.rightSidebarManager ? window.rightSidebarManager.sidebarWidth : 300;
@@ -198,9 +186,7 @@ function setupSettingsAutoSave() {
 
 let currentAudio = null;
 let isPlaying = false;
-let currentSongId = null;
 let playlists = [];
-let currentPlaylist = null;
 let currentPlaylistSongs = [];
 let currentSongIndex = -1;
 let isMobileMenuOpen = false;
@@ -234,13 +220,13 @@ function setupMediaKeyListeners() {
     });
 
     navigator.mediaSession.setActionHandler('previoustrack', () => {
-        if (currentPlaylist && currentPlaylistSongs.length > 0) {
+        if (window.settings.playlist && currentPlaylistSongs.length > 0) {
             playPreviousSong();
         }
     });
 
     navigator.mediaSession.setActionHandler('nexttrack', () => {
-        if (currentPlaylist && currentPlaylistSongs.length > 0) {
+        if (window.settings.playlist && currentPlaylistSongs.length > 0) {
             playNextSong();
         }
     });
@@ -280,13 +266,13 @@ function setupMediaKeyListeners() {
                 break;
             case 'MediaTrackNext':
                 event.preventDefault();
-                if (currentPlaylist && currentPlaylistSongs.length > 0) {
+                if (window.settings.playlist && currentPlaylistSongs.length > 0) {
                     playNextSong();
                 }
                 break;
             case 'MediaTrackPrevious':
                 event.preventDefault();
-                if (currentPlaylist && currentPlaylistSongs.length > 0) {
+                if (window.settings.playlist && currentPlaylistSongs.length > 0) {
                     playPreviousSong();
                 }
                 break;
@@ -360,7 +346,7 @@ function handlePlaybackError(title, artist) {
     }
 
     // If we're in a playlist, automatically advance to next song after 3 seconds
-    if (autoSkip && currentPlaylist && currentPlaylistSongs.length > 0) {
+    if (autoSkip && window.settings.playlist && currentPlaylistSongs.length > 0) {
         errorRecoveryTimeout = setTimeout(() => {
             console.log(`Auto-advancing playlist due to playback error: ${title}`);
             playNextSong();
@@ -918,7 +904,7 @@ async function loadFromURL() {
                 displayPlaylistContent(data, playlistTitle);
 
                 // Set current playlist
-                currentPlaylist = settings.playlist;
+                window.settings.playlist = settings.playlist;
                 highlightCurrentPlaylist();
 
                 // If song setting is also present, load that specific song
@@ -932,9 +918,9 @@ async function loadFromURL() {
 
                         // If autoplay is enabled, auto-play the song
                         if (settings.autoplay) {
-                            playSong(song.id || '', title, artist, thumbnail, currentPlaylist, songIndex);
+                            playSong(song.id || '', title, artist, thumbnail, window.settings.playlist, songIndex);
                         } else {
-                            loadSong(song.id || '', title, artist, thumbnail, currentPlaylist, songIndex);
+                            loadSong(song.id || '', title, artist, thumbnail, window.settings.playlist, songIndex);
                         }
                     }
                 }
@@ -1058,8 +1044,8 @@ function highlightCurrentPlaylist() {
     });
 
     // Add active class to current playlist
-    if (currentPlaylist) {
-        const currentPlaylistElement = document.querySelector(`.playlist-item[onclick*="${currentPlaylist}"]`);
+    if (window.settings.playlist) {
+        const currentPlaylistElement = document.querySelector(`.playlist-item[onclick*="${window.settings.playlist}"]`);
         if (currentPlaylistElement) {
             currentPlaylistElement.classList.add('active');
             // Update text color for song count
@@ -1086,7 +1072,7 @@ async function loadSong(songId, title, artist, thumbnail = null, playlistId = nu
     saveSetting(SETTINGS_KEYS.SONG, songId);
     saveSetting(SETTINGS_KEYS.PLAYLIST, playlistId);
 
-    currentSongId = songId;
+    window.settings.song = songId;
     currentSongIndex = songIndex;
     document.getElementById('nowPlayingTitle').textContent = title;
     document.getElementById('nowPlayingArtist').textContent = artist;
@@ -1110,11 +1096,11 @@ async function loadSong(songId, title, artist, thumbnail = null, playlistId = nu
 
     // Update current playlist and highlight it in sidebar if loading from a playlist
     if (playlistId) {
-        currentPlaylist = playlistId;
+        window.settings.playlist = playlistId;
         highlightCurrentPlaylist();
     } else {
         // Clear playlist highlighting if loading from search results
-        currentPlaylist = null;
+        window.settings.playlist = null;
         highlightCurrentPlaylist();
     }
 
@@ -1204,7 +1190,7 @@ async function loadSong(songId, title, artist, thumbnail = null, playlistId = nu
             }
 
             // Auto-load next song 3 seconds before current song ends
-            if (window.settings.autoplay && audio.duration && currentPlaylist && currentPlaylistSongs.length > 0) {
+            if (window.settings.autoplay && audio.duration && window.settings.playlist && currentPlaylistSongs.length > 0) {
                 const timeRemaining = audio.duration - audio.currentTime;
                 const threeSeconds = 3;
 
@@ -1227,7 +1213,7 @@ async function loadSong(songId, title, artist, thumbnail = null, playlistId = nu
                         const nextThumbnail = nextSong.thumbnails && nextSong.thumbnails.length > 0 ? nextSong.thumbnails[0].url : '';
 
                         // Pre-load the next song (this will prepare it but not start playing)
-                        loadSong(nextSong.id || '', nextTitle, nextArtist, nextThumbnail, currentPlaylist, nextIndex);
+                        loadSong(nextSong.id || '', nextTitle, nextArtist, nextThumbnail, window.settings.playlist, nextIndex);
                     }
                 }
             }
@@ -1253,12 +1239,12 @@ async function loadSong(songId, title, artist, thumbnail = null, playlistId = nu
                 const artist = currentSong.artists && currentSong.artists.length > 0 ? currentSong.artists[0].name : '';
                 const thumbnail = currentSong.thumbnails && currentSong.thumbnails.length > 0 ? currentSong.thumbnails[0].url : '';
 
-                playSong(currentSong.id || '', title, artist, thumbnail, currentPlaylist, currentSongIndex);
+                playSong(currentSong.id || '', title, artist, thumbnail, window.settings.playlist, currentSongIndex);
                 return;
             }
 
             // Auto-play next song if enabled and we're in a playlist
-            if (window.settings.autoplay && currentPlaylist && currentPlaylistSongs.length > 0) {
+            if (window.settings.autoplay && window.settings.playlist && currentPlaylistSongs.length > 0) {
                 playNextSong();
             } else {
                 // Clear song info when no more songs to play
@@ -1281,7 +1267,7 @@ async function loadSong(songId, title, artist, thumbnail = null, playlistId = nu
 
 async function playSong(songId, title, artist, thumbnail = null, playlistId = null, songIndex = -1) {
     // If no song is currently loaded or different song, load it first
-    if (!currentSongId || currentSongId !== songId) {
+    if (!window.settings.song || window.settings.song !== songId) {
         await loadSong(songId, title, artist, thumbnail, playlistId, songIndex);
     }
 
@@ -1586,7 +1572,7 @@ function playNextSong() {
     const artist = nextSong.artists && nextSong.artists.length > 0 ? nextSong.artists[0].name : '';
     const thumbnail = nextSong.thumbnails && nextSong.thumbnails.length > 0 ? nextSong.thumbnails[0].url : '';
 
-    playSong(nextSong.id || '', title, artist, thumbnail, currentPlaylist, nextIndex);
+    playSong(nextSong.id || '', title, artist, thumbnail, window.settings.playlist, nextIndex);
 }
 
 function playPreviousSong() {
@@ -1601,7 +1587,7 @@ function playPreviousSong() {
     const artist = prevSong.artists && prevSong.artists.length > 0 ? prevSong.artists[0].name : '';
     const thumbnail = prevSong.thumbnails && prevSong.thumbnails.length > 0 ? prevSong.thumbnails[0].url : '';
 
-    playSong(prevSong.id || '', title, artist, thumbnail, currentPlaylist, prevIndex);
+    playSong(prevSong.id || '', title, artist, thumbnail, window.settings.playlist, prevIndex);
 }
 
 function togglePlay() {
@@ -1972,7 +1958,7 @@ function displayPlaylistsInSidebar() {
                 (playlist.art && playlist.art.sources && playlist.art.sources.length > 0 ? playlist.art.sources[0].url : null);
 
             // Check if this playlist is currently active
-            const isActive = currentPlaylist === (playlist.id || '');
+            const isActive = window.settings.playlist === (playlist.id || '');
             const activeClass = isActive ? ' active' : '';
 
             return `
@@ -2015,7 +2001,7 @@ async function loadPlaylist(playlistId, playlistTitle) {
             displayPlaylistContent(data, playlistTitle);
 
             // Update current playlist and highlight it in sidebar
-            currentPlaylist = playlistId;
+            window.settings.playlist = playlistId;
             highlightCurrentPlaylist();
         } else {
             showError('Failed to load playlist');
@@ -2036,7 +2022,7 @@ function displayPlaylistContent(playlistData, playlistTitle) {
     container.style.display = 'block'; // Changed from 'grid' to 'block' for list layout
 
     // Store playlist information for queue management
-    currentPlaylist = playlistData.id || playlistData.browseId || '';
+    window.settings.playlist = playlistData.id || playlistData.browseId || '';
     currentPlaylistSongs = playlistData.songs || [];
 
     // Initialize shuffle order if shuffle is enabled
@@ -2065,11 +2051,11 @@ function displayPlaylistContent(playlistData, playlistTitle) {
             const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : '';
 
             // Check if this song is currently playing
-            const isCurrentlyPlaying = currentSongId === (song.id || '') && currentPlaylist === (playlistData.id || playlistData.browseId || '');
+            const isCurrentlyPlaying = window.settings.song === (song.id || '') && window.settings.playlist === (playlistData.id || playlistData.browseId || '');
             const playingClass = isCurrentlyPlaying ? ' playing' : '';
 
             return `
-                        <div class="playlist-song-item${playingClass}" data-song-id="${song.id || ''}" data-song-name="${title}" data-song-artist="${artist}" data-song-thumbnail="${thumbnail}" data-playlist-id="${currentPlaylist}" data-song-index="${index}">
+                        <div class="playlist-song-item${playingClass}" data-song-id="${song.id || ''}" data-song-name="${title}" data-song-artist="${artist}" data-song-thumbnail="${thumbnail}" data-playlist-id="${window.settings.playlist}" data-song-index="${index}">
                             <div class="playlist-song-thumbnail">
                                 ${thumbnail ? `<img src="${thumbnail}" alt="${title}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">` : '🎵'}
                             </div>
