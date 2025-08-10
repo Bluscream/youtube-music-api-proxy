@@ -14,6 +14,18 @@ const SETTINGS_KEYS = {
     RIGHT_SIDEBAR_SPLITTER_POS: 'split'
 };
 
+// Global settings object
+window.settings = {
+    autoplay: true,
+    repeat: 'none', // 'none', 'one', 'all'
+    shuffle: false,
+    playlist: null,
+    song: null,
+    tab: 'info',
+    pos: 0,
+    split: 300
+};
+
 // Settings management functions
 function loadSetting(key, defaultValue = null) {
     // First check query parameters (they override localStorage)
@@ -125,29 +137,23 @@ function applySettings(settings) {
         currentSongId = settings.song;
     }
 
-    // Apply autoplay setting
-    autoPlayEnabled = settings.autoplay;
-
-    // Apply repeat setting
-    repeatMode = settings.repeat;
-
-    // Apply shuffle setting
-    shuffleEnabled = settings.shuffle;
+    // Apply all settings to global settings object
+    window.settings = { ...window.settings, ...settings };
 
     // Apply tab setting (will be applied when rightSidebarManager is initialized)
     if (window.rightSidebarManager) {
-        window.rightSidebarManager.switchTab(settings.tab);
+        window.rightSidebarManager.switchTab(window.settings.tab);
     }
 
     // Apply position setting (song position) - will be applied when audio is loaded
-    if (settings.pos > 0) {
+    if (window.settings.pos > 0) {
         // Store position to apply when audio is loaded
-        window.pendingSongPosition = settings.pos;
+        window.pendingSongPosition = window.settings.pos;
     }
 
     // Apply right sidebar splitter position
     if (window.rightSidebarManager) {
-        window.rightSidebarManager.sidebarWidth = settings.split;
+        window.rightSidebarManager.sidebarWidth = window.settings.split;
         window.rightSidebarManager.updateSidebarWidth();
     }
 
@@ -156,15 +162,22 @@ function applySettings(settings) {
 }
 
 function saveAllSettings() {
-    // Save current state as settings
-    saveSetting(SETTINGS_KEYS.PLAYLIST, currentPlaylist);
-    saveSetting(SETTINGS_KEYS.SONG, currentSongId);
-    saveSetting(SETTINGS_KEYS.AUTOPLAY, autoPlayEnabled);
-    saveSetting(SETTINGS_KEYS.REPEAT, repeatMode);
-    saveSetting(SETTINGS_KEYS.SHUFFLE, shuffleEnabled);
-    saveSetting(SETTINGS_KEYS.TAB, window.rightSidebarManager ? window.rightSidebarManager.currentTab : 'info');
-    saveSetting(SETTINGS_KEYS.POS, currentAudio ? currentAudio.currentTime : 0);
-    saveSetting(SETTINGS_KEYS.RIGHT_SIDEBAR_SPLITTER_POS, window.rightSidebarManager ? window.rightSidebarManager.sidebarWidth : 300);
+    // Update global settings with current state
+    window.settings.playlist = currentPlaylist;
+    window.settings.song = currentSongId;
+    window.settings.tab = window.rightSidebarManager ? window.rightSidebarManager.currentTab : 'info';
+    window.settings.pos = currentAudio ? currentAudio.currentTime : 0;
+    window.settings.split = window.rightSidebarManager ? window.rightSidebarManager.sidebarWidth : 300;
+
+    // Save all settings
+    saveSetting(SETTINGS_KEYS.PLAYLIST, window.settings.playlist);
+    saveSetting(SETTINGS_KEYS.SONG, window.settings.song);
+    saveSetting(SETTINGS_KEYS.AUTOPLAY, window.settings.autoplay);
+    saveSetting(SETTINGS_KEYS.REPEAT, window.settings.repeat);
+    saveSetting(SETTINGS_KEYS.SHUFFLE, window.settings.shuffle);
+    saveSetting(SETTINGS_KEYS.TAB, window.settings.tab);
+    saveSetting(SETTINGS_KEYS.POS, window.settings.pos);
+    saveSetting(SETTINGS_KEYS.RIGHT_SIDEBAR_SPLITTER_POS, window.settings.split);
 }
 
 // Auto-save settings periodically and on important events
@@ -190,15 +203,12 @@ let playlists = [];
 let currentPlaylist = null;
 let currentPlaylistSongs = [];
 let currentSongIndex = -1;
-let autoPlayEnabled = true;
 let isMobileMenuOpen = false;
 let isSidebarCollapsed = false;
 let errorRecoveryTimeout = null; // For automatic playlist advancement on error
 let autoSkip = false;
 
-// Repeat and shuffle modes
-let repeatMode = 'none'; // 'none', 'one', 'all'
-let shuffleEnabled = false;
+// Playlist order management
 let originalPlaylistOrder = [];
 let shuffledPlaylistOrder = [];
 
@@ -1085,8 +1095,8 @@ async function loadSong(songId, title, artist, thumbnail = null, playlistId = nu
 
     // Reset repeat and shuffle if loading from search results (no playlist)
     if (!playlistId) {
-        repeatMode = 'none';
-        shuffleEnabled = false;
+        window.settings.repeat = 'none';
+        window.settings.shuffle = false;
         updateRepeatShuffleDisplay();
     }
 
@@ -1194,20 +1204,20 @@ async function loadSong(songId, title, artist, thumbnail = null, playlistId = nu
             }
 
             // Auto-load next song 3 seconds before current song ends
-            if (autoPlayEnabled && audio.duration && currentPlaylist && currentPlaylistSongs.length > 0) {
+            if (window.settings.autoplay && audio.duration && currentPlaylist && currentPlaylistSongs.length > 0) {
                 const timeRemaining = audio.duration - audio.currentTime;
                 const threeSeconds = 3;
-                
+
                 // Reset trigger flag if user seeks back to more than 3 seconds from end
                 if (timeRemaining > threeSeconds && audio.nextSongTriggered) {
                     audio.nextSongTriggered = false;
                 }
-                
+
                 // Check if we're within 3 seconds of the end and haven't already triggered next song
                 if (timeRemaining <= threeSeconds && !audio.nextSongTriggered) {
                     audio.nextSongTriggered = true;
                     console.log(`🎵 Auto-loading next song (${timeRemaining.toFixed(1)}s remaining)`);
-                    
+
                     // Get next song info
                     const nextIndex = getNextSongIndex();
                     if (nextIndex !== -1) {
@@ -1215,7 +1225,7 @@ async function loadSong(songId, title, artist, thumbnail = null, playlistId = nu
                         const nextTitle = nextSong.name || nextSong.title || 'Unknown Title';
                         const nextArtist = nextSong.artists && nextSong.artists.length > 0 ? nextSong.artists[0].name : '';
                         const nextThumbnail = nextSong.thumbnails && nextSong.thumbnails.length > 0 ? nextSong.thumbnails[0].url : '';
-                        
+
                         // Pre-load the next song (this will prepare it but not start playing)
                         loadSong(nextSong.id || '', nextTitle, nextArtist, nextThumbnail, currentPlaylist, nextIndex);
                     }
@@ -1236,7 +1246,7 @@ async function loadSong(songId, title, artist, thumbnail = null, playlistId = nu
             }
 
             // Handle repeat one mode
-            if (repeatMode === 'one') {
+            if (window.settings.repeat === 'one') {
                 // Replay the same song
                 const currentSong = currentPlaylistSongs[currentSongIndex];
                 const title = currentSong.name || currentSong.title || 'Unknown Title';
@@ -1248,7 +1258,7 @@ async function loadSong(songId, title, artist, thumbnail = null, playlistId = nu
             }
 
             // Auto-play next song if enabled and we're in a playlist
-            if (autoPlayEnabled && currentPlaylist && currentPlaylistSongs.length > 0) {
+            if (window.settings.autoplay && currentPlaylist && currentPlaylistSongs.length > 0) {
                 playNextSong();
             } else {
                 // Clear song info when no more songs to play
@@ -2030,7 +2040,7 @@ function displayPlaylistContent(playlistData, playlistTitle) {
     currentPlaylistSongs = playlistData.songs || [];
 
     // Initialize shuffle order if shuffle is enabled
-    if (shuffleEnabled && currentPlaylistSongs.length > 0) {
+    if (window.settings.shuffle && currentPlaylistSongs.length > 0) {
         createShuffledOrder();
     }
 
@@ -2416,28 +2426,28 @@ function displayArtistContent(artistData, artistName) {
 }
 
 function toggleRepeatMode() {
-    switch (repeatMode) {
+    switch (window.settings.repeat) {
         case 'none':
-            repeatMode = 'all';
+            window.settings.repeat = 'all';
             showInfoNotification('Repeat all enabled');
             break;
         case 'all':
-            repeatMode = 'one';
+            window.settings.repeat = 'one';
             showInfoNotification('Repeat one enabled');
             break;
         case 'one':
-            repeatMode = 'none';
+            window.settings.repeat = 'none';
             showInfoNotification('Repeat disabled');
             break;
     }
-    saveSetting(SETTINGS_KEYS.REPEAT, repeatMode);
+    saveSetting(SETTINGS_KEYS.REPEAT, window.settings.repeat);
     updateRepeatShuffleDisplay();
 }
 
 function toggleShuffle() {
-    shuffleEnabled = !shuffleEnabled;
+    window.settings.shuffle = !window.settings.shuffle;
 
-    if (shuffleEnabled) {
+    if (window.settings.shuffle) {
         // Create shuffled order if we have a playlist
         if (currentPlaylistSongs.length > 0) {
             createShuffledOrder();
@@ -2447,7 +2457,7 @@ function toggleShuffle() {
         showInfoNotification('Shuffle disabled');
     }
 
-    saveSetting(SETTINGS_KEYS.SHUFFLE, shuffleEnabled);
+    saveSetting(SETTINGS_KEYS.SHUFFLE, window.settings.shuffle);
     updateRepeatShuffleDisplay();
 }
 
@@ -2465,14 +2475,14 @@ function createShuffledOrder() {
 function getNextSongIndex() {
     if (currentPlaylistSongs.length === 0 || currentSongIndex === -1) return -1;
 
-    if (shuffleEnabled) {
+    if (window.settings.shuffle) {
         // Find current song in shuffled order
         const currentShuffledIndex = shuffledPlaylistOrder.indexOf(currentSongIndex);
         const nextShuffledIndex = currentShuffledIndex + 1;
 
         if (nextShuffledIndex < shuffledPlaylistOrder.length) {
             return shuffledPlaylistOrder[nextShuffledIndex];
-        } else if (repeatMode === 'all') {
+        } else if (window.settings.repeat === 'all') {
             // Re-shuffle and start from beginning
             createShuffledOrder();
             return shuffledPlaylistOrder[0];
@@ -2481,7 +2491,7 @@ function getNextSongIndex() {
         const nextIndex = currentSongIndex + 1;
         if (nextIndex < currentPlaylistSongs.length) {
             return nextIndex;
-        } else if (repeatMode === 'all') {
+        } else if (window.settings.repeat === 'all') {
             return 0; // Start from beginning
         }
     }
@@ -2492,14 +2502,14 @@ function getNextSongIndex() {
 function getPreviousSongIndex() {
     if (currentPlaylistSongs.length === 0 || currentSongIndex === -1) return -1;
 
-    if (shuffleEnabled) {
+    if (window.settings.shuffle) {
         // Find current song in shuffled order
         const currentShuffledIndex = shuffledPlaylistOrder.indexOf(currentSongIndex);
         const prevShuffledIndex = currentShuffledIndex - 1;
 
         if (prevShuffledIndex >= 0) {
             return shuffledPlaylistOrder[prevShuffledIndex];
-        } else if (repeatMode === 'all') {
+        } else if (window.settings.repeat === 'all') {
             // Go to end of shuffled order
             return shuffledPlaylistOrder[shuffledPlaylistOrder.length - 1];
         }
@@ -2507,7 +2517,7 @@ function getPreviousSongIndex() {
         const prevIndex = currentSongIndex - 1;
         if (prevIndex >= 0) {
             return prevIndex;
-        } else if (repeatMode === 'all') {
+        } else if (window.settings.repeat === 'all') {
             return currentPlaylistSongs.length - 1; // Go to end
         }
     }
@@ -2520,7 +2530,7 @@ function updateRepeatShuffleDisplay() {
     const shuffleButton = document.getElementById('shuffleButton');
 
     // Update repeat button
-    switch (repeatMode) {
+    switch (window.settings.repeat) {
         case 'none':
             repeatButton.textContent = '🔁';
             repeatButton.title = 'No repeat';
@@ -2539,7 +2549,7 @@ function updateRepeatShuffleDisplay() {
     }
 
     // Update shuffle button
-    if (shuffleEnabled) {
+    if (window.settings.shuffle) {
         shuffleButton.textContent = '🔀';
         shuffleButton.style.color = '#1db954';
         shuffleButton.title = 'Shuffle on';
