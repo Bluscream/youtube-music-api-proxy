@@ -2,6 +2,187 @@
 // and are synchronized with CSS custom properties for consistent responsive behavior
 const SIDEBAR_COLLAPSE_BREAKPOINT = 800; // Breakpoint for sidebar collapse (desktop and mobile)
 
+// Settings system
+const SETTINGS_KEYS = {
+    PLAYLIST: 'playlist',
+    SONG: 'song',
+    AUTOPLAY: 'autoplay',
+    REPEAT: 'repeat',
+    SHUFFLE: 'shuffle',
+    TAB: 'tab',
+    POS: 'pos',
+    RIGHT_SIDEBAR_SPLITTER_POS: 'split'
+};
+
+// Settings management functions
+function loadSetting(key, defaultValue = null) {
+    // First check query parameters (they override localStorage)
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryValue = urlParams.get(key);
+
+    if (queryValue !== null) {
+        // Parse the value based on expected type
+        return parseSettingValue(key, queryValue);
+    }
+
+    // Fall back to localStorage
+    try {
+        const storedValue = localStorage.getItem(`setting_${key}`);
+        if (storedValue !== null) {
+            return parseSettingValue(key, storedValue);
+        }
+    } catch (error) {
+        console.error(`Error loading setting ${key}:`, error);
+    }
+
+    return defaultValue;
+}
+
+function saveSetting(key, value) {
+    try {
+        // Save to localStorage
+        localStorage.setItem(`setting_${key}`, JSON.stringify(value));
+
+        // Update URL parameters (but don't trigger page reload)
+        const url = new URL(window.location);
+        if (value === null || value === undefined || value === '') {
+            url.searchParams.delete(key);
+        } else {
+            url.searchParams.set(key, value.toString());
+        }
+
+        // Update URL without reloading the page
+        window.history.replaceState({}, '', url);
+
+        console.log(`🎵 Settings System: Setting saved: ${key} = ${value}`);
+    } catch (error) {
+        console.error(`🎵 Settings System: Error saving setting ${key}:`, error);
+    }
+}
+
+function parseSettingValue(key, value) {
+    // Parse values based on their expected type
+    switch (key) {
+        case SETTINGS_KEYS.AUTOPLAY:
+        case SETTINGS_KEYS.SHUFFLE:
+            // Boolean values
+            if (typeof value === 'string') {
+                return value.toLowerCase() === 'true' || value === '1';
+            }
+            return Boolean(value);
+
+        case SETTINGS_KEYS.POS:
+        case SETTINGS_KEYS.RIGHT_SIDEBAR_SPLITTER_POS:
+            // Numeric values
+            const num = parseFloat(value);
+            return isNaN(num) ? 0 : num;
+
+        case SETTINGS_KEYS.REPEAT:
+            // String values with validation
+            if (['none', 'one', 'all'].includes(value)) {
+                return value;
+            }
+            return 'none';
+
+        case SETTINGS_KEYS.TAB:
+            // String values with validation
+            if (['info', 'lyrics'].includes(value)) {
+                return value;
+            }
+            return 'info';
+
+        default:
+            // String values (playlist, song)
+            return value;
+    }
+}
+
+function loadAllSettings() {
+    // Load all settings with their default values
+    const settings = {
+        playlist: loadSetting(SETTINGS_KEYS.PLAYLIST, null),
+        song: loadSetting(SETTINGS_KEYS.SONG, null),
+        autoplay: loadSetting(SETTINGS_KEYS.AUTOPLAY, true),
+        repeat: loadSetting(SETTINGS_KEYS.REPEAT, 'none'),
+        shuffle: loadSetting(SETTINGS_KEYS.SHUFFLE, false),
+        tab: loadSetting(SETTINGS_KEYS.TAB, 'info'),
+        pos: loadSetting(SETTINGS_KEYS.POS, 0),
+        split: loadSetting(SETTINGS_KEYS.RIGHT_SIDEBAR_SPLITTER_POS, 300)
+    };
+
+    console.log('🎵 Settings System: Loaded settings:', settings);
+    return settings;
+}
+
+function applySettings(settings) {
+    // Apply playlist setting
+    if (settings.playlist) {
+        currentPlaylist = settings.playlist;
+    }
+
+    // Apply song setting
+    if (settings.song) {
+        currentSongId = settings.song;
+    }
+
+    // Apply autoplay setting
+    autoPlayEnabled = settings.autoplay;
+
+    // Apply repeat setting
+    repeatMode = settings.repeat;
+
+    // Apply shuffle setting
+    shuffleEnabled = settings.shuffle;
+
+    // Apply tab setting (will be applied when rightSidebarManager is initialized)
+    if (window.rightSidebarManager) {
+        window.rightSidebarManager.switchTab(settings.tab);
+    }
+
+    // Apply position setting (song position) - will be applied when audio is loaded
+    if (settings.pos > 0) {
+        // Store position to apply when audio is loaded
+        window.pendingSongPosition = settings.pos;
+    }
+
+    // Apply right sidebar splitter position
+    if (window.rightSidebarManager) {
+        window.rightSidebarManager.sidebarWidth = settings.split;
+        window.rightSidebarManager.updateSidebarWidth();
+    }
+
+    // Update UI to reflect settings
+    updateRepeatShuffleDisplay();
+}
+
+function saveAllSettings() {
+    // Save current state as settings
+    saveSetting(SETTINGS_KEYS.PLAYLIST, currentPlaylist);
+    saveSetting(SETTINGS_KEYS.SONG, currentSongId);
+    saveSetting(SETTINGS_KEYS.AUTOPLAY, autoPlayEnabled);
+    saveSetting(SETTINGS_KEYS.REPEAT, repeatMode);
+    saveSetting(SETTINGS_KEYS.SHUFFLE, shuffleEnabled);
+    saveSetting(SETTINGS_KEYS.TAB, window.rightSidebarManager ? window.rightSidebarManager.currentTab : 'info');
+    saveSetting(SETTINGS_KEYS.POS, currentAudio ? currentAudio.currentTime : 0);
+    saveSetting(SETTINGS_KEYS.RIGHT_SIDEBAR_SPLITTER_POS, window.rightSidebarManager ? window.rightSidebarManager.sidebarWidth : 300);
+}
+
+// Auto-save settings periodically and on important events
+function setupSettingsAutoSave() {
+    // Save settings every 30 seconds
+    setInterval(saveAllSettings, 30000);
+
+    // Save settings when page is about to unload
+    window.addEventListener('beforeunload', saveAllSettings);
+
+    // Save settings when visibility changes (user switches tabs)
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            saveAllSettings();
+        }
+    });
+}
+
 let currentAudio = null;
 let isPlaying = false;
 let currentSongId = null;
@@ -469,6 +650,7 @@ class SidebarManager {
 
 // Initialize sidebar manager
 const sidebarManager = new SidebarManager();
+window.sidebarManager = sidebarManager;
 
 // Global toggle function for onclick handlers
 function toggleSidebar() {
@@ -711,34 +893,35 @@ function updateURL(params) {
     window.history.pushState({}, '', url);
 }
 
-// Load content from URL parameters on page load
+// Load content from settings on page load
 async function loadFromURL() {
-    const params = getQueryParams();
+    const settings = loadAllSettings();
 
-    if (params.playlist) {
-        // Load playlist from URL parameter
+    if (settings.playlist) {
+        // Load playlist from settings
         try {
-            const response = await fetch(`/api/playlist/${params.playlist}?${buildQueryString(params)}`);
+            const queryParams = getQueryParams();
+            const response = await fetch(`/api/playlist/${settings.playlist}?${buildQueryString(queryParams)}`);
             if (response.ok) {
                 const data = await response.json();
                 const playlistTitle = data.name || data.title || 'Playlist';
                 displayPlaylistContent(data, playlistTitle);
 
                 // Set current playlist
-                currentPlaylist = params.playlist;
+                currentPlaylist = settings.playlist;
                 highlightCurrentPlaylist();
 
-                // If song parameter is also present, load that specific song
-                if (params.song) {
-                    const songIndex = currentPlaylistSongs.findIndex(song => song.id === params.song);
+                // If song setting is also present, load that specific song
+                if (settings.song) {
+                    const songIndex = currentPlaylistSongs.findIndex(song => song.id === settings.song);
                     if (songIndex !== -1) {
                         const song = currentPlaylistSongs[songIndex];
                         const title = song.name || song.title || 'Unknown Title';
                         const artist = song.artists && song.artists.length > 0 ? song.artists[0].name : '';
                         const thumbnail = song.thumbnails && song.thumbnails.length > 0 ? song.thumbnails[0].url : '';
 
-                        // If play parameter is present, auto-play the song
-                        if (params.play) {
+                        // If autoplay is enabled, auto-play the song
+                        if (settings.autoplay) {
                             playSong(song.id || '', title, artist, thumbnail, currentPlaylist, songIndex);
                         } else {
                             loadSong(song.id || '', title, artist, thumbnail, currentPlaylist, songIndex);
@@ -747,27 +930,28 @@ async function loadFromURL() {
                 }
             }
         } catch (error) {
-            console.error('Error loading playlist from URL:', error);
+            console.error('Error loading playlist from settings:', error);
         }
-    } else if (params.song) {
-        // Load specific song from URL parameter
+    } else if (settings.song) {
+        // Load specific song from settings
         try {
-            const response = await fetch(`/api/song/${params.song}?${buildQueryString(params)}`);
+            const queryParams = getQueryParams();
+            const response = await fetch(`/api/song/${settings.song}?${buildQueryString(queryParams)}`);
             if (response.ok) {
                 const data = await response.json();
                 const title = data.name || data.title || 'Unknown Title';
                 const artist = data.artists && data.artists.length > 0 ? data.artists[0].name : '';
                 const thumbnail = data.thumbnails && data.thumbnails.length > 0 ? data.thumbnails[0].url : '';
 
-                // If play parameter is present, auto-play the song
-                if (params.play) {
-                    awa(params.song, title, artist, thumbnail, null, -1);
+                // If autoplay is enabled, auto-play the song
+                if (settings.autoplay) {
+                    playSong(settings.song, title, artist, thumbnail, null, -1);
                 } else {
-                    loadSong(params.song, title, artist, thumbnail, null, -1);
+                    loadSong(settings.song, title, artist, thumbnail, null, -1);
                 }
             }
         } catch (error) {
-            console.error('Error loading song from URL:', error);
+            console.error('Error loading song from settings:', error);
         }
     }
 }
@@ -888,16 +1072,9 @@ async function loadSong(songId, title, artist, thumbnail = null, playlistId = nu
     // Stop all audio playback before loading new song
     stopAllAudio();
 
-    // Update URL with song parameter
-    const urlParams = {};
-    if (playlistId) {
-        urlParams.playlist = playlistId;
-        urlParams.song = songId;
-    } else {
-        urlParams.song = songId;
-        urlParams.playlist = null;
-    }
-    updateURL(urlParams);
+    // Save settings for song and playlist
+    saveSetting(SETTINGS_KEYS.SONG, songId);
+    saveSetting(SETTINGS_KEYS.PLAYLIST, playlistId);
 
     currentSongId = songId;
     currentSongIndex = songIndex;
@@ -981,6 +1158,13 @@ async function loadSong(songId, title, artist, thumbnail = null, playlistId = nu
                     artwork: thumbnail ? [{ src: thumbnail, sizes: '300x300', type: 'image/jpeg' }] : []
                 });
             }
+
+            // Apply pending song position if available
+            if (window.pendingSongPosition && window.pendingSongPosition > 0) {
+                audio.currentTime = window.pendingSongPosition;
+                window.pendingSongPosition = null;
+            }
+
             showInfoNotification(`Loaded: "${title}" by ${artist}`);
         });
 
@@ -995,6 +1179,15 @@ async function loadSong(songId, title, artist, thumbnail = null, playlistId = nu
                     position: audio.currentTime,
                     playbackRate: audio.playbackRate
                 });
+            }
+
+            // Save song position every 5 seconds (prevent multiple saves)
+            const currentSecond = Math.floor(audio.currentTime);
+            const lastSavedSecond = Math.floor(audio.lastSavedPosition || 0);
+
+            if (currentSecond % 5 === 0 && currentSecond !== lastSavedSecond) {
+                audio.lastSavedPosition = audio.currentTime;
+                saveSetting(SETTINGS_KEYS.POS, audio.currentTime);
             }
         });
 
@@ -1381,6 +1574,9 @@ function togglePlay() {
             if (navigator.mediaSession) {
                 navigator.mediaSession.playbackState = 'paused';
             }
+            // Save position when paused
+            saveSetting(SETTINGS_KEYS.POS, currentAudio.currentTime);
+            currentAudio.lastSavedPosition = currentAudio.currentTime;
         } else {
             currentAudio.play();
             document.getElementById('playButton').textContent = '⏸';
@@ -1403,6 +1599,10 @@ function seek(event) {
         const clickX = event.clientX - rect.left;
         const percentage = clickX / rect.width;
         currentAudio.currentTime = percentage * currentAudio.duration;
+
+        // Save position immediately when user seeks
+        saveSetting(SETTINGS_KEYS.POS, currentAudio.currentTime);
+        currentAudio.lastSavedPosition = currentAudio.currentTime;
     }
 }
 
@@ -1551,8 +1751,9 @@ function loadLibrary(event) {
     if (event && event.target) {
         updateActiveNavItem(event.target.closest('.nav-item'));
     }
-    // Clear URL parameters when going to library
-    updateURL({ playlist: null, song: null });
+    // Clear playlist and song settings when going to library
+    saveSetting(SETTINGS_KEYS.PLAYLIST, null);
+    saveSetting(SETTINGS_KEYS.SONG, null);
     loadLibraryData();
 }
 
@@ -1560,8 +1761,9 @@ function loadSongs(event) {
     if (event && event.target) {
         updateActiveNavItem(event.target.closest('.nav-item'));
     }
-    // Clear URL parameters when going to songs
-    updateURL({ playlist: null, song: null });
+    // Clear playlist and song settings when going to songs
+    saveSetting(SETTINGS_KEYS.PLAYLIST, null);
+    saveSetting(SETTINGS_KEYS.SONG, null);
     loadSongsData();
 }
 
@@ -1569,8 +1771,9 @@ function loadArtists(event) {
     if (event && event.target) {
         updateActiveNavItem(event.target.closest('.nav-item'));
     }
-    // Clear URL parameters when going to artists
-    updateURL({ playlist: null, song: null });
+    // Clear playlist and song settings when going to artists
+    saveSetting(SETTINGS_KEYS.PLAYLIST, null);
+    saveSetting(SETTINGS_KEYS.SONG, null);
     loadArtistsData();
 }
 
@@ -1578,16 +1781,18 @@ function loadAlbums(event) {
     if (event && event.target) {
         updateActiveNavItem(event.target.closest('.nav-item'));
     }
-    // Clear URL parameters when going to albums
-    updateURL({ playlist: null, song: null });
+    // Clear playlist and song settings when going to albums
+    saveSetting(SETTINGS_KEYS.PLAYLIST, null);
+    saveSetting(SETTINGS_KEYS.SONG, null);
     loadAlbumsData();
 }
 
 function loadHome(event) {
     if (event && event.target) {
         updateActiveNavItem(event.target.closest('.nav-item'));
-        // Only clear URL parameters when explicitly navigating to home
-        updateURL({ playlist: null, song: null });
+        // Only clear playlist and song settings when explicitly navigating to home
+        saveSetting(SETTINGS_KEYS.PLAYLIST, null);
+        saveSetting(SETTINGS_KEYS.SONG, null);
     }
 
     document.querySelector('.welcome-section').style.display = 'block';
@@ -1601,8 +1806,9 @@ function loadExplore(event) {
     if (event && event.target) {
         updateActiveNavItem(event.target.closest('.nav-item'));
     }
-    // Clear URL parameters when going to explore
-    updateURL({ playlist: null, song: null });
+    // Clear playlist and song settings when going to explore
+    saveSetting(SETTINGS_KEYS.PLAYLIST, null);
+    saveSetting(SETTINGS_KEYS.SONG, null);
 
     // TODO: Implement explore loading
     document.querySelector('.welcome-section').style.display = 'block';
@@ -1752,8 +1958,9 @@ async function loadPlaylist(playlistId, playlistTitle) {
         toggleSidebar();
     }
 
-    // Update URL with playlist parameter
-    updateURL({ playlist: playlistId, song: null });
+    // Save playlist setting
+    saveSetting(SETTINGS_KEYS.PLAYLIST, playlistId);
+    saveSetting(SETTINGS_KEYS.SONG, null);
 
     showLoading();
     try {
@@ -2191,6 +2398,7 @@ function toggleRepeatMode() {
             showInfoNotification('Repeat disabled');
             break;
     }
+    saveSetting(SETTINGS_KEYS.REPEAT, repeatMode);
     updateRepeatShuffleDisplay();
 }
 
@@ -2207,6 +2415,7 @@ function toggleShuffle() {
         showInfoNotification('Shuffle disabled');
     }
 
+    saveSetting(SETTINGS_KEYS.SHUFFLE, shuffleEnabled);
     updateRepeatShuffleDisplay();
 }
 
@@ -2319,15 +2528,21 @@ setupEventDelegation();
 initVolumeSlider();
 updateRepeatShuffleDisplay();
 
-// Check if there are URL parameters to load from
-const params = getQueryParams();
-if (params.playlist || params.song) {
-    // Load playlists first, then load from URL parameters
+// Load and apply settings
+const settings = loadAllSettings();
+applySettings(settings);
+
+// Setup auto-save for settings
+setupSettingsAutoSave();
+
+// Check if there are settings to load from
+if (settings.playlist || settings.song) {
+    // Load playlists first, then load from settings
     loadPlaylists().then(() => {
         loadFromURL();
     });
 } else {
-    // No URL parameters, load home page
+    // No settings, load home page
     loadHome();
     // Load playlists in background
     loadPlaylists();
@@ -2400,6 +2615,13 @@ window.updateInfoPanel = updateInfoPanel;
 window.updateLyricsPanel = updateLyricsPanel;
 window.updateInfoPanelWithBasicInfo = updateInfoPanelWithBasicInfo;
 window.clearInfoPanel = clearInfoPanel;
+
+// Make settings functions globally accessible
+window.loadSetting = loadSetting;
+window.saveSetting = saveSetting;
+window.loadAllSettings = loadAllSettings;
+window.saveAllSettings = saveAllSettings;
+window.applySettings = applySettings;
 
 // Right Sidebar Manager
 class RightSidebarManager {
@@ -2542,6 +2764,7 @@ class RightSidebarManager {
 
             // Save the new width
             this.saveState();
+            saveSetting(SETTINGS_KEYS.RIGHT_SIDEBAR_SPLITTER_POS, this.sidebarWidth);
         };
 
         // Mouse events
@@ -2600,6 +2823,8 @@ class RightSidebarManager {
             this.currentTab = tabName;
             this.saveState();
             this.updateLayout();
+            // Save tab setting
+            saveSetting(SETTINGS_KEYS.TAB, tabName);
         }
     }
 
@@ -2782,6 +3007,26 @@ class RightSidebarManager {
 
 // Initialize right sidebar manager
 const rightSidebarManager = new RightSidebarManager();
+window.rightSidebarManager = rightSidebarManager;
+
+// Apply any pending settings that require the rightSidebarManager
+function applyPendingSettings() {
+    const settings = loadAllSettings();
+
+    // Apply tab setting
+    if (window.rightSidebarManager && settings.tab) {
+        window.rightSidebarManager.switchTab(settings.tab);
+    }
+
+    // Apply right sidebar splitter position
+    if (window.rightSidebarManager && settings.split) {
+        window.rightSidebarManager.sidebarWidth = settings.split;
+        window.rightSidebarManager.updateSidebarWidth();
+    }
+}
+
+// Apply pending settings after a short delay to ensure initialization
+setTimeout(applyPendingSettings, 100);
 
 // Global functions for onclick handlers
 function toggleRightSidebar() {
