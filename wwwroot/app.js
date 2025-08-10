@@ -1165,6 +1165,9 @@ async function loadSong(songId, title, artist, thumbnail = null, playlistId = nu
                 window.pendingSongPosition = null;
             }
 
+            // Reset the next song trigger flag for this new song
+            audio.nextSongTriggered = false;
+
             showInfoNotification(`Loaded: "${title}" by ${artist}`);
         });
 
@@ -1188,6 +1191,35 @@ async function loadSong(songId, title, artist, thumbnail = null, playlistId = nu
             if (currentSecond % 5 === 0 && currentSecond !== lastSavedSecond) {
                 audio.lastSavedPosition = audio.currentTime;
                 saveSetting(SETTINGS_KEYS.POS, audio.currentTime);
+            }
+
+            // Auto-load next song 3 seconds before current song ends
+            if (autoPlayEnabled && audio.duration && currentPlaylist && currentPlaylistSongs.length > 0) {
+                const timeRemaining = audio.duration - audio.currentTime;
+                const threeSeconds = 3;
+                
+                // Reset trigger flag if user seeks back to more than 3 seconds from end
+                if (timeRemaining > threeSeconds && audio.nextSongTriggered) {
+                    audio.nextSongTriggered = false;
+                }
+                
+                // Check if we're within 3 seconds of the end and haven't already triggered next song
+                if (timeRemaining <= threeSeconds && !audio.nextSongTriggered) {
+                    audio.nextSongTriggered = true;
+                    console.log(`🎵 Auto-loading next song (${timeRemaining.toFixed(1)}s remaining)`);
+                    
+                    // Get next song info
+                    const nextIndex = getNextSongIndex();
+                    if (nextIndex !== -1) {
+                        const nextSong = currentPlaylistSongs[nextIndex];
+                        const nextTitle = nextSong.name || nextSong.title || 'Unknown Title';
+                        const nextArtist = nextSong.artists && nextSong.artists.length > 0 ? nextSong.artists[0].name : '';
+                        const nextThumbnail = nextSong.thumbnails && nextSong.thumbnails.length > 0 ? nextSong.thumbnails[0].url : '';
+                        
+                        // Pre-load the next song (this will prepare it but not start playing)
+                        loadSong(nextSong.id || '', nextTitle, nextArtist, nextThumbnail, currentPlaylist, nextIndex);
+                    }
+                }
             }
         });
 
