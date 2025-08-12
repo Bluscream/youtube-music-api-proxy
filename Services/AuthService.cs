@@ -62,7 +62,8 @@ public class AuthService : IAuthService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to generate visitor data");
-            throw new InvalidOperationException($"Failed to generate visitor data: {ex.Message}", ex);
+            // throw new InvalidOperationException($"Failed to generate visitor data: {ex.Message}", ex);
+            return "";
         }
     }
 
@@ -116,7 +117,7 @@ public class AuthService : IAuthService
     {
         if (string.IsNullOrEmpty(visitorData))
         {
-            throw new ArgumentException("Visitor data is required for PoToken generation", nameof(visitorData));
+            _logger.LogWarning("Visitor data is required for PoToken generation");
         }
 
         if (string.IsNullOrEmpty(poTokenServer))
@@ -127,10 +128,10 @@ public class AuthService : IAuthService
         try
         {
             _logger.LogInformation("Using external PoToken server: {PoTokenServer}", poTokenServer);
-            var poToken = await GeneratePoTokenFromServerAsync(poTokenServer, visitorData, cancellationToken);
+            var poTokenResponse = await GeneratePoTokenFromServerAsync(poTokenServer, visitorData, cancellationToken);
             _logger.LogInformation("Successfully generated PoToken from external server: {PoTokenPrefix}...", 
-                poToken.Substring(0, Math.Min(50, poToken.Length)));
-            return poToken;
+                poTokenResponse.PoToken?.Substring(0, Math.Min(50, poTokenResponse.PoToken.Length)) ?? "null");
+            return poTokenResponse.PoToken ?? throw new InvalidOperationException("PoToken server returned null token");
         }
         catch (Exception ex)
         {
@@ -465,7 +466,10 @@ public class AuthService : IAuthService
             {
                 try
                 {
-                    poToken = await GeneratePoTokenRemoteAsync(visitorData, poTokenServer, cancellationToken);
+                    // Get the full PoToken response from server
+                    var poTokenResponse = await GeneratePoTokenFromServerAsync(poTokenServer, visitorData, cancellationToken);
+                    poToken = poTokenResponse.PoToken ?? throw new InvalidOperationException("PoToken server returned null token");
+                    status.PoTokenResponse = poTokenResponse;
                 }
                 catch (Exception ex)
                 {
@@ -492,7 +496,7 @@ public class AuthService : IAuthService
     /// <summary>
     /// Generates a PoToken using the specified external server
     /// </summary>
-    private async Task<string> GeneratePoTokenFromServerAsync(string serverUrl, string visitorData, CancellationToken cancellationToken = default)
+    private async Task<PoTokenResponse> GeneratePoTokenFromServerAsync(string serverUrl, string visitorData, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -534,7 +538,7 @@ public class AuthService : IAuthService
                 if (poTokenResponse?.PoToken != null)
                 {
                     _logger.LogDebug("Successfully generated PoToken from server using PoTokenResponse model");
-                    return poTokenResponse.PoToken;
+                    return poTokenResponse;
                 }
 
                 // Fallback: Try to parse as generic JSON
@@ -547,7 +551,12 @@ public class AuthService : IAuthService
                     if (!string.IsNullOrEmpty(token))
                     {
                         _logger.LogDebug("Successfully generated PoToken from server");
-                        return token;
+                        return new PoTokenResponse
+                        {
+                            PoToken = token,
+                            ContentBinding = visitorData,
+                            ExpiresAt = null // Server didn't provide expiration
+                        };
                     }
                 }
                 
@@ -558,7 +567,12 @@ public class AuthService : IAuthService
                     if (!string.IsNullOrEmpty(token))
                     {
                         _logger.LogDebug("Successfully generated PoToken from server (token field)");
-                        return token;
+                        return new PoTokenResponse
+                        {
+                            PoToken = token,
+                            ContentBinding = visitorData,
+                            ExpiresAt = null // Server didn't provide expiration
+                        };
                     }
                 }
                 
@@ -569,7 +583,12 @@ public class AuthService : IAuthService
                     if (!string.IsNullOrEmpty(token))
                     {
                         _logger.LogDebug("Successfully generated PoToken from server (string response)");
-                        return token;
+                        return new PoTokenResponse
+                        {
+                            PoToken = token,
+                            ContentBinding = visitorData,
+                            ExpiresAt = null // Server didn't provide expiration
+                        };
                     }
                 }
             }
@@ -582,7 +601,12 @@ public class AuthService : IAuthService
             if (!string.IsNullOrWhiteSpace(responseContent))
             {
                 _logger.LogDebug("Using response content as PoToken");
-                return responseContent.Trim();
+                return new PoTokenResponse
+                {
+                    PoToken = responseContent.Trim(),
+                    ContentBinding = visitorData,
+                    ExpiresAt = null // Server didn't provide expiration
+                };
             }
 
             throw new InvalidOperationException("PoToken server returned empty or invalid response");

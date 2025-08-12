@@ -1,4 +1,5 @@
 using System.Net;
+using YoutubeMusicAPIProxy.Models;
 
 namespace YoutubeMusicAPIProxy.Services;
 
@@ -138,6 +139,11 @@ public class AuthStatus
     /// Any error messages from generation
     /// </summary>
     public string? ErrorMessage { get; set; }
+
+    /// <summary>
+    /// Full PoToken response from server (if using external server)
+    /// </summary>
+    public PoTokenResponse? PoTokenResponse { get; set; }
 }
 
 /// <summary>

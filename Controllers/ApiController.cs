@@ -54,6 +54,7 @@ public class ApiController : ControllerBase
             MemoryUsageMB = process.WorkingSet64 / 1024 / 1024
         };
 
+        var poTokenServer = _configService.GetPoTokenServer();
         var environmentInfo = new EnvironmentInfo
         {
             Environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Unknown",
@@ -64,7 +65,6 @@ public class ApiController : ControllerBase
         try
         {
             var cookies = _configService.GetCookies();
-            var poTokenServer = _configService.GetPoTokenServer();
             environmentInfo.AuthStatus = await _authService.GetAuthStatusAsync(cookies, poTokenServer);
         }
         catch (Exception ex)

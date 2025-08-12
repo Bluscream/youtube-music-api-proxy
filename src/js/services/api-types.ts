@@ -353,6 +353,29 @@ export interface RuntimeInfo {
 export interface EnvironmentInfo {
     environment: string;
     cookiesConfigured: boolean;
+    poTokenServerConfigured: boolean;
+    poTokenServer?: string;
+    authStatus?: AuthStatus;
+}
+
+export interface AuthStatus {
+    cookiesConfigured: boolean;
+    poTokenServerConfigured: boolean;
+    poTokenServerReachable: boolean;
+    cookiesValid: boolean;
+    cookieValidationResult?: CookieValidationResult;
+    visitorData?: string;
+    poToken?: string;
+    contentBinding?: string;
+    lastGenerated?: string; // DateTime as string
+    errorMessage?: string;
+}
+
+export interface CookieValidationResult {
+    isValid: boolean;
+    missingCookies: string[];
+    presentCookies: string[];
+    summary: string;
 }
 
 // Lyrics interfaces (from .references/lyrics)
