@@ -465,8 +465,8 @@ public class AuthService : IAuthService
 
             // Generate visitor data for debugging
             var visitorData = await GenerateVisitorDataAsync(cookies, cancellationToken);
-            status.VisitorData = TruncateForDebug(visitorData);
-            status.ContentBinding = TruncateForDebug(visitorData); // Content binding is typically the visitor data
+            status.VisitorData = visitorData;
+            // status.ContentBinding = TruncateForDebug(visitorData); // Content binding is typically the visitor data
 
             // Generate PoToken using the appropriate method
             string poToken;
