@@ -153,7 +153,13 @@
     <!-- Notification Container -->
     <div class="notification-container" id="notificationContainer"></div>
 
+    <script src="/almond.js"></script>
     <script src="/app.js"></script>
+    <script>
+        require(['main'], function () {
+            // App is now loaded and initialized
+        });
+    </script>
 </body>
 
 </html>
