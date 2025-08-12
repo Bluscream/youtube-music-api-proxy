@@ -352,7 +352,7 @@ public class AuthService : IAuthService
                     
                     if (!string.IsNullOrEmpty(name))
                     {
-                        var cookie = new Cookie(name, value);
+                        var cookie = new Cookie(name, value, "/", ".youtube.com");
                         
                         // Set secure flag for cookies that should be secure
                         if (name.StartsWith("__Secure-", StringComparison.OrdinalIgnoreCase))
@@ -469,7 +469,8 @@ public class AuthService : IAuthService
                     // Get the full PoToken response from server
                     var poTokenResponse = await GeneratePoTokenFromServerAsync(poTokenServer, visitorData, cancellationToken);
                     poToken = poTokenResponse.PoToken ?? throw new InvalidOperationException("PoToken server returned null token");
-                    status.PoTokenResponse = poTokenResponse;
+                    status.ContentBinding = poTokenResponse.ContentBinding;
+                    status.ExpiresAt = poTokenResponse.ExpiresAt;
                 }
                 catch (Exception ex)
                 {

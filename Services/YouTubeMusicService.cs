@@ -338,6 +338,7 @@ public class YouTubeMusicService : IYouTubeMusicService
         
         try
         {
+            _logger.LogDebug("Getting information for playlist: {Id}", id);
             // Validate playlist ID format
             if (string.IsNullOrWhiteSpace(id))
             {
@@ -353,6 +354,7 @@ public class YouTubeMusicService : IYouTubeMusicService
             
             // Convert playlist ID to browse ID
             var browseId = client.GetCommunityPlaylistBrowseId(id);
+            _logger.LogDebug("Resolved browse ID: {BrowseId}", browseId);
             
             // Get playlist information
             var playlistInfo = await client.GetCommunityPlaylistInfoAsync(browseId);
@@ -366,6 +368,7 @@ public class YouTubeMusicService : IYouTubeMusicService
             {
                 allSongs.Add(song);
             }
+            _logger.LogDebug("Found {Count} songs in playlist", allSongs.Count);
             
             return new { 
                 id = id,
@@ -379,6 +382,12 @@ public class YouTubeMusicService : IYouTubeMusicService
         {
             // Re-throw argument exceptions as-is
             throw;
+        }
+        catch (Newtonsoft.Json.JsonReaderException ex)
+        {
+
+            _logger.LogError(ex, "JSON parsing error for playlist ID: {Id}. This usually indicates the playlist doesn't exist, is private, or YouTube returned an error page instead of JSON.", id);
+            throw new ArgumentException($"Failed to retrieve playlist with ID '{id}'. The playlist may not exist, may be private, or may be inaccessible. This could also indicate an authentication issue.");
         }
         catch (Exception ex)
         {
