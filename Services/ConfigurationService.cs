@@ -23,20 +23,14 @@ public class ConfigurationService : BaseConfigurationService, IConfigurationServ
         return GetStringValue(queryCookies, _config.Cookies, YouTubeMusicConfigSources.Cookies, print);
     }
 
-    /// <summary>
-    /// Gets visitor data with priority: query parameter > appsettings > environment variable
-    /// </summary>
-    public string? GetVisitorData(string? queryVisitorData = null, bool print = false)
-    {
-        return GetStringValue(queryVisitorData, _config.VisitorData, YouTubeMusicConfigSources.VisitorData, print);
-    }
+
 
     /// <summary>
-    /// Gets PoToken with priority: query parameter > appsettings > environment variable
+    /// Gets PoToken server URL with priority: query parameter > appsettings > environment variable
     /// </summary>
-    public string? GetPoToken(string? queryPoToken = null, bool print = false)
+    public string? GetPoTokenServer(string? queryPoTokenServer = null, bool print = false)
     {
-        return GetStringValue(queryPoToken, _config.PoToken, YouTubeMusicConfigSources.PoToken, print);
+        return GetStringValue(queryPoTokenServer, _config.PoTokenServer, YouTubeMusicConfigSources.PoTokenServer, print);
     }
 
     /// <summary>
@@ -44,7 +38,7 @@ public class ConfigurationService : BaseConfigurationService, IConfigurationServ
     /// </summary>
     public string GetGeographicalLocation(string? queryLocation = null, bool print = false)
     {
-        return GetStringValue(queryLocation, _config.GeographicalLocation, YouTubeMusicConfigSources.GeographicalLocation, print) ?? "US";
+        return GetStringValueNullable(queryLocation, _config.GeographicalLocation, YouTubeMusicConfigSources.GeographicalLocation, print) ?? "US";
     }
 
     /// <summary>
@@ -85,5 +79,30 @@ public class ConfigurationService : BaseConfigurationService, IConfigurationServ
     public bool GetAddLyricsToSongResponse(bool print = false)
     {
         return GetBoolValue(_lyricsConfig.AddToSongResponse, LyricsConfigSources.AddToSongResponse, print);
+    }
+
+    /// <summary>
+    /// Gets the YouTube Music configuration object
+    /// </summary>
+    public YouTubeMusicConfig GetYouTubeMusicConfig()
+    {
+        return _config;
+    }
+
+    /// <summary>
+    /// Logs the final resolved configuration values
+    /// </summary>
+    public void LogResolvedConfiguration()
+    {
+        Console.WriteLine("=== Resolved Configuration Values ===");
+        Console.WriteLine($"Cookies: {(GetCookies() != null ? "Set" : "Not set")}");
+        Console.WriteLine($"PoTokenServer: {(GetPoTokenServer() != null ? "Set" : "Not set")}");
+        Console.WriteLine($"GeographicalLocation: {GetGeographicalLocation()}");
+        Console.WriteLine($"UserAgent: {GetUserAgent()}");
+        Console.WriteLine($"TimeoutSeconds: {GetTimeoutSeconds()}");
+        Console.WriteLine($"MaxRetries: {GetMaxRetries()}");
+        Console.WriteLine($"Debug: {GetDebug()}");
+        Console.WriteLine($"AddLyricsToSongResponse: {GetAddLyricsToSongResponse()}");
+        Console.WriteLine("=== End Resolved Configuration Values ===");
     }
 } 

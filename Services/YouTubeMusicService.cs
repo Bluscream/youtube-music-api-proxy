@@ -19,294 +19,100 @@ namespace YoutubeMusicAPIProxy.Services;
 public class YouTubeMusicService : IYouTubeMusicService
 {
     private readonly IOptions<YouTubeMusicConfig> _config;
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IHttpClientService _httpClientService;
     private readonly ILogger<YouTubeMusicService> _logger;
     private readonly ILyricsService _lyricsService;
     private readonly IConfigurationService _configService;
-    
-    // Cache for generated session data to avoid regenerating on every request
-    private readonly Dictionary<string, (string VisitorData, string PoToken, DateTime Expiry)> _sessionCache = new();
-    private readonly object _sessionCacheLock = new object();
+    private readonly IAuthService _authService;
 
     public YouTubeMusicService(
         IOptions<YouTubeMusicConfig> config,
-        IHttpClientFactory httpClientFactory,
+        IHttpClientService httpClientService,
         ILogger<YouTubeMusicService> logger,
         ILyricsService lyricsService,
-        IConfigurationService configService)
+        IConfigurationService configService,
+        IAuthService authService)
     {
         _config = config;
-        _httpClientFactory = httpClientFactory;
+        _httpClientService = httpClientService;
         _logger = logger;
         _lyricsService = lyricsService;
         _configService = configService;
+        _authService = authService;
     }
 
     /// <summary>
     /// Create a YouTube Music client with the specified configuration
     /// </summary>
-    private async Task<YouTubeMusicClient> CreateClientAsync(
-        string? cookies = null,
-        string? geographicalLocation = null,
-        string? visitorData = null,
-        string? poToken = null)
+    private async Task<YouTubeMusicClient> CreateClientAsync(YouTubeMusicSessionConfig? sessionConfig = null)
     {
         var config = _config.Value;
-        var location = geographicalLocation ?? config.GeographicalLocation;
+        
+        // Use provided session config or create from main config
+        sessionConfig ??= YouTubeMusicSessionConfig.FromMainConfig(config);
         
         // Parse cookies if provided
         IEnumerable<Cookie>? cookieCollection = null;
-        if (!string.IsNullOrEmpty(cookies))
+        var cookieString = sessionConfig.Cookies;
+        
+        if (!string.IsNullOrEmpty(cookieString))
         {
             try
             {
-                cookieCollection = ParseCookies(cookies);
+                cookieCollection = _authService.ParseCookies(cookieString);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to parse cookies from query parameter");
-            }
-        }
-        else if (!string.IsNullOrEmpty(config.Cookies))
-        {
-            try
-            {
-                cookieCollection = ParseCookies(config.Cookies);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to parse cookies from configuration");
+                _logger.LogWarning(ex, "Failed to parse cookies");
             }
         }
 
-        // Get visitor data and poToken if not provided
-        var finalVisitorData = visitorData ?? config.VisitorData;
-        var finalPoToken = poToken ?? config.PoToken;
-
-        // Generate session data if needed using cached data when possible
-        if (cookieCollection != null && (string.IsNullOrEmpty(finalVisitorData) || string.IsNullOrEmpty(finalPoToken)))
+        // Generate session data if needed
+        if (cookieCollection != null && sessionConfig.NeedsSessionDataGeneration())
         {
-            var (cachedVisitorData, cachedPoToken) = await GetOrGenerateSessionDataAsync(cookieCollection);
+            var (generatedVisitorData, generatedPoToken) = await _authService.GenerateSessionDataAsync(sessionConfig);
             
-            if (string.IsNullOrEmpty(finalVisitorData))
-            {
-                finalVisitorData = cachedVisitorData;
-            }
-            
-            if (string.IsNullOrEmpty(finalPoToken))
-            {
-                finalPoToken = cachedPoToken;
-            }
+            // Update session configuration with generated data
+            sessionConfig = sessionConfig.With(
+                visitorData: sessionConfig.VisitorData ?? generatedVisitorData,
+                poToken: sessionConfig.PoToken ?? generatedPoToken);
         }
+
+        // Get cached HTTP client with session data
+        var httpClient = await _httpClientService.GetClientAsync(sessionConfig);
+
+        _logger.LogDebug("Created YouTubeMusicClient");
+        _logger.LogDebug("{SessionConfig}", sessionConfig);
 
         return new YouTubeMusicClient(
             _logger,
-            location,
-            finalVisitorData,
-            finalPoToken,
+            sessionConfig.GeographicalLocation ?? "US",
+            sessionConfig.VisitorData,
+            sessionConfig.PoToken,
             cookieCollection,
-            _httpClientFactory.CreateClient());
+            httpClient);
     }
 
-    /// <summary>
-    /// Get or generate session data (visitor data and proof of origin token) with caching
-    /// </summary>
-    private async Task<(string VisitorData, string PoToken)> GetOrGenerateSessionDataAsync(IEnumerable<Cookie> cookieCollection)
-    {
-        // Create a cache key based on the cookie collection
-        var cookieKey = string.Join("|", cookieCollection.Select(c => $"{c.Name}={c.Value}").OrderBy(s => s));
-        
-        lock (_sessionCacheLock)
-        {
-            // Check if we have valid cached session data
-            if (_sessionCache.TryGetValue(cookieKey, out var cachedData) && cachedData.Expiry > DateTime.UtcNow)
-            {
-                _logger.LogDebug("Using cached session data");
-                return (cachedData.VisitorData, cachedData.PoToken);
-            }
-            
-            // Remove expired entries
-            var expiredKeys = _sessionCache.Keys.Where(k => _sessionCache[k].Expiry <= DateTime.UtcNow).ToList();
-            foreach (var key in expiredKeys)
-            {
-                _sessionCache.Remove(key);
-            }
-        }
 
-        // Generate new session data
-        _logger.LogInformation("Generating new session data using YouTubeSessionGenerator");
-        
-        try
-        {
-            var httpClient = _httpClientFactory.CreateClient();
-            var cookieString = string.Join("; ", cookieCollection.Select(c => $"{c.Name}={c.Value}"));
-            
-            // Only add cookie header if we have actual cookies
-            if (!string.IsNullOrEmpty(cookieString))
-            {
-                httpClient.DefaultRequestHeaders.Add("Cookie", cookieString);
-            }
 
-            using var jsEnvironment = new NodeEnvironment();
-            var sessionCreator = new YouTubeSessionCreator(new()
-            {
-                Logger = _logger,
-                HttpClient = httpClient,
-                JsEnvironment = jsEnvironment
-            });
 
-            // Generate visitor data
-            var visitorData = await sessionCreator.VisitorDataAsync();
-            _logger.LogDebug("Generated visitor data: {VisitorData}", visitorData?.Substring(0, Math.Min(50, visitorData?.Length ?? 0)));
 
-            // Generate proof of origin token
-            var poToken = await sessionCreator.ProofOfOriginTokenAsync(visitorData ?? string.Empty);
-            _logger.LogDebug("Generated PoToken: {PoToken}", poToken?.Substring(0, Math.Min(50, poToken?.Length ?? 0)));
 
-            // Cache the session data for 1 hour
-            var expiry = DateTime.UtcNow.AddHours(1);
-            
-            lock (_sessionCacheLock)
-            {
-                _sessionCache[cookieKey] = (visitorData ?? string.Empty, poToken ?? string.Empty, expiry);
-            }
-
-            _logger.LogInformation("Successfully generated and cached session data");
-            return (visitorData ?? string.Empty, poToken ?? string.Empty);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to generate session data using YouTubeSessionGenerator");
-            
-            // Provide more specific error messages based on the exception type
-            if (ex.Message.Contains("Sign in to confirm you're not a bot"))
-            {
-                throw new InvalidOperationException("YouTube requires authentication. Please provide valid YouTube cookies to access this content.", ex);
-            }
-            else if (ex.Message.Contains("network") || ex.Message.Contains("timeout"))
-            {
-                throw new InvalidOperationException("Network error while generating session data. Please check your internet connection and try again.", ex);
-            }
-            else
-            {
-                throw new InvalidOperationException("Failed to generate YouTube session data. This may be due to network issues, invalid cookies, or YouTube's anti-bot measures.", ex);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Clear the session cache (useful for testing or when cookies change)
-    /// </summary>
-    public void ClearSessionCache()
-    {
-        lock (_sessionCacheLock)
-        {
-            _sessionCache.Clear();
-            _logger.LogInformation("Session cache cleared");
-        }
-    }
-
-    /// <summary>
-    /// Get session cache statistics
-    /// </summary>
-    public object GetSessionCacheStats()
-    {
-        lock (_sessionCacheLock)
-        {
-            var now = DateTime.UtcNow;
-            var totalEntries = _sessionCache.Count;
-            var validEntries = _sessionCache.Count(kvp => kvp.Value.Expiry > now);
-            var expiredEntries = totalEntries - validEntries;
-            
-            return new
-            {
-                totalEntries,
-                validEntries,
-                expiredEntries,
-                cacheSize = _sessionCache.Count
-            };
-        }
-    }
-
-    /// <summary>
-    /// Parse base64 encoded cookies string into Cookie collection
-    /// </summary>
-    private IEnumerable<Cookie> ParseCookies(string base64Cookies)
-    {
-        if (string.IsNullOrWhiteSpace(base64Cookies))
-        {
-            _logger.LogWarning("Empty or null cookies string provided");
-            return new List<Cookie>();
-        }
-
-        // URL-decode the cookies parameter first
-        var urlDecodedCookies = Uri.UnescapeDataString(base64Cookies);
-        _logger.LogDebug("URL-decoded cookies. Original length: {OriginalLength}, Decoded length: {DecodedLength}", 
-            base64Cookies.Length, urlDecodedCookies.Length);
-
-        try
-        {
-            var cookieString = Encoding.UTF8.GetString(Convert.FromBase64String(urlDecodedCookies));
-            _logger.LogDebug("Successfully decoded base64 cookies. Length: {Length}", cookieString.Length);
-            
-            var cookies = new List<Cookie>();
-            
-            foreach (var cookiePair in cookieString.Split(';', StringSplitOptions.RemoveEmptyEntries))
-            {
-                var parts = cookiePair.Trim().Split('=', 2);
-                if (parts.Length == 2)
-                {
-                    var cookie = new Cookie(parts[0].Trim(), parts[1].Trim())
-                    {
-                        Domain = ".youtube.com"
-                    };
-                    cookies.Add(cookie);
-                }
-            }
-            
-            _logger.LogDebug("Parsed {Count} cookies from base64 string", cookies.Count);
-            return cookies;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Base64 decoding failed, trying plain cookie string");
-            
-            // If base64 decoding fails, try parsing as plain cookie string
-            var cookies = new List<Cookie>();
-            foreach (var cookiePair in urlDecodedCookies.Split(';', StringSplitOptions.RemoveEmptyEntries))
-            {
-                var parts = cookiePair.Trim().Split('=', 2);
-                if (parts.Length == 2)
-                {
-                    var cookie = new Cookie(parts[0].Trim(), parts[1].Trim())
-                    {
-                        Domain = ".youtube.com"
-                    };
-                    cookies.Add(cookie);
-                }
-            }
-            
-            _logger.LogDebug("Parsed {Count} cookies from plain string", cookies.Count);
-            return cookies;
-        }
-    }
 
     public async Task<PaginatedAsyncEnumerable<SearchResult>> SearchAsync(
         string query,
         SearchCategory? category = null,
-        string? cookies = null,
-        string? geographicalLocation = null)
+        YouTubeMusicSessionConfig? sessionConfig = null)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation);
+        var client = await CreateClientAsync(sessionConfig);
         return client.SearchAsync(query, category);
     }
 
     public async Task<SongVideoInfoResponse> GetSongVideoInfoAsync(
         string id,
-        string? cookies = null,
-        string? geographicalLocation = null)
+        YouTubeMusicSessionConfig? sessionConfig = null)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation);
+        var client = await CreateClientAsync(sessionConfig);
         
         // Get song/video info
         var songVideoInfo = await client.GetSongVideoInfoAsync(id);
@@ -395,120 +201,105 @@ public class YouTubeMusicService : IYouTubeMusicService
 
     public async Task<StreamingData> GetStreamingDataAsync(
         string id,
-        string? cookies = null,
-        string? geographicalLocation = null)
+        YouTubeMusicSessionConfig? sessionConfig = null)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation);
+        var client = await CreateClientAsync(sessionConfig);
         return await client.GetStreamingDataAsync(id);
     }
 
     public async Task<AlbumInfo> GetAlbumInfoAsync(
         string browseId,
-        string? cookies = null,
-        string? geographicalLocation = null)
+        YouTubeMusicSessionConfig? sessionConfig = null)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation);
+        var client = await CreateClientAsync(sessionConfig);
         return await client.GetAlbumInfoAsync(browseId);
     }
 
     public async Task<ArtistInfo> GetArtistInfoAsync(
         string browseId,
-        string? cookies = null,
-        string? geographicalLocation = null)
+        YouTubeMusicSessionConfig? sessionConfig = null)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation);
+        var client = await CreateClientAsync(sessionConfig);
         return await client.GetArtistInfoAsync(browseId);
     }
 
 
 
-    public async Task<object> GetLibraryAsync(
-        string cookies,
-        string? geographicalLocation = null)
+    public async Task<object> GetLibraryAsync(YouTubeMusicSessionConfig sessionConfig)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation);
-        
-        var songs = await client.GetLibrarySongsAsync();
-        var albums = await client.GetLibraryAlbumsAsync();
-        var artists = await client.GetLibraryArtistsAsync();
-        var subscriptions = await client.GetLibrarySubscriptionsAsync();
-        var podcasts = await client.GetLibraryPodcastsAsync();
-        var playlists = await client.GetLibraryCommunityPlaylistsAsync();
+        var client = await CreateClientAsync(sessionConfig);
+
+        var songsTask = client.GetLibrarySongsAsync();
+        var albumsTask = client.GetLibraryAlbumsAsync();
+        var artistsTask = client.GetLibraryArtistsAsync();
+        var subscriptionsTask = client.GetLibrarySubscriptionsAsync();
+        var podcastsTask = client.GetLibraryPodcastsAsync();
+        var playlistsTask = client.GetLibraryCommunityPlaylistsAsync();
+
+        await Task.WhenAll(songsTask, albumsTask, artistsTask, subscriptionsTask, podcastsTask, playlistsTask);
 
         return new
         {
-            songs = songs.ToList(),
-            albums = albums.ToList(),
-            artists = artists.ToList(),
-            subscriptions = subscriptions.ToList(),
-            podcasts = podcasts.ToList(),
-            playlists = playlists.ToList()
+            songs = songsTask.Result.ToList(),
+            albums = albumsTask.Result.ToList(),
+            artists = artistsTask.Result.ToList(),
+            subscriptions = subscriptionsTask.Result.ToList(),
+            podcasts = podcastsTask.Result.ToList(),
+            playlists = playlistsTask.Result.ToList()
         };
     }
 
-    public async Task<object> GetLibrarySongsAsync(
-        string cookies,
-        string? geographicalLocation = null)
+    public async Task<object> GetLibrarySongsAsync(YouTubeMusicSessionConfig sessionConfig)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation);
+        var client = await CreateClientAsync(sessionConfig);
         var songs = await client.GetLibrarySongsAsync();
         return new { songs = songs.ToList() };
     }
 
-    public async Task<object> GetLibraryAlbumsAsync(
-        string cookies,
-        string? geographicalLocation = null)
+    public async Task<object> GetLibraryAlbumsAsync(YouTubeMusicSessionConfig sessionConfig)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation);
+        var client = await CreateClientAsync(sessionConfig);
         var albums = await client.GetLibraryAlbumsAsync();
         return new { albums = albums.ToList() };
     }
 
-    public async Task<object> GetLibraryArtistsAsync(
-        string cookies,
-        string? geographicalLocation = null)
+    public async Task<object> GetLibraryArtistsAsync(YouTubeMusicSessionConfig sessionConfig)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation);
+        var client = await CreateClientAsync(sessionConfig);
         var artists = await client.GetLibraryArtistsAsync();
         return new { artists = artists.ToList() };
     }
 
-    public async Task<object> GetLibrarySubscriptionsAsync(
-        string cookies,
-        string? geographicalLocation = null)
+    public async Task<object> GetLibrarySubscriptionsAsync(YouTubeMusicSessionConfig sessionConfig)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation);
+        var client = await CreateClientAsync(sessionConfig);
         var subscriptions = await client.GetLibrarySubscriptionsAsync();
         return new { subscriptions = subscriptions.ToList() };
     }
 
-    public async Task<object> GetLibraryPodcastsAsync(
-        string cookies,
-        string? geographicalLocation = null)
+    public async Task<object> GetLibraryPodcastsAsync(YouTubeMusicSessionConfig sessionConfig)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation);
+        var client = await CreateClientAsync(sessionConfig);
         var podcasts = await client.GetLibraryPodcastsAsync();
         return new { podcasts = podcasts.ToList() };
     }
 
-    public async Task<object> GetLibraryPlaylistsAsync(
-        string cookies,
-        string? geographicalLocation = null)
+    public async Task<object> GetLibraryPlaylistsAsync(YouTubeMusicSessionConfig sessionConfig)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation);
+        var client = await CreateClientAsync(sessionConfig);
         var playlists = await client.GetLibraryCommunityPlaylistsAsync();
         return new { playlists = playlists.ToList() };
     }
 
     public async Task<object> GetPlaylistAsync(
         string id,
-        string? cookies = null,
-        string? geographicalLocation = null)
+        YouTubeMusicSessionConfig? sessionConfig = null)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation);
+        var client = await CreateClientAsync(sessionConfig);
         
         try
         {
+            _logger.LogDebug("Getting information for playlist: {Id}", id);
             // Validate playlist ID format
             if (string.IsNullOrWhiteSpace(id))
             {
@@ -524,6 +315,7 @@ public class YouTubeMusicService : IYouTubeMusicService
             
             // Convert playlist ID to browse ID
             var browseId = client.GetCommunityPlaylistBrowseId(id);
+            _logger.LogDebug("Resolved browse ID: {BrowseId}", browseId);
             
             // Get playlist information
             var playlistInfo = await client.GetCommunityPlaylistInfoAsync(browseId);
@@ -537,6 +329,7 @@ public class YouTubeMusicService : IYouTubeMusicService
             {
                 allSongs.Add(song);
             }
+            _logger.LogDebug("Found {Count} songs in playlist", allSongs.Count);
             
             return new { 
                 id = id,
@@ -550,6 +343,12 @@ public class YouTubeMusicService : IYouTubeMusicService
         {
             // Re-throw argument exceptions as-is
             throw;
+        }
+        catch (Newtonsoft.Json.JsonReaderException ex)
+        {
+
+            _logger.LogError(ex, "JSON parsing error for playlist ID: {Id}. This usually indicates the playlist doesn't exist, is private, or YouTube returned an error page instead of JSON.", id);
+            throw new ArgumentException($"Failed to retrieve playlist with ID '{id}'. The playlist may not exist, may be private, or may be inaccessible. This could also indicate an authentication issue.");
         }
         catch (Exception ex)
         {

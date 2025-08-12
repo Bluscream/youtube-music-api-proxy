@@ -1,0 +1,18 @@
+// =============================================================================
+// YT Music API Proxy - Main SCSS File
+// =============================================================================
+
+// Import partials
+@import 'variables';
+@import 'mixins';
+@import 'base';
+@import 'components/sidebar';
+@import 'components/main-content';
+@import 'components/player-bar';
+@import 'components/right-sidebar';
+@import 'components/notifications';
+@import 'components/buttons';
+@import 'components/forms';
+@import 'components/utilities';
+@import 'components/search-results';
+@import 'responsive';

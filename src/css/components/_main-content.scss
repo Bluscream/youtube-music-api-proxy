@@ -1,0 +1,191 @@
+// =============================================================================
+// Main Content Component
+// =============================================================================
+
+.main-content {
+    flex: 1;
+    @include flex-column;
+    background-color: $color-background;
+    padding-bottom: $player-height;
+    min-width: 0;
+    overflow-x: hidden;
+    transition: all $transition-base;
+    width: calc(100vw - #{$sidebar-width});
+    padding-right: var(--right-sidebar-width, #{$right-sidebar-width});
+
+    // Sidebar state variations
+    &.sidebar-expanded {
+        @include main-content-state('expanded');
+    }
+
+    &.sidebar-icon {
+        @include main-content-state('icon');
+    }
+
+    &.sidebar-collapsed {
+        @include main-content-state('collapsed');
+    }
+
+    &.sidebar-full {
+        @include main-content-state('full');
+    }
+
+    // Right sidebar state
+    &.right-sidebar-collapsed {
+        padding-right: 0;
+    }
+
+    // Mobile adjustments
+    @include mobile {
+        margin-left: 0;
+        width: 100vw;
+        padding-right: 0;
+    }
+}
+
+// Header
+.header {
+    height: $header-height;
+    background-color: $color-background;
+    border-bottom: 1px solid $color-border;
+    @include flex-center;
+    padding: 0 $spacing-lg;
+    position: sticky;
+    top: 0;
+    z-index: $z-index-sticky;
+    min-width: 0;
+
+    // Search container
+    .search-container {
+        @include flex-start;
+        background-color: $color-surface;
+        border: 1px solid $color-border;
+        border-radius: $border-radius-lg;
+        padding: $spacing-sm $spacing-md;
+        flex: 1;
+        max-width: 400px;
+        margin: 0 $spacing-lg;
+
+        .search-icon {
+            color: $color-text-secondary;
+            margin-right: $spacing-sm;
+            font-size: $font-size-base;
+        }
+
+        .search-input {
+            @include button-reset;
+            background: none;
+            color: $color-text-primary;
+            font-size: $font-size-base;
+            width: 100%;
+            outline: none;
+
+            &::placeholder {
+                color: $color-text-secondary;
+            }
+        }
+    }
+
+    // Mobile menu toggle
+    .mobile-menu-toggle {
+        display: none;
+
+        @include mobile {
+            display: flex;
+        }
+    }
+
+    // Right sidebar mobile toggle
+    .right-sidebar-mobile-toggle {
+        @include button-base;
+        background-color: $color-surface;
+        color: $color-text-primary;
+        border: 1px solid $color-border;
+        border-radius: $border-radius-sm;
+        width: 40px;
+        height: 40px;
+        font-size: $font-size-lg;
+        margin-left: $spacing-md;
+
+        @include desktop {
+            display: none;
+        }
+    }
+}
+
+// Content area
+.content-area {
+    flex: 1;
+    padding: $spacing-lg;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-width: 0;
+    @include custom-scrollbar;
+}
+
+// Welcome section
+.welcome-section {
+    text-align: center;
+    margin-bottom: $spacing-2xl;
+
+    .welcome-title {
+        font-size: $font-size-2xl;
+        font-weight: $font-weight-bold;
+        margin-bottom: $spacing-md;
+        color: $color-text-primary;
+    }
+
+    .welcome-subtitle {
+        font-size: $font-size-base;
+        color: $color-text-secondary;
+        margin-bottom: $spacing-lg;
+    }
+}
+
+// Search results
+.search-results {
+    display: none;
+
+    &.active {
+        display: block;
+    }
+}
+
+// Library content
+.library-content {
+    display: none;
+
+    &.active {
+        display: block;
+    }
+
+    .library-section {
+        h2 {
+            font-size: $font-size-xl;
+            font-weight: $font-weight-bold;
+            margin-bottom: $spacing-lg;
+            color: $color-text-primary;
+        }
+
+        .library-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: $spacing-lg;
+
+            .library-category {
+                h3 {
+                    font-size: $font-size-lg;
+                    font-weight: $font-weight-medium;
+                    margin-bottom: $spacing-md;
+                    color: $color-text-primary;
+                }
+
+                .library-items {
+                    display: flex;
+                    flex-direction: column;
+                    gap: $spacing-sm;
+                }
+            }
+        }
+    }
+}

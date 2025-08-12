@@ -1,0 +1,407 @@
+// =============================================================================
+// Search Results Component
+// =============================================================================
+
+.search-results {
+    display: none;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: $spacing-md;
+    margin-top: $spacing-lg;
+    width: 100%;
+    box-sizing: border-box;
+
+    // Header section
+    .search-results-header,
+    .playlist-header,
+    .grid-header {
+        grid-column: 1 / -1;
+        margin-bottom: $spacing-lg;
+
+        h1,
+        h2 {
+            color: $color-text-primary;
+            margin-bottom: $spacing-sm;
+            font-size: $font-size-xl;
+            font-weight: $font-weight-bold;
+        }
+
+        p {
+            color: $color-text-secondary;
+            margin: 0;
+            font-size: $font-size-sm;
+        }
+    }
+
+    // Result cards
+    .result-card {
+        background-color: $color-surface;
+        border-radius: $border-radius-md;
+        padding: $spacing-md;
+        cursor: pointer;
+        transition: background-color $transition-base;
+        box-sizing: border-box;
+
+        &:hover {
+            background-color: $color-surface-light;
+        }
+
+        .result-thumbnail {
+            width: 100%;
+            height: 120px;
+            background-color: $color-surface-dark;
+            border-radius: $border-radius-sm;
+            margin-bottom: $spacing-md;
+            @include flex-center;
+            color: $color-text-muted;
+            overflow: hidden;
+
+            img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                border-radius: $border-radius-sm;
+            }
+        }
+
+        .result-title {
+            font-size: $font-size-sm;
+            font-weight: $font-weight-medium;
+            margin-bottom: $spacing-xs;
+            color: $color-text-primary;
+            @include text-multiline-truncate(2);
+        }
+
+        .result-artist {
+            font-size: $font-size-xs;
+            color: $color-text-secondary;
+            @include text-multiline-truncate(2);
+        }
+
+        // Not playable indicator
+        .not-playable-indicator {
+            font-size: 10px;
+            color: $color-text-muted;
+            margin-top: $spacing-xs;
+        }
+    }
+
+    // Songs list layout
+    .songs-list {
+        grid-column: 1 / -1;
+        @include flex-column;
+        gap: $spacing-sm;
+
+        .song-item {
+            @include flex-start;
+            padding: $spacing-md;
+            background-color: $color-surface;
+            border-radius: $border-radius-md;
+            cursor: pointer;
+            transition: background-color $transition-base;
+            gap: $spacing-md;
+
+            &:hover {
+                background-color: $color-surface-light;
+            }
+
+            &.playing {
+                background-color: $color-primary;
+                color: $color-text-primary;
+
+                .song-title,
+                .song-artist,
+                .song-duration {
+                    color: $color-text-primary;
+                }
+            }
+
+            .song-thumbnail {
+                width: 48px;
+                height: 48px;
+                background-color: $color-surface-dark;
+                border-radius: $border-radius-sm;
+                flex-shrink: 0;
+                @include flex-center;
+                color: $color-text-muted;
+                overflow: hidden;
+
+                img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    border-radius: $border-radius-sm;
+                }
+            }
+
+            .song-info {
+                flex: 1;
+                min-width: 0;
+
+                .song-title {
+                    font-size: $font-size-sm;
+                    font-weight: $font-weight-medium;
+                    color: $color-text-primary;
+                    margin-bottom: $spacing-xs;
+                    @include text-truncate;
+                }
+
+                .song-artist {
+                    font-size: $font-size-xs;
+                    color: $color-text-secondary;
+                    @include text-truncate;
+                }
+            }
+
+            .song-duration {
+                font-size: $font-size-xs;
+                color: $color-text-secondary;
+                font-weight: $font-weight-medium;
+                min-width: 24px;
+                text-align: center;
+            }
+        }
+    }
+
+    // Results grid layout
+    .results-grid {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: $spacing-md;
+
+        .result-card {
+            .result-card-thumbnail {
+                width: 100%;
+                height: 120px;
+                background-color: $color-surface-dark;
+                border-radius: $border-radius-sm;
+                margin-bottom: $spacing-md;
+                @include flex-center;
+                color: $color-text-muted;
+                overflow: hidden;
+
+                img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    border-radius: $border-radius-sm;
+                }
+            }
+
+            .result-card-info {
+                .result-card-title {
+                    font-size: $font-size-sm;
+                    font-weight: $font-weight-medium;
+                    color: $color-text-primary;
+                    margin-bottom: $spacing-xs;
+                    @include text-truncate;
+                }
+
+                .result-card-subtitle {
+                    font-size: $font-size-xs;
+                    color: $color-text-secondary;
+                    @include text-truncate;
+                }
+            }
+        }
+    }
+
+    // No content messages
+    .no-content-message,
+    .no-songs,
+    .no-results {
+        text-align: center;
+        color: $color-text-secondary;
+        grid-column: 1 / -1;
+        padding: $spacing-2xl;
+        font-size: $font-size-base;
+    }
+}
+
+// Library content
+.library-content {
+    padding: $spacing-lg 0;
+
+    .library-section {
+        h2 {
+            font-size: $font-size-xl;
+            font-weight: $font-weight-bold;
+            margin-bottom: $spacing-lg;
+            color: $color-text-primary;
+        }
+
+        .library-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: $spacing-lg;
+
+            .library-category {
+                h3 {
+                    font-size: $font-size-lg;
+                    font-weight: $font-weight-medium;
+                    margin-bottom: $spacing-md;
+                    color: $color-text-primary;
+                    border-bottom: 1px solid $color-border;
+                    padding-bottom: $spacing-sm;
+                }
+
+                .library-items {
+                    @include flex-column;
+                    gap: $spacing-sm;
+
+                    .library-item {
+                        @include flex-start;
+                        padding: $spacing-sm $spacing-md;
+                        background-color: $color-surface;
+                        border-radius: $border-radius-sm;
+                        cursor: pointer;
+                        transition: background-color $transition-base;
+
+                        &:hover {
+                            background-color: $color-surface-light;
+                        }
+
+                        .library-item-thumbnail {
+                            width: 40px;
+                            height: 40px;
+                            background-color: $color-surface-dark;
+                            border-radius: $border-radius-sm;
+                            margin-right: $spacing-md;
+                            flex-shrink: 0;
+                            @include flex-center;
+                            color: $color-text-muted;
+                            overflow: hidden;
+
+                            img {
+                                width: 100%;
+                                height: 100%;
+                                object-fit: cover;
+                                border-radius: $border-radius-sm;
+                            }
+                        }
+
+                        .library-item-info {
+                            flex: 1;
+                            min-width: 0;
+
+                            .library-item-title {
+                                font-size: $font-size-sm;
+                                font-weight: $font-weight-medium;
+                                color: $color-text-primary;
+                                margin-bottom: 2px;
+                                @include text-truncate;
+                            }
+
+                            .library-item-subtitle {
+                                font-size: $font-size-xs;
+                                color: $color-text-secondary;
+                                @include text-truncate;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Playlist items in sidebar
+.playlist-item {
+    @include flex-start;
+    padding: $spacing-sm $spacing-md;
+    color: $color-text-secondary;
+    text-decoration: none;
+    transition: all $transition-base;
+    cursor: pointer;
+    border-radius: $border-radius-sm;
+
+    &:hover {
+        background-color: $color-surface;
+        color: $color-text-primary;
+    }
+
+    &.active {
+        background-color: $color-primary;
+        color: $color-text-primary;
+
+        &:hover {
+            background-color: $color-primary-hover;
+            color: $color-text-primary;
+        }
+    }
+
+    .playlist-thumbnail {
+        width: 40px;
+        height: 40px;
+        margin-right: $spacing-md;
+        border-radius: $border-radius-sm;
+        flex-shrink: 0;
+        @include flex-center;
+        background-color: $color-surface-dark;
+        color: $color-text-muted;
+        overflow: hidden;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    }
+
+    .info-container {
+        flex: 1;
+        overflow: hidden;
+
+        .playlist-name {
+            color: $color-text-primary;
+            font-weight: $font-weight-medium;
+            font-size: $font-size-sm;
+            @include text-truncate;
+        }
+
+        .song-count {
+            color: $color-text-secondary;
+            font-size: $font-size-xs;
+            margin: 0;
+        }
+    }
+}
+
+// Mobile responsiveness
+@include mobile {
+    .search-results {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: $spacing-sm;
+        max-width: 100%;
+        box-sizing: border-box;
+
+        .result-card {
+            padding: $spacing-sm;
+            max-width: 100%;
+            box-sizing: border-box;
+
+            .result-thumbnail {
+                height: 100px;
+            }
+        }
+    }
+
+    .library-content {
+        .library-section {
+            h2 {
+                font-size: $font-size-lg;
+            }
+
+            .library-grid {
+                grid-template-columns: 1fr;
+                gap: $spacing-md;
+
+                .library-category {
+                    h3 {
+                        font-size: $font-size-base;
+                    }
+                }
+            }
+        }
+    }
+}

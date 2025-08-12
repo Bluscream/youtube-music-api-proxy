@@ -1,0 +1,272 @@
+// =============================================================================
+// Sidebar Component
+// =============================================================================
+
+.sidebar {
+    width: $sidebar-width;
+    background-color: $color-background;
+    border-right: 1px solid $color-border;
+    padding: $spacing-lg 0;
+    overflow-y: auto;
+    transition: all $transition-base;
+    position: relative;
+    z-index: $z-index-fixed;
+    @include flex-column;
+    @include custom-scrollbar(6px, $color-background, $color-border);
+
+    // Sidebar states
+    &.expanded {
+        @include sidebar-state('expanded');
+    }
+
+    &.icon {
+        @include sidebar-state('icon');
+    }
+
+    &.collapsed {
+        @include sidebar-state('collapsed');
+    }
+
+    &.full {
+        @include sidebar-state('full');
+    }
+
+    &.mobile-open {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: $sidebar-width;
+        z-index: $z-index-modal;
+        background-color: $color-background;
+        border-right: 1px solid $color-border;
+    }
+
+    // Logo section
+    .logo {
+        @include flex-start;
+        padding: 0 $spacing-lg $spacing-lg;
+        border-bottom: 1px solid $color-border;
+        margin-bottom: $spacing-lg;
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            margin-right: $spacing-md;
+        }
+
+        .logo-text {
+            font-size: $font-size-lg;
+            font-weight: $font-weight-bold;
+            color: $color-text-primary;
+        }
+    }
+
+    // Navigation sections
+    .nav-section {
+        margin-bottom: $spacing-lg;
+
+        .nav-title {
+            font-size: $font-size-sm;
+            font-weight: $font-weight-medium;
+            color: $color-text-secondary;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0 $spacing-lg $spacing-sm;
+            margin-bottom: $spacing-sm;
+        }
+    }
+
+    // Navigation items
+    .nav-item {
+        @include flex-start;
+        padding: $spacing-sm $spacing-lg;
+        color: $color-text-secondary;
+        text-decoration: none;
+        transition: all $transition-base;
+        cursor: pointer;
+        border-radius: 0;
+        margin: 0 $spacing-sm;
+
+        &:hover {
+            background-color: $color-surface;
+            color: $color-text-primary;
+        }
+
+        &.active {
+            background-color: $color-surface;
+            color: $color-text-primary;
+            border-left: 3px solid $color-primary;
+            padding-left: calc(#{$spacing-lg} - 3px);
+        }
+
+        .nav-icon {
+            font-size: $font-size-lg;
+            margin-right: $spacing-md;
+            width: 24px;
+            text-align: center;
+        }
+
+        .nav-text {
+            font-size: $font-size-base;
+            font-weight: $font-weight-medium;
+            @include text-truncate;
+        }
+    }
+
+    // Icon state modifications
+    &.icon {
+
+        .logo-text,
+        .nav-text,
+        .nav-title {
+            display: none;
+        }
+
+        .logo {
+            justify-content: center;
+            padding: 0 $spacing-sm $spacing-lg;
+
+            .logo-icon {
+                margin-right: 0;
+            }
+        }
+
+        .nav-item {
+            justify-content: center;
+            padding: $spacing-sm;
+            margin: 0 $spacing-xs;
+
+            .nav-icon {
+                margin-right: 0;
+            }
+        }
+    }
+
+    // Full state modifications
+    &.full {
+        .logo {
+            justify-content: center;
+            padding: $spacing-lg;
+            border-bottom: 1px solid $color-border;
+            margin-bottom: $spacing-lg;
+        }
+
+        .nav-section {
+            padding: 0 $spacing-lg;
+        }
+
+        .nav-item {
+            padding: $spacing-md $spacing-lg;
+            margin: 0;
+            border-radius: $border-radius-sm;
+
+            .nav-icon {
+                font-size: $font-size-xl;
+                margin-right: $spacing-lg;
+            }
+
+            .nav-text {
+                font-size: $font-size-lg;
+            }
+        }
+    }
+
+    // Playlists section
+    #playlistsSection {
+        .playlist-item {
+            @include flex-start;
+            padding: $spacing-sm $spacing-lg;
+            color: $color-text-secondary;
+            text-decoration: none;
+            transition: all $transition-base;
+            cursor: pointer;
+            border-radius: 0;
+            margin: 0 $spacing-sm;
+
+            &:hover {
+                background-color: $color-surface;
+                color: $color-text-primary;
+            }
+
+            .playlist-icon {
+                font-size: $font-size-base;
+                margin-right: $spacing-md;
+                width: 24px;
+                text-align: center;
+            }
+
+            .playlist-name {
+                font-size: $font-size-sm;
+                @include text-truncate;
+            }
+        }
+    }
+}
+
+// Sidebar toggle button
+.sidebar-toggle {
+    @include button-base;
+    position: fixed;
+    top: $spacing-lg;
+    left: $spacing-lg;
+    z-index: $z-index-fixed;
+    background-color: $color-surface;
+    color: $color-text-primary;
+    border: 1px solid $color-border;
+    border-radius: $border-radius-sm;
+    width: 40px;
+    height: 40px;
+    font-size: $font-size-lg;
+    transition: all $transition-base;
+
+    &:hover {
+        background-color: $color-surface-light;
+        border-color: $color-border-light;
+    }
+
+    // Position based on sidebar state
+    .sidebar.expanded~& {
+        left: calc(#{$sidebar-width} + #{$spacing-lg});
+    }
+
+    .sidebar.icon~& {
+        left: calc(#{$sidebar-width-collapsed} + #{$spacing-lg});
+    }
+
+    .sidebar.collapsed~& {
+        left: $spacing-lg;
+    }
+
+    .sidebar.full~& {
+        display: none;
+    }
+
+    // Mobile menu toggle
+    &.mobile-menu-toggle {
+        display: none;
+
+        @include mobile {
+            display: flex;
+        }
+    }
+}
+
+// Mobile menu backdrop
+.mobile-menu-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: $z-index-modal-backdrop;
+    opacity: 0;
+    visibility: hidden;
+    transition: all $transition-base;
+
+    &.active {
+        opacity: 1;
+        visibility: visible;
+    }
+}

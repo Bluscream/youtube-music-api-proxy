@@ -5,6 +5,7 @@ using YouTubeMusicAPI.Models.Streaming;
 using YouTubeMusicAPI.Models.Library;
 using YoutubeMusicAPIProxy.Services;
 using YoutubeMusicAPIProxy.Models;
+using YoutubeMusicAPIProxy.Configuration;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace YoutubeMusicAPIProxy.Controllers;
@@ -19,15 +20,18 @@ public class ApiController : ControllerBase
 {
     private readonly IYouTubeMusicService _service;
     private readonly IConfigurationService _configService;
+    private readonly IAuthService _authService;
     private readonly ILogger<ApiController> _logger;
 
     public ApiController(
         IYouTubeMusicService service,
         IConfigurationService configService,
+        IAuthService authService,
         ILogger<ApiController> logger)
     {
         _service = service;
         _configService = configService;
+        _authService = authService;
         _logger = logger;
     }
 
@@ -40,7 +44,7 @@ public class ApiController : ControllerBase
     /// <response code="200">Returns health status and version information</response>
     [HttpGet]
     [ProducesResponseType(typeof(HealthResponse), 200)]
-    public IActionResult GetHealth()
+    public async Task<IActionResult> GetHealth()
     {
         var process = System.Diagnostics.Process.GetCurrentProcess();
         var runtimeInfo = new RuntimeInfo
@@ -56,6 +60,21 @@ public class ApiController : ControllerBase
             Environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Unknown",
             CookiesConfigured = !string.IsNullOrWhiteSpace(_configService.GetCookies())
         };
+
+        // Get authentication status for debugging
+        try
+        {
+            var sessionConfig = YouTubeMusicSessionConfig.FromMainConfig(_configService.GetYouTubeMusicConfig());
+            environmentInfo.AuthStatus = await _authService.GetAuthStatusAsync(sessionConfig);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to get authentication status for health check");
+            environmentInfo.AuthStatus = new AuthStatus
+            {
+                ErrorMessage = ex.Message
+            };
+        }
 
         var healthResponse = new HealthResponse
         {
@@ -98,7 +117,11 @@ public class ApiController : ControllerBase
         try
         {
             var authCookies = _configService.GetCookies(cookies);
-            var searchResults = await _service.SearchAsync(query, category, authCookies, location);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var searchResults = await _service.SearchAsync(query, category, sessionConfig);
             var results = new List<SearchResult>();
             
             await foreach (var result in searchResults)
@@ -151,7 +174,11 @@ public class ApiController : ControllerBase
         try
         {
             var authCookies = _configService.GetCookies(cookies);
-            var result = await _service.GetSongVideoInfoAsync(id, authCookies, location);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var result = await _service.GetSongVideoInfoAsync(id, sessionConfig);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -194,7 +221,11 @@ public class ApiController : ControllerBase
         try
         {
             var authCookies = _configService.GetCookies(cookies);
-            var result = await _service.GetStreamingDataAsync(id, authCookies, location);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var result = await _service.GetStreamingDataAsync(id, sessionConfig);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -240,7 +271,11 @@ public class ApiController : ControllerBase
         try
         {
             var authCookies = _configService.GetCookies(cookies);
-            var streamingData = await _service.GetStreamingDataAsync(id, authCookies, location);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var streamingData = await _service.GetStreamingDataAsync(id, sessionConfig);
             
             _logger.LogDebug("Retrieved streaming data for ID: {Id}. Stream count: {Count}", 
                 id, streamingData.StreamInfo?.Count() ?? 0);
@@ -340,7 +375,11 @@ public class ApiController : ControllerBase
         try
         {
             var authCookies = _configService.GetCookies(cookies);
-            var result = await _service.GetAlbumInfoAsync(browseId, authCookies, location);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var result = await _service.GetAlbumInfoAsync(browseId, sessionConfig);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -383,7 +422,11 @@ public class ApiController : ControllerBase
         try
         {
             var authCookies = _configService.GetCookies(cookies);
-            var result = await _service.GetArtistInfoAsync(browseId, authCookies, location);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var result = await _service.GetArtistInfoAsync(browseId, sessionConfig);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -423,7 +466,11 @@ public class ApiController : ControllerBase
 
         try
         {
-            var result = await _service.GetLibraryAsync(authCookies, location);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var result = await _service.GetLibraryAsync(sessionConfig);
             return Ok(result);
         }
         catch (Exception ex)
@@ -458,7 +505,11 @@ public class ApiController : ControllerBase
 
         try
         {
-            var result = await _service.GetLibrarySongsAsync(authCookies, location);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var result = await _service.GetLibrarySongsAsync(sessionConfig);
             return Ok(result);
         }
         catch (Exception ex)
@@ -493,7 +544,11 @@ public class ApiController : ControllerBase
 
         try
         {
-            var result = await _service.GetLibraryAlbumsAsync(authCookies, location);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var result = await _service.GetLibraryAlbumsAsync(sessionConfig);
             return Ok(result);
         }
         catch (Exception ex)
@@ -528,7 +583,11 @@ public class ApiController : ControllerBase
 
         try
         {
-            var result = await _service.GetLibraryArtistsAsync(authCookies, location);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var result = await _service.GetLibraryArtistsAsync(sessionConfig);
             return Ok(result);
         }
         catch (Exception ex)
@@ -563,7 +622,11 @@ public class ApiController : ControllerBase
 
         try
         {
-            var result = await _service.GetLibrarySubscriptionsAsync(authCookies, location);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var result = await _service.GetLibrarySubscriptionsAsync(sessionConfig);
             return Ok(result);
         }
         catch (Exception ex)
@@ -598,7 +661,11 @@ public class ApiController : ControllerBase
 
         try
         {
-            var result = await _service.GetLibraryPodcastsAsync(authCookies, location);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var result = await _service.GetLibraryPodcastsAsync(sessionConfig);
             return Ok(result);
         }
         catch (Exception ex)
@@ -633,7 +700,11 @@ public class ApiController : ControllerBase
 
         try
         {
-            var result = await _service.GetLibraryPlaylistsAsync(authCookies, location);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var result = await _service.GetLibraryPlaylistsAsync(sessionConfig);
             return Ok(result);
         }
         catch (Exception ex)
@@ -672,7 +743,11 @@ public class ApiController : ControllerBase
         try
         {
             var authCookies = _configService.GetCookies(cookies);
-            var result = await _service.GetPlaylistAsync(id, authCookies, location);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var result = await _service.GetPlaylistAsync(id, sessionConfig);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -687,49 +762,5 @@ public class ApiController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Clear the session cache (useful for testing or when cookies change)
-    /// </summary>
-    /// <returns>Success message</returns>
-    /// <response code="200">Session cache cleared successfully</response>
-    /// <response code="500">If there was an internal server error</response>
-    [HttpPost("cache/clear")]
-    [ProducesResponseType(typeof(object), 200)]
-    [ProducesResponseType(typeof(ErrorResponse), 500)]
-    public IActionResult ClearSessionCache()
-    {
-        try
-        {
-            _service.ClearSessionCache();
-            return Ok(new { message = "Session cache cleared successfully" });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error clearing session cache");
-            return StatusCode(500, new ErrorResponse { Error = "Internal server error" });
-        }
-    }
 
-    /// <summary>
-    /// Get session cache statistics
-    /// </summary>
-    /// <returns>Cache statistics</returns>
-    /// <response code="200">Returns cache statistics</response>
-    /// <response code="500">If there was an internal server error</response>
-    [HttpGet("cache/stats")]
-    [ProducesResponseType(typeof(object), 200)]
-    [ProducesResponseType(typeof(ErrorResponse), 500)]
-    public IActionResult GetSessionCacheStats()
-    {
-        try
-        {
-            var stats = _service.GetSessionCacheStats();
-            return Ok(stats);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting session cache stats");
-            return StatusCode(500, new ErrorResponse { Error = "Internal server error" });
-        }
-    }
 } 

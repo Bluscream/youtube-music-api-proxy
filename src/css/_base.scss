@@ -1,0 +1,98 @@
+// =============================================================================
+// Base Styles
+// =============================================================================
+
+// CSS Custom Properties (CSS Variables)
+:root {
+    --sidebar-collapse-breakpoint: #{$breakpoint-tablet};
+    --right-sidebar-width: #{$right-sidebar-width};
+}
+
+// Global reset
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+// Base body styles
+body {
+    font-family: $font-family-primary;
+    background-color: $color-background;
+    color: $color-text-primary;
+    @include flex-column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+// Global scrollbar styles
+* {
+    @include custom-scrollbar;
+}
+
+// Loading and error states
+.loading {
+    display: none;
+    text-align: center;
+    padding: $spacing-2xl;
+    color: $color-text-secondary;
+}
+
+.error {
+    display: none;
+    text-align: center;
+    padding: $spacing-2xl;
+    color: $color-error;
+}
+
+// Utility classes
+.sr-only {
+    @include sr-only;
+}
+
+.text-truncate {
+    @include text-truncate;
+}
+
+.text-multiline-truncate {
+    @include text-multiline-truncate;
+}
+
+.flex-center {
+    @include flex-center;
+}
+
+.flex-between {
+    @include flex-between;
+}
+
+.flex-start {
+    @include flex-start;
+}
+
+.flex-column {
+    @include flex-column;
+}
+
+.flex-column-center {
+    @include flex-column-center;
+}
+
+// Focus styles
+button,
+input,
+textarea,
+select {
+    @include focus-ring;
+}
+
+// Selection styles
+::selection {
+    background-color: $color-primary;
+    color: $color-text-primary;
+}
+
+::-moz-selection {
+    background-color: $color-primary;
+    color: $color-text-primary;
+}

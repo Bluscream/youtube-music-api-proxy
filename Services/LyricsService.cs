@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using YoutubeMusicAPIProxy.Configuration;
 using YoutubeMusicAPIProxy.Models;
 
 namespace YoutubeMusicAPIProxy.Services;
@@ -10,22 +11,50 @@ namespace YoutubeMusicAPIProxy.Services;
 public class LyricsService : ILyricsService
 {
     private readonly HttpClient _httpClient;
+    private readonly IHttpClientService _httpClientService;
     private readonly ILogger<LyricsService> _logger;
     private readonly string _baseUrl = "https://api-lyrics.simpmusic.org/v1";
 
-    public LyricsService(HttpClient httpClient, ILogger<LyricsService> logger)
+    public LyricsService(HttpClient httpClient, IHttpClientService httpClientService, ILogger<LyricsService> logger)
     {
         _httpClient = httpClient;
+        _httpClientService = httpClientService;
         _logger = logger;
     }
 
     /// <summary>
-    /// Get lyrics for a video ID with timeout
+    /// Get lyrics for a video ID with timeout using the default HTTP client
     /// </summary>
     /// <param name="videoId">YouTube video ID</param>
     /// <param name="timeout">Timeout duration (default: 1 second)</param>
     /// <returns>Raw lyrics API response or null if timeout/client error</returns>
     public async Task<LyricsApiResponse?> GetLyricsAsync(string videoId, TimeSpan timeout = default)
+    {
+        return await GetLyricsWithClientAsync(videoId, _httpClient, timeout);
+    }
+
+    /// <summary>
+    /// Get lyrics for a video ID with timeout using a cached HTTP client
+    /// </summary>
+    /// <param name="videoId">YouTube video ID</param>
+    /// <param name="timeout">Timeout duration (default: 1 second)</param>
+    /// <param name="cookies">Optional cookies for the request</param>
+    /// <returns>Raw lyrics API response or null if timeout/client error</returns>
+    public async Task<LyricsApiResponse?> GetLyricsWithCachedClientAsync(string videoId, TimeSpan timeout = default, string? cookies = null)
+    {
+        var sessionConfig = new YouTubeMusicSessionConfig { Cookies = cookies };
+        var cachedClient = await _httpClientService.GetAuthClientAsync(sessionConfig);
+        return await GetLyricsWithClientAsync(videoId, cachedClient, timeout);
+    }
+
+    /// <summary>
+    /// Get lyrics for a video ID with timeout using the specified HTTP client
+    /// </summary>
+    /// <param name="videoId">YouTube video ID</param>
+    /// <param name="httpClient">HTTP client to use for the request</param>
+    /// <param name="timeout">Timeout duration (default: 1 second)</param>
+    /// <returns>Raw lyrics API response or null if timeout/client error</returns>
+    private async Task<LyricsApiResponse?> GetLyricsWithClientAsync(string videoId, HttpClient httpClient, TimeSpan timeout = default)
     {
         if (timeout == default)
         {

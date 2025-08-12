@@ -15,21 +15,15 @@ public interface IConfigurationService
     /// <returns>Cookies string or null if not found</returns>
     string? GetCookies(string? queryCookies = null, bool print = false);
 
-    /// <summary>
-    /// Gets visitor data with priority: query parameter > appsettings > environment variable
-    /// </summary>
-    /// <param name="queryVisitorData">Visitor data from query parameter</param>
-    /// <param name="print">Whether to print debug information to console</param>
-    /// <returns>Visitor data string or null if not found</returns>
-    string? GetVisitorData(string? queryVisitorData = null, bool print = false);
+
 
     /// <summary>
-    /// Gets PoToken with priority: query parameter > appsettings > environment variable
+    /// Gets PoToken server URL with priority: query parameter > appsettings > environment variable
     /// </summary>
-    /// <param name="queryPoToken">PoToken from query parameter</param>
+    /// <param name="queryPoTokenServer">PoToken server URL from query parameter</param>
     /// <param name="print">Whether to print debug information to console</param>
-    /// <returns>PoToken string or null if not found</returns>
-    string? GetPoToken(string? queryPoToken = null, bool print = false);
+    /// <returns>PoToken server URL string or null if not found</returns>
+    string? GetPoTokenServer(string? queryPoTokenServer = null, bool print = false);
 
     /// <summary>
     /// Gets geographical location with priority: query parameter > appsettings > environment variable
@@ -73,4 +67,15 @@ public interface IConfigurationService
     /// <param name="print">Whether to print debug information to console</param>
     /// <returns>Whether to add lyrics to song responses</returns>
     bool GetAddLyricsToSongResponse(bool print = false);
+
+    /// <summary>
+    /// Gets the YouTube Music configuration object
+    /// </summary>
+    /// <returns>YouTube Music configuration</returns>
+    YouTubeMusicConfig GetYouTubeMusicConfig();
+
+    /// <summary>
+    /// Logs the final resolved configuration values
+    /// </summary>
+    void LogResolvedConfiguration();
 } 
