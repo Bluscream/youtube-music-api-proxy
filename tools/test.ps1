@@ -4,7 +4,7 @@
 # Define the test URLs and output files
 $testCases = @(
     @{ Url = "http://localhost/index.html?playlist=PLZcTzTcUhr8VCHVm_M_rq6ppG_SDzthMU&song=ipzIYkVthno"; OutFile = ".test/index.html"; Label = "index" },
-    @{ Url = "http://localhost/api"; OutFile = ".test/test_health.json"; Label = "health" }
+    @{ Url = "http://localhost/api"; OutFile = ".test/health.json"; Label = "health" }
 )
 
 function Invoke-TestRequest {
@@ -66,13 +66,5 @@ catch {
     Write-Host "Error during web request: $($_.Exception.Message)" -ForegroundColor Red
 }
 finally {
-    # Clean up - stop the dotnet process
-    Write-Host "Stopping the app..." -ForegroundColor Yellow
-
-    if (-not $process.HasExited) {
-        $process.Kill()
-        $process.WaitForExit(5000) | Out-Null
-    }
-
-    Write-Host "Test completed." -ForegroundColor Green
+    if (-not $process.HasExited) { $process.Kill(); $process.WaitForExit(5000) | Out-Null }
 }
