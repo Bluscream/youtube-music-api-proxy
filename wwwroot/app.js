@@ -162,10 +162,29 @@ define("core/state-manager", ["require", "exports", "core/event-emitter"], funct
     }
     exports.StateManager = StateManager;
 });
-// Type definitions for the YouTube Music API Proxy
-define("types", ["require", "exports"], function (require, exports) {
+// TypeScript interfaces matching C# models from Controllers/ApiController.cs and .references/YouTubeMusicAPI
+define("services/api-types", ["require", "exports"], function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
+    exports.SearchCategory = void 0;
+    // Search interfaces
+    var SearchCategory;
+    (function (SearchCategory) {
+        SearchCategory["Songs"] = "Songs";
+        SearchCategory["Videos"] = "Videos";
+        SearchCategory["Albums"] = "Albums";
+        SearchCategory["CommunityPlaylists"] = "CommunityPlaylists";
+        SearchCategory["Artists"] = "Artists";
+        SearchCategory["Podcasts"] = "Podcasts";
+        SearchCategory["Episodes"] = "Episodes";
+        SearchCategory["Profiles"] = "Profiles";
+    })(SearchCategory || (exports.SearchCategory = SearchCategory = {}));
+});
+define("types", ["require", "exports", "services/api-types"], function (require, exports, api_types_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.SearchCategory = void 0;
+    Object.defineProperty(exports, "SearchCategory", { enumerable: true, get: function () { return api_types_1.SearchCategory; } });
 });
 define("managers/app-settings-manager", ["require", "exports", "core/state-manager"], function (require, exports, state_manager_1) {
     "use strict";
@@ -410,246 +429,96 @@ define("managers/audio-manager", ["require", "exports", "core/state-manager", "m
                         break;
                 }
             });
-            // Listen to settings changes
-            this.settingsManager.subscribe(({ changes }) => {
-                if (changes.repeat !== undefined) {
-                    this.updateRepeatMode();
-                }
-            });
         }
         /**
-         * Play current audio
+         * Play a song
          */
-        async play() {
-            const state = this.getState();
-            if (!state.currentAudio || !state.currentSong)
-                return;
+        async playSong(song, songIndex = -1) {
             try {
-                await state.currentAudio.play();
+                // Stop any currently playing audio
+                this.stopAllAudio();
+                // Create audio element
+                const audio = new Audio();
+                // Set up audio event listeners
+                this.setupAudioEventListeners(audio);
+                // Set the audio source
+                const audioUrl = `/api/stream/${song.id}`;
+                audio.src = audioUrl;
+                // Update state
+                this.setState({
+                    currentAudio: audio,
+                    currentSong: song,
+                    currentSongIndex: songIndex,
+                    isPlaying: false
+                });
+                // Update media session metadata
+                this.updateMediaSessionMetadata(song);
+                // Start playing
+                await audio.play();
                 this.setState({ isPlaying: true });
-                if (this.mediaSession) {
-                    this.mediaSession.playbackState = 'playing';
-                }
-                this.emit('play', { song: state.currentSong });
+                this.emit('play', { song });
+                console.log(`Now playing: ${song.name} by ${song.artists?.[0]?.name || 'Unknown Artist'}`);
             }
             catch (error) {
-                console.error('Error playing audio:', error);
-                this.emit('error', { error: error, song: state.currentSong });
-            }
-        }
-        /**
-         * Pause current audio
-         */
-        pause() {
-            const state = this.getState();
-            if (!state.currentAudio)
-                return;
-            state.currentAudio.pause();
-            this.setState({ isPlaying: false });
-            if (this.mediaSession) {
-                this.mediaSession.playbackState = 'paused';
-            }
-            if (state.currentSong) {
-                this.emit('pause', { song: state.currentSong });
-            }
-        }
-        /**
-         * Stop current audio
-         */
-        stop() {
-            const state = this.getState();
-            if (!state.currentAudio)
-                return;
-            state.currentAudio.pause();
-            state.currentAudio.currentTime = 0;
-            this.setState({
-                isPlaying: false,
-                currentTime: 0,
-                currentSong: null
-            });
-            if (this.mediaSession) {
-                this.mediaSession.playbackState = 'none';
-            }
-            this.emit('stop');
-        }
-        /**
-         * Toggle play/pause
-         */
-        togglePlay() {
-            const state = this.getState();
-            if (state.isPlaying) {
-                this.pause();
-            }
-            else {
-                this.play();
-            }
-        }
-        /**
-         * Play next song in playlist
-         */
-        next() {
-            const state = this.getState();
-            const nextIndex = this.getNextSongIndex();
-            if (nextIndex >= 0 && nextIndex < state.currentPlaylistSongs.length) {
-                const song = state.currentPlaylistSongs[nextIndex];
-                this.playSong(song, nextIndex);
-            }
-        }
-        /**
-         * Play previous song in playlist
-         */
-        previous() {
-            const state = this.getState();
-            const prevIndex = this.getPreviousSongIndex();
-            if (prevIndex >= 0 && prevIndex < state.currentPlaylistSongs.length) {
-                const song = state.currentPlaylistSongs[prevIndex];
-                this.playSong(song, prevIndex);
-            }
-        }
-        /**
-         * Play a specific song
-         */
-        async playSong(song, index = -1) {
-            // Stop current audio
-            this.stopAllAudio();
-            // Create new audio element
-            const audio = new Audio();
-            audio.src = await this.getAudioUrl(song.id);
-            audio.volume = this.getState().volume;
-            // Setup audio event listeners
-            this.setupAudioEventListeners(audio, song);
-            // Update state
-            this.setState({
-                currentAudio: audio,
-                currentSong: song,
-                currentSongIndex: index,
-                currentTime: 0,
-                duration: 0
-            });
-            // Update media session metadata
-            this.updateMediaSessionMetadata(song);
-            // Start playing
-            await this.play();
-        }
-        /**
-         * Set playlist
-         */
-        setPlaylist(songs) {
-            this.setState({ currentPlaylistSongs: songs });
-            this.emit('playlistChange', { songs });
-        }
-        /**
-         * Seek to position
-         */
-        seek(time) {
-            const state = this.getState();
-            if (state.currentAudio) {
-                state.currentAudio.currentTime = time;
-                this.setState({ currentTime: time });
-            }
-        }
-        /**
-         * Set volume
-         */
-        setVolume(volume) {
-            const clampedVolume = Math.max(0, Math.min(1, volume));
-            const state = this.getState();
-            if (state.currentAudio) {
-                state.currentAudio.volume = clampedVolume;
-            }
-            this.setState({ volume: clampedVolume });
-            this.emit('volumeChange', { volume: clampedVolume });
-        }
-        /**
-         * Get current volume
-         */
-        getVolume() {
-            return this.getState().volume;
-        }
-        /**
-         * Get current song
-         */
-        getCurrentSong() {
-            return this.getState().currentSong;
-        }
-        /**
-         * Get current playlist
-         */
-        getCurrentPlaylist() {
-            return this.getState().currentPlaylistSongs;
-        }
-        /**
-         * Get current song index
-         */
-        getCurrentSongIndex() {
-            return this.getState().currentSongIndex;
-        }
-        /**
-         * Check if currently playing
-         */
-        isPlaying() {
-            return this.getState().isPlaying;
-        }
-        /**
-         * Get next song index based on repeat mode
-         */
-        getNextSongIndex() {
-            const state = this.getState();
-            const repeatMode = this.settingsManager.getRepeatMode();
-            if (state.currentSongIndex === -1)
-                return -1;
-            if (repeatMode === 'one') {
-                return state.currentSongIndex; // Repeat current song
-            }
-            else if (repeatMode === 'all') {
-                return (state.currentSongIndex + 1) % state.currentPlaylistSongs.length; // Loop playlist
-            }
-            else {
-                return state.currentSongIndex + 1 < state.currentPlaylistSongs.length ?
-                    state.currentSongIndex + 1 : -1; // Stop at end
-            }
-        }
-        /**
-         * Get previous song index
-         */
-        getPreviousSongIndex() {
-            const state = this.getState();
-            const repeatMode = this.settingsManager.getRepeatMode();
-            if (state.currentSongIndex === -1)
-                return -1;
-            if (repeatMode === 'one') {
-                return state.currentSongIndex; // Repeat current song
-            }
-            else if (repeatMode === 'all') {
-                return state.currentSongIndex - 1 >= 0 ?
-                    state.currentSongIndex - 1 : state.currentPlaylistSongs.length - 1; // Loop playlist
-            }
-            else {
-                return state.currentSongIndex - 1 >= 0 ? state.currentSongIndex - 1 : -1; // Stop at beginning
+                console.error('Error playing song:', error);
+                this.emit('error', { error: error, song });
             }
         }
         /**
          * Setup audio event listeners
          */
-        setupAudioEventListeners(audio, song) {
-            audio.addEventListener('timeupdate', () => {
-                this.setState({
-                    currentTime: audio.currentTime,
-                    duration: audio.duration
-                });
-                this.emit('timeUpdate', {
-                    currentTime: audio.currentTime,
-                    duration: audio.duration
-                });
+        setupAudioEventListeners(audio) {
+            audio.addEventListener('loadstart', () => {
+                console.log('Audio loading started');
+            });
+            audio.addEventListener('canplay', () => {
+                console.log('Audio can start playing');
+            });
+            audio.addEventListener('play', () => {
+                this.setState({ isPlaying: true });
+                if (this.state.currentSong) {
+                    this.emit('play', { song: this.state.currentSong });
+                }
+            });
+            audio.addEventListener('pause', () => {
+                this.setState({ isPlaying: false });
+                if (this.state.currentSong) {
+                    this.emit('pause', { song: this.state.currentSong });
+                }
             });
             audio.addEventListener('ended', () => {
-                this.emit('songEnd', { song });
-                this.next();
+                console.log('Audio playback ended');
+                this.setState({ isPlaying: false });
+                if (this.state.currentSong) {
+                    this.emit('songEnd', { song: this.state.currentSong });
+                }
+                // Auto-play next song if in playlist mode
+                const settings = this.settingsManager.getState();
+                if (settings.repeat === 'all' && this.state.currentPlaylistSongs.length > 0) {
+                    this.next();
+                }
             });
             audio.addEventListener('error', (event) => {
-                const error = new Error('Audio playback error');
-                this.emit('error', { error, song });
-                this.handlePlaybackError(song);
+                console.error('Audio error:', event);
+                const error = event;
+                if (this.state.currentSong) {
+                    this.emit('error', { error: new Error(error.message), song: this.state.currentSong });
+                }
+            });
+            audio.addEventListener('timeupdate', () => {
+                if (audio) {
+                    this.setState({
+                        currentTime: audio.currentTime,
+                        duration: audio.duration
+                    });
+                    this.emit('timeUpdate', { currentTime: audio.currentTime, duration: audio.duration });
+                }
+            });
+            audio.addEventListener('volumechange', () => {
+                if (audio) {
+                    this.setState({ volume: audio.volume });
+                    this.emit('volumeChange', { volume: audio.volume });
+                }
             });
         }
         /**
@@ -659,66 +528,243 @@ define("managers/audio-manager", ["require", "exports", "core/state-manager", "m
             if (!this.mediaSession)
                 return;
             this.mediaSession.metadata = new MediaMetadata({
-                title: song.title,
-                artist: song.artist,
-                album: song.album || '',
-                artwork: song.thumbnail ? [{ src: song.thumbnail }] : []
+                title: song.name,
+                artist: song.artists?.[0]?.name || 'Unknown Artist',
+                album: song.album?.name || '',
+                artwork: song.thumbnails?.map(thumb => ({
+                    src: thumb.url,
+                    sizes: `${thumb.width}x${thumb.height}`,
+                    type: 'image/jpeg'
+                })) || []
             });
         }
         /**
-         * Get audio URL for song
+         * Toggle play/pause
          */
-        async getAudioUrl(songId) {
-            // TODO: Implement API call to get audio URL
-            return `/api/song/${songId}/audio`;
+        togglePlay() {
+            if (this.state.isPlaying) {
+                this.pause();
+            }
+            else {
+                this.play();
+            }
+        }
+        /**
+         * Play current audio
+         */
+        play() {
+            if (this.state.currentAudio && this.state.currentAudio instanceof HTMLAudioElement && !this.state.isPlaying) {
+                this.state.currentAudio.play().then(() => {
+                    this.setState({ isPlaying: true });
+                    if (this.mediaSession) {
+                        this.mediaSession.playbackState = 'playing';
+                    }
+                }).catch(error => {
+                    console.error('Error playing audio:', error);
+                    if (this.state.currentSong) {
+                        this.emit('error', { error, song: this.state.currentSong });
+                    }
+                });
+            }
+        }
+        /**
+         * Pause current audio
+         */
+        pause() {
+            if (this.state.currentAudio && this.state.currentAudio instanceof HTMLAudioElement && this.state.isPlaying) {
+                this.state.currentAudio.pause();
+                this.setState({ isPlaying: false });
+                if (this.mediaSession) {
+                    this.mediaSession.playbackState = 'paused';
+                }
+            }
+        }
+        /**
+         * Stop all audio
+         */
+        stop() {
+            this.stopAllAudio();
+            if (this.mediaSession) {
+                this.mediaSession.playbackState = 'none';
+            }
+            this.emit('stop');
         }
         /**
          * Stop all audio playback
          */
         stopAllAudio() {
-            const state = this.getState();
-            if (state.currentAudio) {
-                state.currentAudio.pause();
-                state.currentAudio.currentTime = 0;
+            if (this.state.currentAudio && this.state.currentAudio instanceof HTMLAudioElement) {
+                this.state.currentAudio.pause();
+                this.state.currentAudio.currentTime = 0;
             }
-            // Stop all other audio elements
-            document.querySelectorAll('audio').forEach(audio => {
-                if (audio !== state.currentAudio) {
+            // Stop all audio elements
+            const allAudioElements = document.querySelectorAll('audio');
+            allAudioElements.forEach(audio => {
+                if (audio !== this.state.currentAudio) {
                     audio.pause();
                     audio.currentTime = 0;
                 }
             });
-            // Stop all video elements with audio
-            document.querySelectorAll('video').forEach(video => {
-                if (video.audioTracks?.length > 0) {
+            // Stop all video elements with audio tracks
+            const allVideoElements = document.querySelectorAll('video');
+            allVideoElements.forEach(video => {
+                if (video.audioTracks && video.audioTracks.length > 0) {
                     video.pause();
                     video.currentTime = 0;
                 }
             });
+            // Suspend audio context if available
+            if (window.AudioContext || window.webkitAudioContext) {
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    if (audioContext.state === 'running') {
+                        audioContext.suspend();
+                    }
+                }
+                catch (e) {
+                    // Ignore errors
+                }
+            }
+            // Stop all media elements
+            const mediaElements = document.querySelectorAll('audio, video');
+            mediaElements.forEach(media => {
+                const mediaElement = media;
+                if (!mediaElement.paused) {
+                    mediaElement.pause();
+                    mediaElement.currentTime = 0;
+                }
+            });
+            this.setState({
+                currentAudio: null,
+                currentSong: null,
+                isPlaying: false,
+                currentTime: 0,
+                duration: 0
+            });
+            console.log('Stopped all audio playback');
         }
         /**
-         * Handle playback errors
+         * Play next song in playlist
          */
-        handlePlaybackError(song) {
-            const state = this.getState();
-            if (state.errorRecoveryTimeout) {
-                clearTimeout(state.errorRecoveryTimeout);
+        next() {
+            const { currentPlaylistSongs, currentSongIndex } = this.state;
+            if (!currentPlaylistSongs || currentPlaylistSongs.length === 0) {
+                console.log('No playlist songs available');
+                return;
             }
-            if (state.autoSkip && state.currentPlaylistSongs.length > 0) {
-                const timeout = window.setTimeout(() => {
-                    console.log(`Auto-advancing playlist due to playback error: ${song.title}`);
-                    this.next();
-                    this.setState({ errorRecoveryTimeout: null });
-                }, 3000);
-                this.setState({ errorRecoveryTimeout: timeout });
+            let nextIndex = currentSongIndex + 1;
+            const settings = this.settingsManager.getState();
+            // Handle repeat modes
+            if (nextIndex >= currentPlaylistSongs.length) {
+                if (settings.repeat === 'all') {
+                    nextIndex = 0; // Loop back to beginning
+                }
+                else {
+                    console.log('Reached end of playlist');
+                    return;
+                }
+            }
+            const nextSong = currentPlaylistSongs[nextIndex];
+            if (nextSong) {
+                this.playSong(nextSong, nextIndex);
             }
         }
         /**
-         * Update repeat mode display
+         * Play previous song in playlist
          */
-        updateRepeatMode() {
-            // This would update UI elements
-            console.log('Repeat mode updated:', this.settingsManager.getRepeatMode());
+        previous() {
+            const { currentPlaylistSongs, currentSongIndex } = this.state;
+            if (!currentPlaylistSongs || currentPlaylistSongs.length === 0) {
+                console.log('No playlist songs available');
+                return;
+            }
+            let prevIndex = currentSongIndex - 1;
+            const settings = this.settingsManager.getState();
+            // Handle repeat modes
+            if (prevIndex < 0) {
+                if (settings.repeat === 'all') {
+                    prevIndex = currentPlaylistSongs.length - 1; // Loop to end
+                }
+                else {
+                    console.log('Reached beginning of playlist');
+                    return;
+                }
+            }
+            const prevSong = currentPlaylistSongs[prevIndex];
+            if (prevSong) {
+                this.playSong(prevSong, prevIndex);
+            }
+        }
+        /**
+         * Set volume
+         */
+        setVolume(volume) {
+            if (this.state.currentAudio && this.state.currentAudio instanceof HTMLAudioElement) {
+                this.state.currentAudio.volume = Math.max(0, Math.min(1, volume));
+            }
+        }
+        /**
+         * Seek to position
+         */
+        seek(position) {
+            if (this.state.currentAudio && this.state.currentAudio instanceof HTMLAudioElement && !isNaN(position)) {
+                this.state.currentAudio.currentTime = Math.max(0, Math.min(this.state.currentAudio.duration, position));
+            }
+        }
+        /**
+         * Set playlist songs
+         */
+        setPlaylistSongs(songs) {
+            this.setState({ currentPlaylistSongs: songs });
+            this.emit('playlistChange', { songs });
+        }
+        /**
+         * Get current audio state
+         */
+        getCurrentState() {
+            return this.state;
+        }
+        /**
+         * Get current song
+         */
+        getCurrentSong() {
+            return this.state.currentSong;
+        }
+        /**
+         * Get current playlist songs
+         */
+        getCurrentPlaylistSongs() {
+            return this.state.currentPlaylistSongs;
+        }
+        /**
+         * Get current song index
+         */
+        getCurrentSongIndex() {
+            return this.state.currentSongIndex;
+        }
+        /**
+         * Check if currently playing
+         */
+        isCurrentlyPlaying() {
+            return this.state.isPlaying;
+        }
+        /**
+         * Get current time
+         */
+        getCurrentTime() {
+            return this.state.currentTime;
+        }
+        /**
+         * Get duration
+         */
+        getDuration() {
+            return this.state.duration;
+        }
+        /**
+         * Get volume
+         */
+        getVolume() {
+            return this.state.volume;
         }
     }
     exports.AudioManager = AudioManager;
@@ -1559,13 +1605,26 @@ define("services/api-service", ["require", "exports"], function (require, export
             this.baseUrl = '/api';
         }
         /**
+         * Get health and version information
+         */
+        async getHealth() {
+            const response = await fetch(this.baseUrl);
+            if (!response.ok) {
+                throw new Error(`Health check failed: ${response.statusText}`);
+            }
+            return await response.json();
+        }
+        /**
          * Search for content
          */
-        async search(query, category) {
+        async search(query, category, location) {
             const url = new URL(`${this.baseUrl}/search`, window.location.origin);
             url.searchParams.set('query', query);
             if (category) {
                 url.searchParams.set('category', category);
+            }
+            if (location) {
+                url.searchParams.set('location', location);
             }
             const response = await fetch(url.toString());
             if (!response.ok) {
@@ -1574,55 +1633,59 @@ define("services/api-service", ["require", "exports"], function (require, export
             return await response.json();
         }
         /**
-         * Get playlist by ID
+         * Get detailed information about a song or video including streaming URLs
          */
-        async getPlaylist(playlistId) {
-            const url = `${this.baseUrl}/playlist/${playlistId}`;
-            const response = await fetch(url);
+        async getSongVideoInfo(id, location) {
+            const url = new URL(`${this.baseUrl}/song/${id}`, window.location.origin);
+            if (location) {
+                url.searchParams.set('location', location);
+            }
+            const response = await fetch(url.toString());
             if (!response.ok) {
-                throw new Error(`Failed to load playlist: ${response.statusText}`);
+                throw new Error(`Failed to load song/video info: ${response.statusText}`);
             }
             return await response.json();
         }
         /**
-         * Get user's library playlists
+         * Get streaming data for a song or video
          */
-        async getLibraryPlaylists() {
-            const url = `${this.baseUrl}/library/playlists`;
-            const response = await fetch(url);
+        async getStreamingData(id, location) {
+            const url = new URL(`${this.baseUrl}/streaming/${id}`, window.location.origin);
+            if (location) {
+                url.searchParams.set('location', location);
+            }
+            const response = await fetch(url.toString());
             if (!response.ok) {
-                throw new Error(`Failed to load library playlists: ${response.statusText}`);
+                throw new Error(`Failed to load streaming data: ${response.statusText}`);
             }
             return await response.json();
         }
         /**
-         * Get user's library
+         * Stream audio directly from YouTube Music
          */
-        async getLibrary() {
-            const url = `${this.baseUrl}/library`;
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`Failed to load library: ${response.statusText}`);
+        async streamAudio(id, location, quality) {
+            const url = new URL(`${this.baseUrl}/stream/${id}`, window.location.origin);
+            if (location) {
+                url.searchParams.set('location', location);
             }
-            return await response.json();
-        }
-        /**
-         * Get song information
-         */
-        async getSongInfo(songId) {
-            const url = `${this.baseUrl}/song/${songId}`;
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`Failed to load song info: ${response.statusText}`);
+            if (quality) {
+                url.searchParams.set('quality', quality);
             }
-            return await response.json();
+            const response = await fetch(url.toString());
+            if (!response.ok) {
+                throw new Error(`Failed to stream audio: ${response.statusText}`);
+            }
+            return response;
         }
         /**
          * Get album information
          */
-        async getAlbumInfo(albumId) {
-            const url = `${this.baseUrl}/album/${albumId}`;
-            const response = await fetch(url);
+        async getAlbumInfo(browseId, location) {
+            const url = new URL(`${this.baseUrl}/album/${browseId}`, window.location.origin);
+            if (location) {
+                url.searchParams.set('location', location);
+            }
+            const response = await fetch(url.toString());
             if (!response.ok) {
                 throw new Error(`Failed to load album info: ${response.statusText}`);
             }
@@ -1631,18 +1694,155 @@ define("services/api-service", ["require", "exports"], function (require, export
         /**
          * Get artist information
          */
-        async getArtistInfo(artistId) {
-            const url = `${this.baseUrl}/artist/${artistId}`;
-            const response = await fetch(url);
+        async getArtistInfo(browseId, location) {
+            const url = new URL(`${this.baseUrl}/artist/${browseId}`, window.location.origin);
+            if (location) {
+                url.searchParams.set('location', location);
+            }
+            const response = await fetch(url.toString());
             if (!response.ok) {
                 throw new Error(`Failed to load artist info: ${response.statusText}`);
+            }
+            return await response.json();
+        }
+        /**
+         * Get user's library (requires authentication)
+         */
+        async getLibrary(location) {
+            const url = new URL(`${this.baseUrl}/library`, window.location.origin);
+            if (location) {
+                url.searchParams.set('location', location);
+            }
+            const response = await fetch(url.toString());
+            if (!response.ok) {
+                throw new Error(`Failed to load library: ${response.statusText}`);
+            }
+            return await response.json();
+        }
+        /**
+         * Get user's library songs (requires authentication)
+         */
+        async getLibrarySongs(location) {
+            const url = new URL(`${this.baseUrl}/library/songs`, window.location.origin);
+            if (location) {
+                url.searchParams.set('location', location);
+            }
+            const response = await fetch(url.toString());
+            if (!response.ok) {
+                throw new Error(`Failed to load library songs: ${response.statusText}`);
+            }
+            return await response.json();
+        }
+        /**
+         * Get user's library albums (requires authentication)
+         */
+        async getLibraryAlbums(location) {
+            const url = new URL(`${this.baseUrl}/library/albums`, window.location.origin);
+            if (location) {
+                url.searchParams.set('location', location);
+            }
+            const response = await fetch(url.toString());
+            if (!response.ok) {
+                throw new Error(`Failed to load library albums: ${response.statusText}`);
+            }
+            return await response.json();
+        }
+        /**
+         * Get user's library artists (requires authentication)
+         */
+        async getLibraryArtists(location) {
+            const url = new URL(`${this.baseUrl}/library/artists`, window.location.origin);
+            if (location) {
+                url.searchParams.set('location', location);
+            }
+            const response = await fetch(url.toString());
+            if (!response.ok) {
+                throw new Error(`Failed to load library artists: ${response.statusText}`);
+            }
+            return await response.json();
+        }
+        /**
+         * Get user's library subscriptions (requires authentication)
+         */
+        async getLibrarySubscriptions(location) {
+            const url = new URL(`${this.baseUrl}/library/subscriptions`, window.location.origin);
+            if (location) {
+                url.searchParams.set('location', location);
+            }
+            const response = await fetch(url.toString());
+            if (!response.ok) {
+                throw new Error(`Failed to load library subscriptions: ${response.statusText}`);
+            }
+            return await response.json();
+        }
+        /**
+         * Get user's library podcasts (requires authentication)
+         */
+        async getLibraryPodcasts(location) {
+            const url = new URL(`${this.baseUrl}/library/podcasts`, window.location.origin);
+            if (location) {
+                url.searchParams.set('location', location);
+            }
+            const response = await fetch(url.toString());
+            if (!response.ok) {
+                throw new Error(`Failed to load library podcasts: ${response.statusText}`);
+            }
+            return await response.json();
+        }
+        /**
+         * Get user's library playlists (requires authentication)
+         */
+        async getLibraryPlaylists(location) {
+            const url = new URL(`${this.baseUrl}/library/playlists`, window.location.origin);
+            if (location) {
+                url.searchParams.set('location', location);
+            }
+            const response = await fetch(url.toString());
+            if (!response.ok) {
+                throw new Error(`Failed to load library playlists: ${response.statusText}`);
+            }
+            return await response.json();
+        }
+        /**
+         * Get playlist information by ID (no authentication required)
+         */
+        async getPlaylist(id, location) {
+            const url = new URL(`${this.baseUrl}/playlist/${id}`, window.location.origin);
+            if (location) {
+                url.searchParams.set('location', location);
+            }
+            const response = await fetch(url.toString());
+            if (!response.ok) {
+                throw new Error(`Failed to load playlist: ${response.statusText}`);
+            }
+            return await response.json();
+        }
+        /**
+         * Clear the session cache
+         */
+        async clearSessionCache() {
+            const response = await fetch(`${this.baseUrl}/cache/clear`, {
+                method: 'POST'
+            });
+            if (!response.ok) {
+                throw new Error(`Failed to clear cache: ${response.statusText}`);
+            }
+            return await response.json();
+        }
+        /**
+         * Get session cache statistics
+         */
+        async getSessionCacheStats() {
+            const response = await fetch(`${this.baseUrl}/cache/stats`);
+            if (!response.ok) {
+                throw new Error(`Failed to get cache stats: ${response.statusText}`);
             }
             return await response.json();
         }
     }
     exports.ApiService = ApiService;
 });
-define("app", ["require", "exports", "managers/app-settings-manager", "managers/audio-manager", "managers/notification-manager", "sidebar-manager", "right-sidebar-manager", "services/api-service"], function (require, exports, app_settings_manager_2, audio_manager_1, notification_manager_1, sidebar_manager_1, right_sidebar_manager_1, api_service_1) {
+define("app", ["require", "exports", "managers/app-settings-manager", "managers/audio-manager", "managers/notification-manager", "sidebar-manager", "right-sidebar-manager", "services/api-service", "services/api-types"], function (require, exports, app_settings_manager_2, audio_manager_1, notification_manager_1, sidebar_manager_1, right_sidebar_manager_1, api_service_1, api_types_2) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.App = void 0;
@@ -1709,13 +1909,13 @@ define("app", ["require", "exports", "managers/app-settings-manager", "managers/
         setupAudioEvents() {
             this.audioManager.on('play', ({ song }) => {
                 this.updateNowPlaying(song);
-                this.notificationManager.info('Now Playing', `${song.title} by ${song.artist}`, 2000);
+                this.notificationManager.info('Now Playing', `${song.name} by ${song.artists?.[0]?.name || 'Unknown Artist'}`, 2000);
             });
             this.audioManager.on('pause', ({ song }) => {
                 this.updateNowPlaying(song, false);
             });
             this.audioManager.on('error', ({ error, song }) => {
-                this.notificationManager.error('Playback Error', `Failed to play ${song.title}: ${error.message}`);
+                this.notificationManager.error('Playback Error', `Failed to play ${song.name}: ${error.message}`);
             });
             this.audioManager.on('timeUpdate', ({ currentTime, duration }) => {
                 this.updateProgressBar(currentTime, duration);
@@ -1896,7 +2096,17 @@ define("app", ["require", "exports", "managers/app-settings-manager", "managers/
         }
         // Public methods for external use
         async playSong(songId, title, artist, thumbnail, playlistId, songIndex) {
-            const song = { id: songId, title, artist, thumbnail };
+            const song = {
+                id: songId,
+                name: title,
+                artists: [{ name: artist, id: '' }],
+                album: { name: '', id: '' },
+                duration: '00:00',
+                isExplicit: false,
+                playsInfo: '',
+                thumbnails: thumbnail ? [{ url: thumbnail, width: 0, height: 0 }] : [],
+                category: api_types_2.SearchCategory.Songs
+            };
             await this.audioManager.playSong(song, songIndex || -1);
             if (playlistId) {
                 this.settingsManager.setCurrentPlaylist(playlistId);
@@ -1911,7 +2121,7 @@ define("app", ["require", "exports", "managers/app-settings-manager", "managers/
                 console.log('Playlist data:', playlistData);
                 // Update the UI with playlist data
                 this.displayPlaylist(playlistData);
-                this.notificationManager.success('Playlist Loaded', `Loaded ${playlistData.title || playlistId}`);
+                this.notificationManager.success('Playlist Loaded', `Loaded ${playlistData.id || playlistId}`);
             }
             catch (error) {
                 console.error('Error loading playlist:', error);
@@ -1920,18 +2130,48 @@ define("app", ["require", "exports", "managers/app-settings-manager", "managers/
         }
         async loadAlbum(albumId, albumTitle) {
             console.log('Loading album:', { albumId, albumTitle });
-            // TODO: Implement album loading logic
-            this.notificationManager.info('Loading Album', `Loading ${albumTitle || albumId}...`);
+            try {
+                this.notificationManager.info('Loading Album', `Loading ${albumTitle || albumId}...`);
+                const albumData = await this.apiService.getAlbumInfo(albumId);
+                console.log('Album data:', albumData);
+                // Update the UI with album data
+                this.displayAlbum(albumData);
+                this.notificationManager.success('Album Loaded', `Loaded ${albumData.name || albumId}`);
+            }
+            catch (error) {
+                console.error('Error loading album:', error);
+                this.notificationManager.error('Load Error', `Failed to load album: ${error.message}`);
+            }
         }
         async loadArtist(artistId, artistName) {
             console.log('Loading artist:', { artistId, artistName });
-            // TODO: Implement artist loading logic
-            this.notificationManager.info('Loading Artist', `Loading ${artistName || artistId}...`);
+            try {
+                this.notificationManager.info('Loading Artist', `Loading ${artistName || artistId}...`);
+                const artistData = await this.apiService.getArtistInfo(artistId);
+                console.log('Artist data:', artistData);
+                // Update the UI with artist data
+                this.displayArtist(artistData);
+                this.notificationManager.success('Artist Loaded', `Loaded ${artistData.name || artistId}`);
+            }
+            catch (error) {
+                console.error('Error loading artist:', error);
+                this.notificationManager.error('Load Error', `Failed to load artist: ${error.message}`);
+            }
         }
         async loadSong(songId, title, artist, thumbnail) {
             console.log('Loading song:', { songId, title, artist, thumbnail });
-            // TODO: Implement song loading logic
-            this.notificationManager.info('Loading Song', `Loading ${title || songId}...`);
+            try {
+                this.notificationManager.info('Loading Song', `Loading ${title || songId}...`);
+                const songData = await this.apiService.getSongVideoInfo(songId);
+                console.log('Song data:', songData);
+                // Update the UI with song data
+                this.displaySong(songData);
+                this.notificationManager.success('Song Loaded', `Loaded ${songData.name || songId}`);
+            }
+            catch (error) {
+                console.error('Error loading song:', error);
+                this.notificationManager.error('Load Error', `Failed to load song: ${error.message}`);
+            }
         }
         async performSearch(query) {
             console.log('Performing search:', query);
@@ -1941,7 +2181,7 @@ define("app", ["require", "exports", "managers/app-settings-manager", "managers/
                 console.log('Search results:', searchResults);
                 // Update the UI with search results
                 this.displaySearchResults(searchResults);
-                this.notificationManager.success('Search Complete', `Found ${searchResults.songs?.length || 0} results`);
+                this.notificationManager.success('Search Complete', `Found ${searchResults.totalCount} results`);
             }
             catch (error) {
                 console.error('Error performing search:', error);
@@ -1950,23 +2190,74 @@ define("app", ["require", "exports", "managers/app-settings-manager", "managers/
         }
         clearSearch() {
             console.log('Clearing search');
-            // TODO: Implement clear search logic
+            const searchResults = document.getElementById('searchResults');
+            const welcomeSection = document.querySelector('.welcome-section');
+            if (searchResults) {
+                searchResults.style.display = 'none';
+            }
+            if (welcomeSection) {
+                welcomeSection.style.display = 'block';
+            }
         }
-        loadLibrary() {
+        async loadLibrary() {
             console.log('Loading library');
-            // TODO: Implement library loading
+            try {
+                this.notificationManager.info('Loading Library', 'Loading your library...');
+                const libraryData = await this.apiService.getLibrary();
+                console.log('Library data:', libraryData);
+                // Update the UI with library data
+                this.displayLibrary(libraryData);
+                this.notificationManager.success('Library Loaded', 'Your library has been loaded');
+            }
+            catch (error) {
+                console.error('Error loading library:', error);
+                this.notificationManager.error('Load Error', `Failed to load library: ${error.message}`);
+            }
         }
-        loadSongs() {
+        async loadSongs() {
             console.log('Loading songs');
-            // TODO: Implement songs loading
+            try {
+                this.notificationManager.info('Loading Songs', 'Loading your songs...');
+                const songsData = await this.apiService.getLibrarySongs();
+                console.log('Songs data:', songsData);
+                // Update the UI with songs data
+                this.displaySongs(songsData);
+                this.notificationManager.success('Songs Loaded', `Loaded ${songsData.totalCount} songs`);
+            }
+            catch (error) {
+                console.error('Error loading songs:', error);
+                this.notificationManager.error('Load Error', `Failed to load songs: ${error.message}`);
+            }
         }
-        loadArtists() {
+        async loadArtists() {
             console.log('Loading artists');
-            // TODO: Implement artists loading
+            try {
+                this.notificationManager.info('Loading Artists', 'Loading your artists...');
+                const artistsData = await this.apiService.getLibraryArtists();
+                console.log('Artists data:', artistsData);
+                // Update the UI with artists data
+                this.displayArtists(artistsData);
+                this.notificationManager.success('Artists Loaded', `Loaded ${artistsData.totalCount} artists`);
+            }
+            catch (error) {
+                console.error('Error loading artists:', error);
+                this.notificationManager.error('Load Error', `Failed to load artists: ${error.message}`);
+            }
         }
-        loadAlbums() {
+        async loadAlbums() {
             console.log('Loading albums');
-            // TODO: Implement albums loading
+            try {
+                this.notificationManager.info('Loading Albums', 'Loading your albums...');
+                const albumsData = await this.apiService.getLibraryAlbums();
+                console.log('Albums data:', albumsData);
+                // Update the UI with albums data
+                this.displayAlbums(albumsData);
+                this.notificationManager.success('Albums Loaded', `Loaded ${albumsData.totalCount} albums`);
+            }
+            catch (error) {
+                console.error('Error loading albums:', error);
+                this.notificationManager.error('Load Error', `Failed to load albums: ${error.message}`);
+            }
         }
         // UI update methods
         updateNowPlaying(song, isPlaying = true) {
@@ -1975,15 +2266,15 @@ define("app", ["require", "exports", "managers/app-settings-manager", "managers/
             const thumbnailElement = document.getElementById('nowPlayingThumbnail');
             const playButton = document.getElementById('playButton');
             if (titleElement)
-                titleElement.textContent = song.title;
+                titleElement.textContent = song.name;
             if (artistElement)
-                artistElement.textContent = song.artist;
+                artistElement.textContent = song.artists?.[0]?.name || 'Unknown Artist';
             if (playButton)
                 playButton.textContent = isPlaying ? '⏸' : '▶';
-            if (thumbnailElement && song.thumbnail) {
-                thumbnailElement.style.backgroundImage = `url(${song.thumbnail})`;
+            if (thumbnailElement && song.thumbnails?.[0]?.url) {
+                thumbnailElement.style.backgroundImage = `url(${song.thumbnails[0].url})`;
             }
-            document.title = isPlaying ? `${song.title} - ${song.artist}` : 'YouTube Music';
+            document.title = isPlaying ? `${song.name} - ${song.artists?.[0]?.name || 'Unknown Artist'}` : 'YouTube Music';
         }
         updateProgressBar(currentTime, duration) {
             const progressFill = document.getElementById('progressFill');
@@ -2017,7 +2308,7 @@ define("app", ["require", "exports", "managers/app-settings-manager", "managers/
         displayPlaylist(playlistData) {
             console.log('Displaying playlist:', playlistData);
             // Update page title
-            document.title = `${playlistData.title} - YouTube Music`;
+            document.title = `${playlistData.id} - YouTube Music`;
             // Show playlist content
             const searchResults = document.getElementById('searchResults');
             const welcomeSection = document.querySelector('.welcome-section');
@@ -2028,21 +2319,24 @@ define("app", ["require", "exports", "managers/app-settings-manager", "managers/
                 searchResults.style.display = 'block';
                 let html = `
                 <div class="playlist-header">
-                    <h1>${playlistData.title || 'Playlist'}</h1>
-                    <p>${playlistData.songs?.length || 0} songs</p>
+                    <h1>${playlistData.id || 'Playlist'}</h1>
+                    <p>${playlistData.totalSongs || 0} songs</p>
                 </div>
                 <div class="songs-list">
             `;
                 if (playlistData.songs && playlistData.songs.length > 0) {
                     playlistData.songs.forEach((song, index) => {
+                        const songName = song.name || song.title || 'Unknown Song';
+                        const songArtist = song.artists?.[0]?.name || song.artist || 'Unknown Artist';
+                        const songThumbnail = song.thumbnails?.[0]?.url || song.thumbnail || '/logo.png';
                         html += `
-                        <div class="song-item" data-song-id="${song.id}" data-song-name="${song.title}" data-song-artist="${song.artist}" data-song-thumbnail="${song.thumbnail || ''}" data-playlist-id="${playlistData.id}" data-song-index="${index}">
+                        <div class="song-item" data-song-id="${song.id}" data-song-name="${songName}" data-song-artist="${songArtist}" data-song-thumbnail="${songThumbnail}" data-playlist-id="${playlistData.id}" data-song-index="${index}">
                             <div class="song-thumbnail">
-                                <img src="${song.thumbnail || '/logo.png'}" alt="${song.title}">
+                                <img src="${songThumbnail}" alt="${songName}">
                             </div>
                             <div class="song-info">
-                                <div class="song-title">${song.title}</div>
-                                <div class="song-artist">${song.artist}</div>
+                                <div class="song-title">${songName}</div>
+                                <div class="song-artist">${songArtist}</div>
                             </div>
                             <div class="song-duration">${song.duration || ''}</div>
                         </div>
@@ -2069,21 +2363,27 @@ define("app", ["require", "exports", "managers/app-settings-manager", "managers/
             if (searchResultsElement) {
                 searchResultsElement.style.display = 'block';
                 let html = '<div class="search-results-header"><h2>Search Results</h2></div>';
-                if (searchResults.songs && searchResults.songs.length > 0) {
+                if (searchResults.results && searchResults.results.length > 0) {
                     html += '<div class="songs-list">';
-                    searchResults.songs.forEach((song) => {
-                        html += `
-                        <div class="song-item" data-song-id="${song.id}" data-song-name="${song.title}" data-song-artist="${song.artist}" data-song-thumbnail="${song.thumbnail || ''}">
-                            <div class="song-thumbnail">
-                                <img src="${song.thumbnail || '/logo.png'}" alt="${song.title}">
+                    searchResults.results.forEach((result) => {
+                        if (result.category === api_types_2.SearchCategory.Songs) {
+                            const song = result;
+                            const songName = song.name;
+                            const songArtist = song.artists?.[0]?.name || 'Unknown Artist';
+                            const songThumbnail = song.thumbnails?.[0]?.url || '/logo.png';
+                            html += `
+                            <div class="song-item" data-song-id="${song.id}" data-song-name="${songName}" data-song-artist="${songArtist}" data-song-thumbnail="${songThumbnail}">
+                                <div class="song-thumbnail">
+                                    <img src="${songThumbnail}" alt="${songName}">
+                                </div>
+                                <div class="song-info">
+                                    <div class="song-title">${songName}</div>
+                                    <div class="song-artist">${songArtist}</div>
+                                </div>
+                                <div class="song-duration">${song.duration || ''}</div>
                             </div>
-                            <div class="song-info">
-                                <div class="song-title">${song.title}</div>
-                                <div class="song-artist">${song.artist}</div>
-                            </div>
-                            <div class="song-duration">${song.duration || ''}</div>
-                        </div>
-                    `;
+                        `;
+                        }
                     });
                     html += '</div>';
                 }
@@ -2091,6 +2391,285 @@ define("app", ["require", "exports", "managers/app-settings-manager", "managers/
                     html += '<div class="no-results">No results found</div>';
                 }
                 searchResultsElement.innerHTML = html;
+            }
+        }
+        /**
+         * Display album data in the UI
+         */
+        displayAlbum(albumData) {
+            console.log('Displaying album:', albumData);
+            const searchResults = document.getElementById('searchResults');
+            const welcomeSection = document.querySelector('.welcome-section');
+            if (welcomeSection) {
+                welcomeSection.style.display = 'none';
+            }
+            if (searchResults) {
+                searchResults.style.display = 'block';
+                let html = `
+                <div class="playlist-header">
+                    <h1>${albumData.name}</h1>
+                    <p>${albumData.songs?.length || 0} songs</p>
+                </div>
+                <div class="songs-list">
+            `;
+                if (albumData.songs && albumData.songs.length > 0) {
+                    albumData.songs.forEach((song, index) => {
+                        const songName = song.name;
+                        const songArtist = song.artists?.[0]?.name || 'Unknown Artist';
+                        const songThumbnail = song.thumbnails?.[0]?.url || albumData.thumbnails?.[0]?.url || '/logo.png';
+                        html += `
+                        <div class="song-item" data-song-id="${song.id}" data-song-name="${songName}" data-song-artist="${songArtist}" data-song-thumbnail="${songThumbnail}" data-song-index="${index}">
+                            <div class="song-thumbnail">
+                                <img src="${songThumbnail}" alt="${songName}">
+                            </div>
+                            <div class="song-info">
+                                <div class="song-title">${songName}</div>
+                                <div class="song-artist">${songArtist}</div>
+                            </div>
+                            <div class="song-duration">${song.duration || ''}</div>
+                        </div>
+                    `;
+                    });
+                }
+                else {
+                    html += '<div class="no-songs">No songs found in this album</div>';
+                }
+                html += '</div>';
+                searchResults.innerHTML = html;
+            }
+        }
+        /**
+         * Display artist data in the UI
+         */
+        displayArtist(artistData) {
+            console.log('Displaying artist:', artistData);
+            const searchResults = document.getElementById('searchResults');
+            const welcomeSection = document.querySelector('.welcome-section');
+            if (welcomeSection) {
+                welcomeSection.style.display = 'none';
+            }
+            if (searchResults) {
+                searchResults.style.display = 'block';
+                let html = `
+                <div class="playlist-header">
+                    <h1>${artistData.name}</h1>
+                    <p>${artistData.songs?.length || 0} songs</p>
+                </div>
+                <div class="songs-list">
+            `;
+                if (artistData.songs && artistData.songs.length > 0) {
+                    artistData.songs.forEach((song, index) => {
+                        const songName = song.name;
+                        const songArtist = artistData.name;
+                        const songThumbnail = song.thumbnails?.[0]?.url || artistData.thumbnails?.[0]?.url || '/logo.png';
+                        html += `
+                        <div class="song-item" data-song-id="${song.id}" data-song-name="${songName}" data-song-artist="${songArtist}" data-song-thumbnail="${songThumbnail}" data-song-index="${index}">
+                            <div class="song-thumbnail">
+                                <img src="${songThumbnail}" alt="${songName}">
+                            </div>
+                            <div class="song-info">
+                                <div class="song-title">${songName}</div>
+                                <div class="song-artist">${songArtist}</div>
+                            </div>
+                            <div class="song-duration">${song.duration || ''}</div>
+                        </div>
+                    `;
+                    });
+                }
+                else {
+                    html += '<div class="no-songs">No songs found for this artist</div>';
+                }
+                html += '</div>';
+                searchResults.innerHTML = html;
+            }
+        }
+        /**
+         * Display song data in the UI
+         */
+        displaySong(songData) {
+            console.log('Displaying song:', songData);
+            const searchResults = document.getElementById('searchResults');
+            const welcomeSection = document.querySelector('.welcome-section');
+            if (welcomeSection) {
+                welcomeSection.style.display = 'none';
+            }
+            if (searchResults) {
+                searchResults.style.display = 'block';
+                const songName = songData.name;
+                const songArtist = songData.artists?.[0]?.name || 'Unknown Artist';
+                const songThumbnail = songData.thumbnails?.[0]?.url || '/logo.png';
+                let html = `
+                <div class="playlist-header">
+                    <h1>${songName}</h1>
+                    <p>by ${songArtist}</p>
+                </div>
+                <div class="songs-list">
+                    <div class="song-item" data-song-id="${songData.id}" data-song-name="${songName}" data-song-artist="${songArtist}" data-song-thumbnail="${songThumbnail}">
+                        <div class="song-thumbnail">
+                            <img src="${songThumbnail}" alt="${songName}">
+                        </div>
+                        <div class="song-info">
+                            <div class="song-title">${songName}</div>
+                            <div class="song-artist">${songArtist}</div>
+                        </div>
+                        <div class="song-duration">${songData.duration || ''}</div>
+                    </div>
+                </div>
+            `;
+                searchResults.innerHTML = html;
+            }
+        }
+        /**
+         * Display library data in the UI
+         */
+        displayLibrary(libraryData) {
+            console.log('Displaying library:', libraryData);
+            const searchResults = document.getElementById('searchResults');
+            const welcomeSection = document.querySelector('.welcome-section');
+            if (welcomeSection) {
+                welcomeSection.style.display = 'none';
+            }
+            if (searchResults) {
+                searchResults.style.display = 'block';
+                let html = `
+                <div class="playlist-header">
+                    <h1>Your Library</h1>
+                    <p>${libraryData.songs?.length || 0} songs, ${libraryData.albums?.length || 0} albums, ${libraryData.artists?.length || 0} artists</p>
+                </div>
+            `;
+                searchResults.innerHTML = html;
+            }
+        }
+        /**
+         * Display songs data in the UI
+         */
+        displaySongs(songsData) {
+            console.log('Displaying songs:', songsData);
+            const searchResults = document.getElementById('searchResults');
+            const welcomeSection = document.querySelector('.welcome-section');
+            if (welcomeSection) {
+                welcomeSection.style.display = 'none';
+            }
+            if (searchResults) {
+                searchResults.style.display = 'block';
+                let html = `
+                <div class="playlist-header">
+                    <h1>Your Songs</h1>
+                    <p>${songsData.totalCount || 0} songs</p>
+                </div>
+                <div class="songs-list">
+            `;
+                if (songsData.songs && songsData.songs.length > 0) {
+                    songsData.songs.forEach((song, index) => {
+                        const songName = song.name;
+                        const songArtist = song.artists?.[0]?.name || 'Unknown Artist';
+                        const songThumbnail = song.thumbnails?.[0]?.url || '/logo.png';
+                        html += `
+                        <div class="song-item" data-song-id="${song.id}" data-song-name="${songName}" data-song-artist="${songArtist}" data-song-thumbnail="${songThumbnail}" data-song-index="${index}">
+                            <div class="song-thumbnail">
+                                <img src="${songThumbnail}" alt="${songName}">
+                            </div>
+                            <div class="song-info">
+                                <div class="song-title">${songName}</div>
+                                <div class="song-artist">${songArtist}</div>
+                            </div>
+                            <div class="song-duration">${song.duration || ''}</div>
+                        </div>
+                    `;
+                    });
+                }
+                else {
+                    html += '<div class="no-songs">No songs found in your library</div>';
+                }
+                html += '</div>';
+                searchResults.innerHTML = html;
+            }
+        }
+        /**
+         * Display artists data in the UI
+         */
+        displayArtists(artistsData) {
+            console.log('Displaying artists:', artistsData);
+            const searchResults = document.getElementById('searchResults');
+            const welcomeSection = document.querySelector('.welcome-section');
+            if (welcomeSection) {
+                welcomeSection.style.display = 'none';
+            }
+            if (searchResults) {
+                searchResults.style.display = 'block';
+                let html = `
+                <div class="playlist-header">
+                    <h1>Your Artists</h1>
+                    <p>${artistsData.totalCount || 0} artists</p>
+                </div>
+                <div class="results-grid">
+            `;
+                if (artistsData.artists && artistsData.artists.length > 0) {
+                    artistsData.artists.forEach((artist) => {
+                        const artistName = artist.name;
+                        const artistThumbnail = artist.thumbnails?.[0]?.url || '/logo.png';
+                        html += `
+                        <div class="result-card" data-artist-id="${artist.id}" data-artist-name="${artistName}">
+                            <div class="result-card-thumbnail">
+                                <img src="${artistThumbnail}" alt="${artistName}">
+                            </div>
+                            <div class="result-card-info">
+                                <div class="result-card-title">${artistName}</div>
+                                <div class="result-card-subtitle">${artist.subscribers || 'Unknown subscribers'}</div>
+                            </div>
+                        </div>
+                    `;
+                    });
+                }
+                else {
+                    html += '<div class="no-results">No artists found in your library</div>';
+                }
+                html += '</div>';
+                searchResults.innerHTML = html;
+            }
+        }
+        /**
+         * Display albums data in the UI
+         */
+        displayAlbums(albumsData) {
+            console.log('Displaying albums:', albumsData);
+            const searchResults = document.getElementById('searchResults');
+            const welcomeSection = document.querySelector('.welcome-section');
+            if (welcomeSection) {
+                welcomeSection.style.display = 'none';
+            }
+            if (searchResults) {
+                searchResults.style.display = 'block';
+                let html = `
+                <div class="playlist-header">
+                    <h1>Your Albums</h1>
+                    <p>${albumsData.totalCount || 0} albums</p>
+                </div>
+                <div class="results-grid">
+            `;
+                if (albumsData.albums && albumsData.albums.length > 0) {
+                    albumsData.albums.forEach((album) => {
+                        const albumName = album.name;
+                        const albumArtist = album.artists?.[0]?.name || 'Unknown Artist';
+                        const albumThumbnail = album.thumbnails?.[0]?.url || '/logo.png';
+                        html += `
+                        <div class="result-card" data-album-id="${album.id}" data-album-title="${albumName}">
+                            <div class="result-card-thumbnail">
+                                <img src="${albumThumbnail}" alt="${albumName}">
+                            </div>
+                            <div class="result-card-info">
+                                <div class="result-card-title">${albumName}</div>
+                                <div class="result-card-subtitle">${albumArtist}</div>
+                            </div>
+                        </div>
+                    `;
+                    });
+                }
+                else {
+                    html += '<div class="no-results">No albums found in your library</div>';
+                }
+                html += '</div>';
+                searchResults.innerHTML = html;
             }
         }
     }
@@ -2142,9 +2721,12 @@ define("audio", ["require", "exports", "settings"], function (require, exports, 
     exports.stopAllAudio = stopAllAudio;
     exports.handlePlaybackError = handlePlaybackError;
     exports.togglePlay = togglePlay;
+    exports.playSong = playSong;
     exports.playNextSong = playNextSong;
     exports.playPreviousSong = playPreviousSong;
-    exports.toggleRepeatMode = toggleRepeatMode;
+    exports.setVolume = setVolume;
+    exports.seekTo = seekTo;
+    exports.getCurrentAudioState = getCurrentAudioState;
     // Audio state
     exports.currentAudio = null;
     exports.isPlaying = false;
@@ -2325,109 +2907,280 @@ define("audio", ["require", "exports", "settings"], function (require, exports, 
         }
     }
     /**
+     * Play a song by ID
+     */
+    async function playSong(songId, title, artist, thumbnail) {
+        try {
+            // Stop any currently playing audio
+            stopAllAudio();
+            // Create audio element
+            exports.currentAudio = new Audio();
+            // Set up audio event listeners
+            setupAudioEventListeners(exports.currentAudio);
+            // Set the audio source
+            const audioUrl = `/api/stream/${songId}`;
+            exports.currentAudio.src = audioUrl;
+            // Update current song info
+            exports.currentSongInfo = {
+                id: songId,
+                name: title,
+                artists: [{ name: artist, id: '' }],
+                album: { name: '', id: '' },
+                duration: '00:00',
+                isExplicit: false,
+                playsInfo: '',
+                thumbnails: thumbnail ? [{ url: thumbnail, width: 0, height: 0 }] : [],
+                category: 'Songs'
+            };
+            // Update media session metadata
+            updateMediaSessionMetadata(exports.currentSongInfo);
+            // Start playing
+            await exports.currentAudio.play();
+            exports.isPlaying = true;
+            // Update UI
+            updateNowPlayingUI(exports.currentSongInfo, true);
+            console.log(`Now playing: ${title} by ${artist}`);
+        }
+        catch (error) {
+            console.error('Error playing song:', error);
+            showErrorNotification(`Failed to play ${title}`);
+            handlePlaybackError(title, artist);
+        }
+    }
+    /**
+     * Setup audio event listeners
+     */
+    function setupAudioEventListeners(audio) {
+        audio.addEventListener('loadstart', () => {
+            console.log('Audio loading started');
+        });
+        audio.addEventListener('canplay', () => {
+            console.log('Audio can start playing');
+        });
+        audio.addEventListener('play', () => {
+            exports.isPlaying = true;
+            updateNowPlayingUI(exports.currentSongInfo, true);
+        });
+        audio.addEventListener('pause', () => {
+            exports.isPlaying = false;
+            updateNowPlayingUI(exports.currentSongInfo, false);
+        });
+        audio.addEventListener('ended', () => {
+            console.log('Audio playback ended');
+            exports.isPlaying = false;
+            updateNowPlayingUI(exports.currentSongInfo, false);
+            // Auto-play next song if in playlist mode
+            if (settings_2.settings.repeat === 'all' && window.currentPlaylistSongs?.length > 0) {
+                playNextSong();
+            }
+        });
+        audio.addEventListener('error', (event) => {
+            console.error('Audio error:', event);
+            const error = event;
+            showErrorNotification(`Audio error: ${error.message}`);
+            if (exports.currentSongInfo) {
+                handlePlaybackError(exports.currentSongInfo.name, exports.currentSongInfo.artists?.[0]?.name || 'Unknown Artist');
+            }
+        });
+        audio.addEventListener('timeupdate', () => {
+            if (exports.currentAudio) {
+                updateProgressBar(exports.currentAudio.currentTime, exports.currentAudio.duration);
+            }
+        });
+        audio.addEventListener('volumechange', () => {
+            if (exports.currentAudio) {
+                updateVolumeDisplay(exports.currentAudio.volume);
+            }
+        });
+    }
+    /**
+     * Update media session metadata
+     */
+    function updateMediaSessionMetadata(song) {
+        if (!navigator.mediaSession)
+            return;
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: song.name,
+            artist: song.artists?.[0]?.name || 'Unknown Artist',
+            album: song.album?.name || '',
+            artwork: song.thumbnails?.map(thumb => ({
+                src: thumb.url,
+                sizes: `${thumb.width}x${thumb.height}`,
+                type: 'image/jpeg'
+            })) || []
+        });
+    }
+    /**
+     * Update now playing UI
+     */
+    function updateNowPlayingUI(song, isPlaying) {
+        const titleElement = document.getElementById('nowPlayingTitle');
+        const artistElement = document.getElementById('nowPlayingArtist');
+        const thumbnailElement = document.getElementById('nowPlayingThumbnail');
+        const playButton = document.getElementById('playButton');
+        if (song) {
+            if (titleElement)
+                titleElement.textContent = song.name;
+            if (artistElement)
+                artistElement.textContent = song.artists?.[0]?.name || 'Unknown Artist';
+            if (playButton)
+                playButton.textContent = isPlaying ? '⏸' : '▶';
+            if (thumbnailElement && song.thumbnails?.[0]?.url) {
+                thumbnailElement.style.backgroundImage = `url(${song.thumbnails[0].url})`;
+            }
+            document.title = isPlaying ? `${song.name} - ${song.artists?.[0]?.name || 'Unknown Artist'}` : 'YouTube Music';
+        }
+        else {
+            if (titleElement)
+                titleElement.textContent = '';
+            if (artistElement)
+                artistElement.textContent = '';
+            if (playButton)
+                playButton.textContent = '▶';
+            if (thumbnailElement)
+                thumbnailElement.style.backgroundImage = '';
+            document.title = 'YouTube Music';
+        }
+    }
+    /**
+     * Update progress bar
+     */
+    function updateProgressBar(currentTime, duration) {
+        const progressFill = document.getElementById('progressFill');
+        if (progressFill && duration > 0) {
+            const percentage = (currentTime / duration) * 100;
+            progressFill.style.width = `${percentage}%`;
+        }
+    }
+    /**
+     * Update volume display
+     */
+    function updateVolumeDisplay(volume) {
+        const volumeFill = document.getElementById('volumeFill');
+        if (volumeFill) {
+            volumeFill.style.width = `${volume * 100}%`;
+        }
+    }
+    /**
+     * Clear info panel
+     */
+    function clearInfoPanel() {
+        const titleElement = document.getElementById('nowPlayingTitle');
+        const artistElement = document.getElementById('nowPlayingArtist');
+        const thumbnailElement = document.getElementById('nowPlayingThumbnail');
+        const playButton = document.getElementById('playButton');
+        if (titleElement)
+            titleElement.textContent = '';
+        if (artistElement)
+            artistElement.textContent = '';
+        if (playButton)
+            playButton.textContent = '▶';
+        if (thumbnailElement)
+            thumbnailElement.style.backgroundImage = '';
+        document.title = DEFAULT_TITLE;
+    }
+    /**
+     * Show error notification
+     */
+    function showErrorNotification(message) {
+        if (window.notificationManager) {
+            window.notificationManager.error('Audio Error', message);
+        }
+        else {
+            console.error('Audio Error:', message);
+        }
+    }
+    /**
      * Play next song in playlist
      */
     function playNextSong() {
-        if (!settings_2.settings.playlist || !window.currentPlaylistSongs)
+        const currentPlaylistSongs = window.currentPlaylistSongs;
+        const currentSongIndex = window.currentSongIndex;
+        if (!currentPlaylistSongs || currentPlaylistSongs.length === 0) {
+            console.log('No playlist songs available');
             return;
-        const nextIndex = getNextSongIndex();
-        if (nextIndex >= 0 && nextIndex < window.currentPlaylistSongs.length) {
-            const song = window.currentPlaylistSongs[nextIndex];
-            playSong(song.id, song.title, song.artist, song.thumbnail, settings_2.settings.playlist, nextIndex);
+        }
+        let nextIndex = currentSongIndex + 1;
+        // Handle repeat modes
+        if (nextIndex >= currentPlaylistSongs.length) {
+            if (settings_2.settings.repeat === 'all') {
+                nextIndex = 0; // Loop back to beginning
+            }
+            else {
+                console.log('Reached end of playlist');
+                return;
+            }
+        }
+        const nextSong = currentPlaylistSongs[nextIndex];
+        if (nextSong) {
+            window.currentSongIndex = nextIndex;
+            playSong(nextSong.id, nextSong.name, nextSong.artists?.[0]?.name || 'Unknown Artist', nextSong.thumbnails?.[0]?.url);
         }
     }
     /**
      * Play previous song in playlist
      */
     function playPreviousSong() {
-        if (!settings_2.settings.playlist || !window.currentPlaylistSongs)
+        const currentPlaylistSongs = window.currentPlaylistSongs;
+        const currentSongIndex = window.currentSongIndex;
+        if (!currentPlaylistSongs || currentPlaylistSongs.length === 0) {
+            console.log('No playlist songs available');
             return;
-        const prevIndex = getPreviousSongIndex();
-        if (prevIndex >= 0 && prevIndex < window.currentPlaylistSongs.length) {
-            const song = window.currentPlaylistSongs[prevIndex];
-            playSong(song.id, song.title, song.artist, song.thumbnail, settings_2.settings.playlist, prevIndex);
+        }
+        let prevIndex = currentSongIndex - 1;
+        // Handle repeat modes
+        if (prevIndex < 0) {
+            if (settings_2.settings.repeat === 'all') {
+                prevIndex = currentPlaylistSongs.length - 1; // Loop to end
+            }
+            else {
+                console.log('Reached beginning of playlist');
+                return;
+            }
+        }
+        const prevSong = currentPlaylistSongs[prevIndex];
+        if (prevSong) {
+            window.currentSongIndex = prevIndex;
+            playSong(prevSong.id, prevSong.name, prevSong.artists?.[0]?.name || 'Unknown Artist', prevSong.thumbnails?.[0]?.url);
         }
     }
     /**
-     * Get next song index based on repeat mode
+     * Set volume
      */
-    function getNextSongIndex() {
-        if (!window.currentPlaylistSongs || window.currentSongIndex === -1)
-            return -1;
-        const currentIndex = window.currentSongIndex;
-        const totalSongs = window.currentPlaylistSongs.length;
-        if (settings_2.settings.repeat === 'one') {
-            return currentIndex; // Repeat current song
-        }
-        else if (settings_2.settings.repeat === 'all') {
-            return (currentIndex + 1) % totalSongs; // Loop playlist
-        }
-        else {
-            return currentIndex + 1 < totalSongs ? currentIndex + 1 : -1; // Stop at end
+    function setVolume(volume) {
+        if (exports.currentAudio) {
+            exports.currentAudio.volume = Math.max(0, Math.min(1, volume));
         }
     }
     /**
-     * Get previous song index
+     * Seek to position
      */
-    function getPreviousSongIndex() {
-        if (!window.currentPlaylistSongs || window.currentSongIndex === -1)
-            return -1;
-        const currentIndex = window.currentSongIndex;
-        const totalSongs = window.currentPlaylistSongs.length;
-        if (settings_2.settings.repeat === 'one') {
-            return currentIndex; // Repeat current song
-        }
-        else if (settings_2.settings.repeat === 'all') {
-            return currentIndex - 1 >= 0 ? currentIndex - 1 : totalSongs - 1; // Loop playlist
-        }
-        else {
-            return currentIndex - 1 >= 0 ? currentIndex - 1 : -1; // Stop at beginning
+    function seekTo(position) {
+        if (exports.currentAudio && !isNaN(position)) {
+            exports.currentAudio.currentTime = Math.max(0, Math.min(exports.currentAudio.duration, position));
         }
     }
     /**
-     * Toggle repeat mode
+     * Get current audio state
      */
-    function toggleRepeatMode() {
-        const repeatModes = ['none', 'one', 'all'];
-        const currentIndex = repeatModes.indexOf(settings_2.settings.repeat);
-        const nextIndex = (currentIndex + 1) % repeatModes.length;
-        settings_2.settings.repeat = repeatModes[nextIndex];
-        updateRepeatShuffleDisplay();
-        showSuccessNotification(`Repeat mode: ${settings_2.settings.repeat}`);
-    }
-    /**
-     * Update repeat/shuffle display
-     */
-    function updateRepeatShuffleDisplay() {
-        const repeatButton = document.getElementById('repeatButton');
-        if (repeatButton) {
-            const repeatModes = {
-                'none': { icon: '🔁', title: 'No repeat' },
-                'one': { icon: '🔂', title: 'Repeat one' },
-                'all': { icon: '🔁', title: 'Repeat all' }
+    function getCurrentAudioState() {
+        if (exports.currentAudio) {
+            return {
+                currentTime: exports.currentAudio.currentTime,
+                duration: exports.currentAudio.duration,
+                volume: exports.currentAudio.volume,
+                isPlaying: exports.isPlaying
             };
-            const mode = repeatModes[settings_2.settings.repeat];
-            repeatButton.textContent = mode.icon;
-            repeatButton.title = mode.title;
         }
+        return {
+            currentTime: 0,
+            duration: 0,
+            volume: 1,
+            isPlaying: false
+        };
     }
-    // Helper functions (these would be imported from other modules)
-    function playSong(songId, title, artist, thumbnail, playlistId, songIndex) {
-        // This would be implemented in the main app module
-        console.log('Playing song:', { songId, title, artist, thumbnail, playlistId, songIndex });
-    }
-    function clearInfoPanel() {
-        // This would be implemented in the UI module
-        console.log('Clearing info panel');
-    }
-    function showErrorNotification(message) {
-        // This would be implemented in the notification module
-        console.error('Error notification:', message);
-    }
-    function showSuccessNotification(message) {
-        // This would be implemented in the notification module
-        console.log('Success notification:', message);
-    }
+    // Initialize media key listeners when the module loads
+    setupMediaKeyListeners();
 });
 define("core/ui-component", ["require", "exports", "core/event-emitter"], function (require, exports, event_emitter_3) {
     "use strict";

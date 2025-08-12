@@ -260,7 +260,7 @@ export class AudioManager extends StateManager<AudioState> {
      * Play current audio
      */
     play(): void {
-        if (this.state.currentAudio && !this.state.isPlaying) {
+        if (this.state.currentAudio && this.state.currentAudio instanceof HTMLAudioElement && !this.state.isPlaying) {
             this.state.currentAudio.play().then(() => {
                 this.setState({ isPlaying: true });
                 if (this.mediaSession) {
@@ -279,7 +279,7 @@ export class AudioManager extends StateManager<AudioState> {
      * Pause current audio
      */
     pause(): void {
-        if (this.state.currentAudio && this.state.isPlaying) {
+        if (this.state.currentAudio && this.state.currentAudio instanceof HTMLAudioElement && this.state.isPlaying) {
             this.state.currentAudio.pause();
             this.setState({ isPlaying: false });
             if (this.mediaSession) {
@@ -303,7 +303,7 @@ export class AudioManager extends StateManager<AudioState> {
      * Stop all audio playback
      */
     private stopAllAudio(): void {
-        if (this.state.currentAudio) {
+        if (this.state.currentAudio && this.state.currentAudio instanceof HTMLAudioElement) {
             this.state.currentAudio.pause();
             this.state.currentAudio.currentTime = 0;
         }
@@ -423,7 +423,7 @@ export class AudioManager extends StateManager<AudioState> {
      * Set volume
      */
     setVolume(volume: number): void {
-        if (this.state.currentAudio) {
+        if (this.state.currentAudio && this.state.currentAudio instanceof HTMLAudioElement) {
             this.state.currentAudio.volume = Math.max(0, Math.min(1, volume));
         }
     }
@@ -432,7 +432,7 @@ export class AudioManager extends StateManager<AudioState> {
      * Seek to position
      */
     seek(position: number): void {
-        if (this.state.currentAudio && !isNaN(position)) {
+        if (this.state.currentAudio && this.state.currentAudio instanceof HTMLAudioElement && !isNaN(position)) {
             this.state.currentAudio.currentTime = Math.max(0, Math.min(this.state.currentAudio.duration, position));
         }
     }
