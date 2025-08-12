@@ -52,7 +52,7 @@ public class ConfigurationService : BaseConfigurationService, IConfigurationServ
     /// </summary>
     public string GetGeographicalLocation(string? queryLocation = null, bool print = false)
     {
-        return GetStringValue(queryLocation, _config.GeographicalLocation, YouTubeMusicConfigSources.GeographicalLocation, print) ?? "US";
+        return GetStringValueNullable(queryLocation, _config.GeographicalLocation, YouTubeMusicConfigSources.GeographicalLocation, print) ?? "US";
     }
 
     /// <summary>
@@ -93,5 +93,24 @@ public class ConfigurationService : BaseConfigurationService, IConfigurationServ
     public bool GetAddLyricsToSongResponse(bool print = false)
     {
         return GetBoolValue(_lyricsConfig.AddToSongResponse, LyricsConfigSources.AddToSongResponse, print);
+    }
+
+    /// <summary>
+    /// Logs the final resolved configuration values
+    /// </summary>
+    public void LogResolvedConfiguration()
+    {
+        Console.WriteLine("=== Resolved Configuration Values ===");
+        Console.WriteLine($"Cookies: {(GetCookies() != null ? "Set" : "Not set")}");
+        Console.WriteLine($"VisitorData: {(GetVisitorData() != null ? "Set" : "Not set")}");
+        Console.WriteLine($"PoToken: {(GetPoToken() != null ? "Set" : "Not set")}");
+        Console.WriteLine($"PoTokenServer: {(GetPoTokenServer() != null ? "Set" : "Not set")}");
+        Console.WriteLine($"GeographicalLocation: {GetGeographicalLocation()}");
+        Console.WriteLine($"UserAgent: {GetUserAgent()}");
+        Console.WriteLine($"TimeoutSeconds: {GetTimeoutSeconds()}");
+        Console.WriteLine($"MaxRetries: {GetMaxRetries()}");
+        Console.WriteLine($"Debug: {GetDebug()}");
+        Console.WriteLine($"AddLyricsToSongResponse: {GetAddLyricsToSongResponse()}");
+        Console.WriteLine("=== End Resolved Configuration Values ===");
     }
 } 

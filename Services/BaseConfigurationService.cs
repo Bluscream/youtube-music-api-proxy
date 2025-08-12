@@ -77,6 +77,41 @@ public abstract class BaseConfigurationService
     }
 
     /// <summary>
+    /// Gets a nullable string configuration value with priority: query parameter > appsettings > environment variable > default
+    /// </summary>
+    /// <param name="queryValue">Value from query parameter</param>
+    /// <param name="configValue">Value from appsettings</param>
+    /// <param name="source">Configuration source metadata</param>
+    /// <param name="print">Whether to print debug information</param>
+    /// <returns>Configuration value</returns>
+    protected string? GetStringValueNullable(string? queryValue, string? configValue, ConfigurationSource<string?> source, bool print = false)
+    {
+        // Priority 1: Query parameter
+        if (!string.IsNullOrWhiteSpace(queryValue))
+        {
+            if (print) Console.WriteLine($"Query parameter {source.EnvironmentVariableName}: {queryValue}");
+            return source.SupportsBase64Decoding ? TryDecodeBase64(queryValue) ?? queryValue : queryValue;
+        }
+
+        // Priority 2: Appsettings
+        if (!string.IsNullOrWhiteSpace(configValue))
+        {
+            if (print) Console.WriteLine($"Appsettings {source.EnvironmentVariableName}: {configValue}");
+            return source.SupportsBase64Decoding ? TryDecodeBase64(configValue) ?? configValue : configValue;
+        }
+
+        // Priority 3: Environment variable
+        var envValue = Environment.GetEnvironmentVariable(source.EnvironmentVariableName);
+        if (!string.IsNullOrWhiteSpace(envValue))
+        {
+            if (print) Console.WriteLine($"Environment variable {source.EnvironmentVariableName}: {envValue}");
+            return source.SupportsBase64Decoding ? TryDecodeBase64(envValue) ?? envValue : envValue;
+        }
+
+        return source.DefaultValue;
+    }
+
+    /// <summary>
     /// Gets an integer configuration value with priority: appsettings > environment variable > default
     /// </summary>
     /// <param name="configValue">Value from appsettings</param>

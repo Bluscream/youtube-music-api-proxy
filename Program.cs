@@ -148,6 +148,83 @@ builder.Services.Configure<YouTubeMusicConfig>(builder.Configuration.GetSection(
 builder.Services.Configure<LyricsConfig>(builder.Configuration.GetSection("Lyrics"));
 builder.Services.Configure<AppConfig>(builder.Configuration);
 
+// Log configuration loading
+Console.WriteLine("=== Configuration Loading ===");
+Console.WriteLine($"Environment: {builder.Environment.EnvironmentName}");
+Console.WriteLine($"Content Root: {builder.Environment.ContentRootPath}");
+Console.WriteLine($"Application Name: {builder.Environment.ApplicationName}");
+
+// Log configuration sources
+Console.WriteLine("Configuration sources:");
+Console.WriteLine($"  - appsettings.json");
+Console.WriteLine($"  - appsettings.{builder.Environment.EnvironmentName}.json");
+Console.WriteLine($"  - Environment variables");
+Console.WriteLine($"  - Command line arguments");
+
+// Log YouTube Music configuration
+var ytmConfig = builder.Configuration.GetSection("YouTubeMusic").Get<YouTubeMusicConfig>();
+if (ytmConfig != null)
+{
+    Console.WriteLine("YouTube Music Configuration:");
+    Console.WriteLine($"  Cookies: {(string.IsNullOrEmpty(ytmConfig.Cookies) ? "Not set" : "Set")}");
+    Console.WriteLine($"  VisitorData: {(string.IsNullOrEmpty(ytmConfig.VisitorData) ? "Not set" : "Set")}");
+    Console.WriteLine($"  PoToken: {(string.IsNullOrEmpty(ytmConfig.PoToken) ? "Not set" : "Set")}");
+    Console.WriteLine($"  PoTokenServer: {(string.IsNullOrEmpty(ytmConfig.PoTokenServer) ? "Not set" : "Set")}");
+    Console.WriteLine($"  GeographicalLocation: {ytmConfig.GeographicalLocation ?? "Not set"}");
+    Console.WriteLine($"  UserAgent: {(string.IsNullOrEmpty(ytmConfig.UserAgent) ? "Not set" : "Set")}");
+    Console.WriteLine($"  TimeoutSeconds: {ytmConfig.TimeoutSeconds}");
+    Console.WriteLine($"  MaxRetries: {ytmConfig.MaxRetries}");
+    Console.WriteLine($"  Debug: {ytmConfig.Debug}");
+}
+else
+{
+    Console.WriteLine("YouTube Music Configuration: Not found in appsettings.json");
+}
+
+// Log Lyrics configuration
+var lyricsConfig = builder.Configuration.GetSection("Lyrics").Get<LyricsConfig>();
+if (lyricsConfig != null)
+{
+    Console.WriteLine("Lyrics Configuration:");
+    Console.WriteLine($"  AddToSongResponse: {lyricsConfig.AddToSongResponse}");
+}
+else
+{
+    Console.WriteLine("Lyrics Configuration: Not found in appsettings.json");
+}
+
+// Log App configuration
+var startupAppConfig = builder.Configuration.Get<AppConfig>();
+if (startupAppConfig != null)
+{
+    Console.WriteLine("App Configuration:");
+    Console.WriteLine($"  HttpPort: {startupAppConfig.HttpPort}");
+    Console.WriteLine($"  HttpsPort: {startupAppConfig.HttpsPort}");
+    Console.WriteLine($"  EnableHttpsRedirection: {startupAppConfig.EnableHttpsRedirection}");
+}
+else
+{
+    Console.WriteLine("App Configuration: Not found in appsettings.json");
+}
+
+Console.WriteLine("=== End Configuration Loading ===");
+
+// Log environment variables that affect configuration
+Console.WriteLine("=== Environment Variables ===");
+var envVars = new[]
+{
+    "YTM_COOKIES", "YTM_VISITORDATA", "YTM_POTOKEN", "YTM_POTOKEN_SERVER", 
+    "YTM_GEOGRAPHICAL_LOCATION", "YTM_USER_AGENT", "YTM_TIMEOUT", "YTM_MAX_RETRIES", 
+    "YTM_DEBUG", "LYRICS_ADD_TO_SONG_RESPONSE", "ENABLE_HTTPS_REDIRECTION"
+};
+
+foreach (var envVar in envVars)
+{
+    var value = Environment.GetEnvironmentVariable(envVar);
+    Console.WriteLine($"  {envVar}: {(string.IsNullOrEmpty(value) ? "Not set" : "Set")}");
+}
+Console.WriteLine("=== End Environment Variables ===");
+
 // Add services
 builder.Services.AddScoped<IYouTubeMusicService, YouTubeMusicService>();
 builder.Services.AddScoped<IConfigurationService, ConfigurationService>();
@@ -179,11 +256,11 @@ app.UseStaticFiles();
 app.UseAuthorization();
 app.MapControllers();
 
-// Run GetCookies on startup with print enabled
+// Log resolved configuration on startup
 using (var scope = app.Services.CreateScope())
 {
     var configService = scope.ServiceProvider.GetRequiredService<IConfigurationService>();
-    configService.GetCookies(print: true);
+    configService.LogResolvedConfiguration();
 }
 
 app.Run(); 

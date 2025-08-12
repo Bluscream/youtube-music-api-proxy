@@ -81,4 +81,9 @@ public interface IConfigurationService
     /// <param name="print">Whether to print debug information to console</param>
     /// <returns>Whether to add lyrics to song responses</returns>
     bool GetAddLyricsToSongResponse(bool print = false);
+
+    /// <summary>
+    /// Logs the final resolved configuration values
+    /// </summary>
+    void LogResolvedConfiguration();
 } 
