@@ -55,16 +55,19 @@ function saveSetting(key, value) {
         // Save to localStorage
         localStorage.setItem(`setting_${key}`, JSON.stringify(value));
 
-        // Update URL parameters (but don't trigger page reload)
-        const url = new URL(window.location);
-        if (value === null || value === undefined || value === '') {
-            url.searchParams.delete(key);
-        } else {
-            url.searchParams.set(key, value.toString());
-        }
+        // Only update URL parameters for playlist and song settings
+        if (key === SETTINGS_KEYS.PLAYLIST || key === SETTINGS_KEYS.SONG) {
+            // Update URL parameters (but don't trigger page reload)
+            const url = new URL(window.location);
+            if (value === null || value === undefined || value === '') {
+                url.searchParams.delete(key);
+            } else {
+                url.searchParams.set(key, value.toString());
+            }
 
-        // Update URL without reloading the page
-        window.history.replaceState({}, '', url);
+            // Update URL without reloading the page
+            window.history.replaceState({}, '', url);
+        }
 
         // console.log(`🎵 Settings System: Setting saved: ${key} = ${value}`);
     } catch (error) {
@@ -1047,7 +1050,7 @@ function displaySearchResults(results) {
             const img = document.createElement('img');
             img.src = thumbnail;
             img.alt = title;
-            img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; border-radius: 4px;';
+            img.className = 'thumbnail-image';
             thumbnailDiv.appendChild(img);
         } else {
             thumbnailDiv.textContent = '🎵';
@@ -1071,7 +1074,7 @@ function displaySearchResults(results) {
         // Add not playable indicator if needed
         if (!isPlayable) {
             const notPlayableDiv = document.createElement('div');
-            notPlayableDiv.style.cssText = 'font-size: 10px; color: #666; margin-top: 4px;';
+            notPlayableDiv.className = 'not-playable-indicator';
             notPlayableDiv.textContent = 'Not playable';
             resultCard.appendChild(notPlayableDiv);
         }
@@ -1178,7 +1181,7 @@ async function loadSong(songId, title, artist, thumbnail = null, playlistId = nu
         const img = document.createElement('img');
         img.src = thumbnail;
         img.alt = title;
-        img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; border-radius: 4px;';
+        img.className = 'thumbnail-image';
         thumbnailElement.appendChild(img);
     } else {
         thumbnailElement.textContent = '🎵';
@@ -1449,7 +1452,7 @@ function updateInfoPanel(songInfo) {
         const img = document.createElement('img');
         img.src = thumbnail;
         img.alt = songInfo.name || songInfo.title || 'Song';
-        img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; border-radius: 8px;';
+        img.className = 'thumbnail-image-large';
 
         thumbnailDiv.appendChild(img);
         container.appendChild(thumbnailDiv);
@@ -1685,7 +1688,7 @@ function updateInfoPanelWithBasicInfo() {
     infoSection.className = 'song-info-section';
 
     const infoP = document.createElement('p');
-    infoP.style.cssText = 'color: #666; font-style: italic;';
+    infoP.className = 'info-placeholder-text';
     infoP.textContent = 'Detailed information unavailable';
     infoSection.appendChild(infoP);
 
@@ -2204,16 +2207,17 @@ function displayPlaylistsInSidebar() {
 
             // Create info container
             const infoDiv = document.createElement('div');
-            infoDiv.style.cssText = 'flex: 1; overflow: hidden;';
+            infoDiv.className = 'info-container';
 
             // Create title element
             const titleDiv = document.createElement('div');
-            titleDiv.style.cssText = 'font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;';
+            titleDiv.className = 'playlist-name';
             titleDiv.textContent = title;
 
             // Create song count element
             const songCountDiv = document.createElement('div');
-            songCountDiv.style.cssText = `font-size: 12px; color: ${isActive ? '#000000' : '#666'}; opacity: ${isActive ? '0.7' : '1'};`;
+            songCountDiv.className = 'song-count';
+            songCountDiv.style.cssText = `color: ${isActive ? '#000000' : '#666'}; opacity: ${isActive ? '0.7' : '1'};`;
             songCountDiv.textContent = `${playlist.songCount || 0} songs`;
 
             // Append elements
@@ -2286,16 +2290,16 @@ function displayPlaylistContent(playlistData, playlistTitle) {
 
     // Create header container
     const headerDiv = document.createElement('div');
-    headerDiv.style.cssText = 'margin-bottom: 20px;';
+    headerDiv.className = 'header-container';
 
     // Create title
     const titleH2 = document.createElement('h2');
-    titleH2.style.cssText = 'color: #ffffff; margin-bottom: 8px;';
+    titleH2.className = 'playlist-name header-title';
     titleH2.textContent = playlistTitle;
 
     // Create song count
     const songCountP = document.createElement('p');
-    songCountP.style.cssText = 'color: #b3b3b3; margin: 0;';
+    songCountP.className = 'song-count';
     songCountP.textContent = `${playlistData.songs?.length || 0} songs`;
 
     headerDiv.appendChild(titleH2);
@@ -2336,7 +2340,7 @@ function displayPlaylistContent(playlistData, playlistTitle) {
                 const img = document.createElement('img');
                 img.src = thumbnail;
                 img.alt = title;
-                img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; border-radius: 4px;';
+                img.className = 'thumbnail-image';
                 thumbnailDiv.appendChild(img);
             } else {
                 thumbnailDiv.textContent = '🎵';
@@ -2374,7 +2378,7 @@ function displayPlaylistContent(playlistData, playlistTitle) {
     } else {
         // Create no songs message
         const noSongsDiv = document.createElement('div');
-        noSongsDiv.style.cssText = 'text-align: center; color: #b3b3b3;';
+        noSongsDiv.className = 'no-content-message';
         noSongsDiv.textContent = 'No songs in this playlist';
         container.appendChild(noSongsDiv);
     }
@@ -2421,7 +2425,7 @@ function displayLibraryContent(libraryData) {
                 const img = document.createElement('img');
                 img.src = thumbnail;
                 img.alt = title;
-                img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; border-radius: 4px;';
+                img.className = 'thumbnail-image';
                 thumbnailDiv.appendChild(img);
             } else {
                 thumbnailDiv.textContent = '🎵';
@@ -2479,7 +2483,7 @@ function displayLibraryContent(libraryData) {
                 const img = document.createElement('img');
                 img.src = album.thumbnail;
                 img.alt = title;
-                img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; border-radius: 4px;';
+                img.className = 'thumbnail-image';
                 thumbnailDiv.appendChild(img);
             } else {
                 thumbnailDiv.textContent = '💿';
@@ -2537,7 +2541,7 @@ function displayLibraryContent(libraryData) {
                 const img = document.createElement('img');
                 img.src = artist.thumbnail;
                 img.alt = name;
-                img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; border-radius: 4px;';
+                img.className = 'thumbnail-image';
                 thumbnailDiv.appendChild(img);
             } else {
                 thumbnailDiv.textContent = '👤';
@@ -2585,16 +2589,16 @@ function displaySongsContent(libraryData) {
 
     // Create header container
     const headerDiv = document.createElement('div');
-    headerDiv.style.cssText = 'grid-column: 1 / -1; margin-bottom: 20px;';
+    headerDiv.className = 'grid-header';
 
     // Create title
     const titleH2 = document.createElement('h2');
-    titleH2.style.cssText = 'color: #ffffff; margin-bottom: 8px;';
+    titleH2.className = 'header-title';
     titleH2.textContent = 'Your Songs';
 
     // Create song count
     const songCountP = document.createElement('p');
-    songCountP.style.cssText = 'color: #b3b3b3; margin: 0;';
+    songCountP.className = 'song-count';
     songCountP.textContent = `${libraryData.songs?.length || 0} songs`;
 
     headerDiv.appendChild(titleH2);
@@ -2650,7 +2654,7 @@ function displaySongsContent(libraryData) {
     } else {
         // Create no songs message
         const noSongsDiv = document.createElement('div');
-        noSongsDiv.style.cssText = 'grid-column: 1 / -1; text-align: center; color: #b3b3b3;';
+        noSongsDiv.className = 'no-content-message';
         noSongsDiv.textContent = 'No songs in your library';
         container.appendChild(noSongsDiv);
     }
@@ -2672,16 +2676,16 @@ function displayArtistsContent(libraryData) {
 
     // Create header container
     const headerDiv = document.createElement('div');
-    headerDiv.style.cssText = 'grid-column: 1 / -1; margin-bottom: 20px;';
+    headerDiv.className = 'grid-header';
 
     // Create title
     const titleH2 = document.createElement('h2');
-    titleH2.style.cssText = 'color: #ffffff; margin-bottom: 8px;';
+    titleH2.className = 'header-title';
     titleH2.textContent = 'Your Artists';
 
     // Create artist count
     const artistCountP = document.createElement('p');
-    artistCountP.style.cssText = 'color: #b3b3b3; margin: 0;';
+    artistCountP.className = 'song-count';
     artistCountP.textContent = `${libraryData.artists?.length || 0} artists`;
 
     headerDiv.appendChild(titleH2);
@@ -2710,7 +2714,7 @@ function displayArtistsContent(libraryData) {
                 const img = document.createElement('img');
                 img.src = thumbnail;
                 img.alt = name;
-                img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; border-radius: 4px;';
+                img.className = 'thumbnail-image';
                 thumbnailDiv.appendChild(img);
             } else {
                 thumbnailDiv.textContent = '👤';
@@ -2735,7 +2739,7 @@ function displayArtistsContent(libraryData) {
     } else {
         // Create no artists message
         const noArtistsDiv = document.createElement('div');
-        noArtistsDiv.style.cssText = 'grid-column: 1 / -1; text-align: center; color: #b3b3b3;';
+        noArtistsDiv.className = 'no-content-message';
         noArtistsDiv.textContent = 'No artists in your library';
         container.appendChild(noArtistsDiv);
     }
@@ -2757,16 +2761,16 @@ function displayAlbumsContent(libraryData) {
 
     // Create header container
     const headerDiv = document.createElement('div');
-    headerDiv.style.cssText = 'grid-column: 1 / -1; margin-bottom: 20px;';
+    headerDiv.className = 'grid-header';
 
     // Create title
     const titleH2 = document.createElement('h2');
-    titleH2.style.cssText = 'color: #ffffff; margin-bottom: 8px;';
+    titleH2.className = 'header-title';
     titleH2.textContent = 'Your Albums';
 
     // Create album count
     const albumCountP = document.createElement('p');
-    albumCountP.style.cssText = 'color: #b3b3b3; margin: 0;';
+    albumCountP.className = 'song-count';
     albumCountP.textContent = `${libraryData.albums?.length || 0} albums`;
 
     headerDiv.appendChild(titleH2);
@@ -2820,7 +2824,7 @@ function displayAlbumsContent(libraryData) {
     } else {
         // Create no albums message
         const noAlbumsDiv = document.createElement('div');
-        noAlbumsDiv.style.cssText = 'grid-column: 1 / -1; text-align: center; color: #b3b3b3;';
+        noAlbumsDiv.className = 'no-content-message';
         noAlbumsDiv.textContent = 'No albums in your library';
         container.appendChild(noAlbumsDiv);
     }
