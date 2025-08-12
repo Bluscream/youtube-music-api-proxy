@@ -40,6 +40,14 @@ public class ConfigurationService : BaseConfigurationService, IConfigurationServ
     }
 
     /// <summary>
+    /// Gets PoToken server URL with priority: query parameter > appsettings > environment variable
+    /// </summary>
+    public string? GetPoTokenServer(string? queryPoTokenServer = null, bool print = false)
+    {
+        return GetStringValue(queryPoTokenServer, _config.PoTokenServer, YouTubeMusicConfigSources.PoTokenServer, print);
+    }
+
+    /// <summary>
     /// Gets geographical location with priority: query parameter > appsettings > environment variable
     /// </summary>
     public string GetGeographicalLocation(string? queryLocation = null, bool print = false)

@@ -32,6 +32,14 @@ public interface IConfigurationService
     string? GetPoToken(string? queryPoToken = null, bool print = false);
 
     /// <summary>
+    /// Gets PoToken server URL with priority: query parameter > appsettings > environment variable
+    /// </summary>
+    /// <param name="queryPoTokenServer">PoToken server URL from query parameter</param>
+    /// <param name="print">Whether to print debug information to console</param>
+    /// <returns>PoToken server URL string or null if not found</returns>
+    string? GetPoTokenServer(string? queryPoTokenServer = null, bool print = false);
+
+    /// <summary>
     /// Gets geographical location with priority: query parameter > appsettings > environment variable
     /// </summary>
     /// <param name="queryLocation">Location from query parameter</param>

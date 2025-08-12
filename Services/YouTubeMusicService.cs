@@ -23,6 +23,7 @@ public class YouTubeMusicService : IYouTubeMusicService
     private readonly ILogger<YouTubeMusicService> _logger;
     private readonly ILyricsService _lyricsService;
     private readonly IConfigurationService _configService;
+    private readonly IPoTokenService _poTokenService;
     
     // Cache for generated session data to avoid regenerating on every request
     private readonly Dictionary<string, (string VisitorData, string PoToken, DateTime Expiry)> _sessionCache = new();
@@ -33,13 +34,15 @@ public class YouTubeMusicService : IYouTubeMusicService
         IHttpClientFactory httpClientFactory,
         ILogger<YouTubeMusicService> logger,
         ILyricsService lyricsService,
-        IConfigurationService configService)
+        IConfigurationService configService,
+        IPoTokenService poTokenService)
     {
         _config = config;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
         _lyricsService = lyricsService;
         _configService = configService;
+        _poTokenService = poTokenService;
     }
 
     /// <summary>
@@ -49,7 +52,8 @@ public class YouTubeMusicService : IYouTubeMusicService
         string? cookies = null,
         string? geographicalLocation = null,
         string? visitorData = null,
-        string? poToken = null)
+        string? poToken = null,
+        string? poTokenServer = null)
     {
         var config = _config.Value;
         var location = geographicalLocation ?? config.GeographicalLocation;
@@ -79,14 +83,15 @@ public class YouTubeMusicService : IYouTubeMusicService
             }
         }
 
-        // Get visitor data and poToken if not provided
+        // Get visitor data, poToken, and poTokenServer if not provided
         var finalVisitorData = visitorData ?? config.VisitorData;
         var finalPoToken = poToken ?? config.PoToken;
+        var finalPoTokenServer = poTokenServer ?? config.PoTokenServer;
 
         // Generate session data if needed using cached data when possible
         if (cookieCollection != null && (string.IsNullOrEmpty(finalVisitorData) || string.IsNullOrEmpty(finalPoToken)))
         {
-            var (cachedVisitorData, cachedPoToken) = await GetOrGenerateSessionDataAsync(cookieCollection);
+            var (cachedVisitorData, cachedPoToken) = await GetOrGenerateSessionDataAsync(cookieCollection, finalPoTokenServer);
             
             if (string.IsNullOrEmpty(finalVisitorData))
             {
@@ -111,7 +116,7 @@ public class YouTubeMusicService : IYouTubeMusicService
     /// <summary>
     /// Get or generate session data (visitor data and proof of origin token) with caching
     /// </summary>
-    private async Task<(string VisitorData, string PoToken)> GetOrGenerateSessionDataAsync(IEnumerable<Cookie> cookieCollection)
+    private async Task<(string VisitorData, string PoToken)> GetOrGenerateSessionDataAsync(IEnumerable<Cookie> cookieCollection, string? poTokenServer = null)
     {
         // Create a cache key based on the cookie collection
         var cookieKey = string.Join("|", cookieCollection.Select(c => $"{c.Name}={c.Value}").OrderBy(s => s));
@@ -160,8 +165,29 @@ public class YouTubeMusicService : IYouTubeMusicService
             _logger.LogDebug("Generated visitor data: {VisitorData}", visitorData?.Substring(0, Math.Min(50, visitorData?.Length ?? 0)));
 
             // Generate proof of origin token
-            var poToken = await sessionCreator.ProofOfOriginTokenAsync(visitorData ?? string.Empty);
-            _logger.LogDebug("Generated PoToken: {PoToken}", poToken?.Substring(0, Math.Min(50, poToken?.Length ?? 0)));
+            string? poToken;
+            
+            // Try external PoToken server first if configured
+            if (!string.IsNullOrEmpty(poTokenServer))
+            {
+                try
+                {
+                    _logger.LogInformation("Using external PoToken server: {PoTokenServer}", poTokenServer);
+                    poToken = await _poTokenService.GeneratePoTokenAsync(poTokenServer, visitorData ?? string.Empty);
+                    _logger.LogDebug("Generated PoToken from external server: {PoToken}", poToken?.Substring(0, Math.Min(50, poToken?.Length ?? 0)));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to generate PoToken from external server, falling back to local generation");
+                    poToken = await sessionCreator.ProofOfOriginTokenAsync(visitorData ?? string.Empty);
+                    _logger.LogDebug("Generated PoToken locally: {PoToken}", poToken?.Substring(0, Math.Min(50, poToken?.Length ?? 0)));
+                }
+            }
+            else
+            {
+                poToken = await sessionCreator.ProofOfOriginTokenAsync(visitorData ?? string.Empty);
+                _logger.LogDebug("Generated PoToken locally: {PoToken}", poToken?.Substring(0, Math.Min(50, poToken?.Length ?? 0)));
+            }
 
             // Cache the session data for 1 hour
             var expiry = DateTime.UtcNow.AddHours(1);
@@ -295,18 +321,20 @@ public class YouTubeMusicService : IYouTubeMusicService
         string query,
         SearchCategory? category = null,
         string? cookies = null,
-        string? geographicalLocation = null)
+        string? geographicalLocation = null,
+        string? poTokenServer = null)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation);
+        var client = await CreateClientAsync(cookies, geographicalLocation, null, null, poTokenServer);
         return client.SearchAsync(query, category);
     }
 
     public async Task<SongVideoInfoResponse> GetSongVideoInfoAsync(
         string id,
         string? cookies = null,
-        string? geographicalLocation = null)
+        string? geographicalLocation = null,
+        string? poTokenServer = null)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation);
+        var client = await CreateClientAsync(cookies, geographicalLocation, null, null, poTokenServer);
         
         // Get song/video info
         var songVideoInfo = await client.GetSongVideoInfoAsync(id);
@@ -396,27 +424,30 @@ public class YouTubeMusicService : IYouTubeMusicService
     public async Task<StreamingData> GetStreamingDataAsync(
         string id,
         string? cookies = null,
-        string? geographicalLocation = null)
+        string? geographicalLocation = null,
+        string? poTokenServer = null)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation);
+        var client = await CreateClientAsync(cookies, geographicalLocation, null, null, poTokenServer);
         return await client.GetStreamingDataAsync(id);
     }
 
     public async Task<AlbumInfo> GetAlbumInfoAsync(
         string browseId,
         string? cookies = null,
-        string? geographicalLocation = null)
+        string? geographicalLocation = null,
+        string? poTokenServer = null)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation);
+        var client = await CreateClientAsync(cookies, geographicalLocation, null, null, poTokenServer);
         return await client.GetAlbumInfoAsync(browseId);
     }
 
     public async Task<ArtistInfo> GetArtistInfoAsync(
         string browseId,
         string? cookies = null,
-        string? geographicalLocation = null)
+        string? geographicalLocation = null,
+        string? poTokenServer = null)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation);
+        var client = await CreateClientAsync(cookies, geographicalLocation, null, null, poTokenServer);
         return await client.GetArtistInfoAsync(browseId);
     }
 
@@ -424,9 +455,10 @@ public class YouTubeMusicService : IYouTubeMusicService
 
     public async Task<object> GetLibraryAsync(
         string cookies,
-        string? geographicalLocation = null)
+        string? geographicalLocation = null,
+        string? poTokenServer = null)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation);
+        var client = await CreateClientAsync(cookies, geographicalLocation, null, null, poTokenServer);
         
         var songs = await client.GetLibrarySongsAsync();
         var albums = await client.GetLibraryAlbumsAsync();
@@ -448,54 +480,60 @@ public class YouTubeMusicService : IYouTubeMusicService
 
     public async Task<object> GetLibrarySongsAsync(
         string cookies,
-        string? geographicalLocation = null)
+        string? geographicalLocation = null,
+        string? poTokenServer = null)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation);
+        var client = await CreateClientAsync(cookies, geographicalLocation, null, null, poTokenServer);
         var songs = await client.GetLibrarySongsAsync();
         return new { songs = songs.ToList() };
     }
 
     public async Task<object> GetLibraryAlbumsAsync(
         string cookies,
-        string? geographicalLocation = null)
+        string? geographicalLocation = null,
+        string? poTokenServer = null)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation);
+        var client = await CreateClientAsync(cookies, geographicalLocation, null, null, poTokenServer);
         var albums = await client.GetLibraryAlbumsAsync();
         return new { albums = albums.ToList() };
     }
 
     public async Task<object> GetLibraryArtistsAsync(
         string cookies,
-        string? geographicalLocation = null)
+        string? geographicalLocation = null,
+        string? poTokenServer = null)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation);
+        var client = await CreateClientAsync(cookies, geographicalLocation, null, null, poTokenServer);
         var artists = await client.GetLibraryArtistsAsync();
         return new { artists = artists.ToList() };
     }
 
     public async Task<object> GetLibrarySubscriptionsAsync(
         string cookies,
-        string? geographicalLocation = null)
+        string? geographicalLocation = null,
+        string? poTokenServer = null)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation);
+        var client = await CreateClientAsync(cookies, geographicalLocation, null, null, poTokenServer);
         var subscriptions = await client.GetLibrarySubscriptionsAsync();
         return new { subscriptions = subscriptions.ToList() };
     }
 
     public async Task<object> GetLibraryPodcastsAsync(
         string cookies,
-        string? geographicalLocation = null)
+        string? geographicalLocation = null,
+        string? poTokenServer = null)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation);
+        var client = await CreateClientAsync(cookies, geographicalLocation, null, null, poTokenServer);
         var podcasts = await client.GetLibraryPodcastsAsync();
         return new { podcasts = podcasts.ToList() };
     }
 
     public async Task<object> GetLibraryPlaylistsAsync(
         string cookies,
-        string? geographicalLocation = null)
+        string? geographicalLocation = null,
+        string? poTokenServer = null)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation);
+        var client = await CreateClientAsync(cookies, geographicalLocation, null, null, poTokenServer);
         var playlists = await client.GetLibraryCommunityPlaylistsAsync();
         return new { playlists = playlists.ToList() };
     }
@@ -503,9 +541,10 @@ public class YouTubeMusicService : IYouTubeMusicService
     public async Task<object> GetPlaylistAsync(
         string id,
         string? cookies = null,
-        string? geographicalLocation = null)
+        string? geographicalLocation = null,
+        string? poTokenServer = null)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation);
+        var client = await CreateClientAsync(cookies, geographicalLocation, null, null, poTokenServer);
         
         try
         {

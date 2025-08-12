@@ -152,6 +152,7 @@ builder.Services.Configure<AppConfig>(builder.Configuration);
 builder.Services.AddScoped<IYouTubeMusicService, YouTubeMusicService>();
 builder.Services.AddScoped<IConfigurationService, ConfigurationService>();
 builder.Services.AddScoped<ILyricsService, LyricsService>();
+builder.Services.AddScoped<IPoTokenService, PoTokenService>();
 builder.Services.AddHttpClient();
 
 var app = builder.Build();
