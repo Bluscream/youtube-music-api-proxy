@@ -110,7 +110,30 @@ export abstract class UIComponent extends EventEmitter {
      */
     setContent(content: string): void {
         if (this.element) {
-            this.element.innerHTML = content;
+            // Clear existing content
+            this.element.textContent = '';
+
+            // For simple text content, use textContent directly
+            if (!content.includes('<')) {
+                this.element.textContent = content;
+                return;
+            }
+
+            // For HTML content, use a safer approach with DOMParser
+            try {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(content, 'text/html');
+                const body = doc.body;
+
+                // Move all child nodes to the element
+                while (body.firstChild) {
+                    this.element.appendChild(body.firstChild);
+                }
+            } catch (error) {
+                // Fallback to text content if parsing fails
+                console.warn('Failed to parse HTML content, using text content instead:', error);
+                this.element.textContent = content;
+            }
         }
     }
 
@@ -118,7 +141,12 @@ export abstract class UIComponent extends EventEmitter {
      * Get component content
      */
     getContent(): string {
-        return this.element?.innerHTML || '';
+        if (!this.element) return '';
+
+        // Create a temporary container to get HTML content
+        const tempContainer = document.createElement('div');
+        tempContainer.appendChild(this.element.cloneNode(true));
+        return tempContainer.innerHTML;
     }
 
     /**

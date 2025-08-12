@@ -123,7 +123,10 @@ export class NotificationManager extends EventEmitter {
 
         // Remove all elements
         if (this.container) {
-            this.container.innerHTML = '';
+            // Clear container by removing all child nodes
+            while (this.container.firstChild) {
+                this.container.removeChild(this.container.firstChild);
+            }
         }
 
         this.notifications.clear();
@@ -195,23 +198,32 @@ export class NotificationManager extends EventEmitter {
             border-left: 4px solid ${this.getBorderColor(notification.type)};
         `;
 
-        element.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                <div style="flex: 1;">
-                    <div style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">
-                        ${this.escapeHtml(notification.title)}
-                    </div>
-                    <div style="font-size: 13px; opacity: 0.9;">
-                        ${this.escapeHtml(notification.message)}
-                    </div>
-                </div>
-                <button onclick="window.notificationManager.remove('${notification.id}')" 
-                        style="background: none; border: none; color: white; cursor: pointer; 
-                               font-size: 18px; margin-left: 10px; opacity: 0.7; padding: 0;">
-                    ×
-                </button>
-            </div>
-        `;
+        // Create the notification content structure
+        const contentWrapper = document.createElement('div');
+        contentWrapper.style.cssText = 'display: flex; justify-content: space-between; align-items: flex-start;';
+
+        const contentDiv = document.createElement('div');
+        contentDiv.style.cssText = 'flex: 1;';
+
+        const titleDiv = document.createElement('div');
+        titleDiv.style.cssText = 'font-weight: bold; margin-bottom: 5px; font-size: 14px;';
+        titleDiv.textContent = this.escapeHtml(notification.title);
+
+        const messageDiv = document.createElement('div');
+        messageDiv.style.cssText = 'font-size: 13px; opacity: 0.9;';
+        messageDiv.textContent = this.escapeHtml(notification.message);
+
+        contentDiv.appendChild(titleDiv);
+        contentDiv.appendChild(messageDiv);
+
+        const closeButton = document.createElement('button');
+        closeButton.style.cssText = 'background: none; border: none; color: white; cursor: pointer; font-size: 18px; margin-left: 10px; opacity: 0.7; padding: 0;';
+        closeButton.textContent = '×';
+        closeButton.onclick = () => window.notificationManager.remove(notification.id);
+
+        contentWrapper.appendChild(contentDiv);
+        contentWrapper.appendChild(closeButton);
+        element.appendChild(contentWrapper);
 
         this.container.appendChild(element);
 
@@ -260,7 +272,7 @@ export class NotificationManager extends EventEmitter {
     private escapeHtml(text: string): string {
         const div = document.createElement('div');
         div.textContent = text;
-        return div.innerHTML;
+        return div.textContent || '';
     }
 
     /**

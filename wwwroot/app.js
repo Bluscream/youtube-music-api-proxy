@@ -870,7 +870,10 @@ define("managers/notification-manager", ["require", "exports", "core/event-emitt
             this.autoRemoveTimeouts.clear();
             // Remove all elements
             if (this.container) {
-                this.container.innerHTML = '';
+                // Clear container by removing all child nodes
+                while (this.container.firstChild) {
+                    this.container.removeChild(this.container.firstChild);
+                }
             }
             this.notifications.clear();
             this.emit('notificationsCleared');
@@ -933,23 +936,26 @@ define("managers/notification-manager", ["require", "exports", "core/event-emitt
             transition: transform 0.3s ease;
             border-left: 4px solid ${this.getBorderColor(notification.type)};
         `;
-            element.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                <div style="flex: 1;">
-                    <div style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">
-                        ${this.escapeHtml(notification.title)}
-                    </div>
-                    <div style="font-size: 13px; opacity: 0.9;">
-                        ${this.escapeHtml(notification.message)}
-                    </div>
-                </div>
-                <button onclick="window.notificationManager.remove('${notification.id}')" 
-                        style="background: none; border: none; color: white; cursor: pointer; 
-                               font-size: 18px; margin-left: 10px; opacity: 0.7; padding: 0;">
-                    ×
-                </button>
-            </div>
-        `;
+            // Create the notification content structure
+            const contentWrapper = document.createElement('div');
+            contentWrapper.style.cssText = 'display: flex; justify-content: space-between; align-items: flex-start;';
+            const contentDiv = document.createElement('div');
+            contentDiv.style.cssText = 'flex: 1;';
+            const titleDiv = document.createElement('div');
+            titleDiv.style.cssText = 'font-weight: bold; margin-bottom: 5px; font-size: 14px;';
+            titleDiv.textContent = this.escapeHtml(notification.title);
+            const messageDiv = document.createElement('div');
+            messageDiv.style.cssText = 'font-size: 13px; opacity: 0.9;';
+            messageDiv.textContent = this.escapeHtml(notification.message);
+            contentDiv.appendChild(titleDiv);
+            contentDiv.appendChild(messageDiv);
+            const closeButton = document.createElement('button');
+            closeButton.style.cssText = 'background: none; border: none; color: white; cursor: pointer; font-size: 18px; margin-left: 10px; opacity: 0.7; padding: 0;';
+            closeButton.textContent = '×';
+            closeButton.onclick = () => window.notificationManager.remove(notification.id);
+            contentWrapper.appendChild(contentDiv);
+            contentWrapper.appendChild(closeButton);
+            element.appendChild(contentWrapper);
             this.container.appendChild(element);
             // Animate in
             setTimeout(() => {
@@ -992,7 +998,7 @@ define("managers/notification-manager", ["require", "exports", "core/event-emitt
         escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
-            return div.innerHTML;
+            return div.textContent || '';
         }
         /**
          * Get notification count
@@ -2303,13 +2309,102 @@ define("app", ["require", "exports", "managers/app-settings-manager", "managers/
             }
         }
         /**
-         * Display playlist data in the UI
+         * Helper method to create a song item element
          */
-        displayPlaylist(playlistData) {
-            console.log('Displaying playlist:', playlistData);
-            // Update page title
-            document.title = `${playlistData.id} - YouTube Music`;
-            // Show playlist content
+        createSongItem(song, index = -1, playlistId) {
+            const songItem = document.createElement('div');
+            songItem.className = 'song-item';
+            songItem.setAttribute('data-song-id', song.id);
+            songItem.setAttribute('data-song-name', song.name || song.title || 'Unknown Song');
+            songItem.setAttribute('data-song-artist', song.artists?.[0]?.name || song.artist || 'Unknown Artist');
+            songItem.setAttribute('data-song-thumbnail', song.thumbnails?.[0]?.url || song.thumbnail || '/logo.png');
+            if (playlistId) {
+                songItem.setAttribute('data-playlist-id', playlistId);
+            }
+            if (index >= 0) {
+                songItem.setAttribute('data-song-index', index.toString());
+            }
+            const thumbnail = document.createElement('div');
+            thumbnail.className = 'song-thumbnail';
+            const img = document.createElement('img');
+            img.src = song.thumbnails?.[0]?.url || song.thumbnail || '/logo.png';
+            img.alt = song.name || song.title || 'Unknown Song';
+            thumbnail.appendChild(img);
+            const info = document.createElement('div');
+            info.className = 'song-info';
+            const title = document.createElement('div');
+            title.className = 'song-title';
+            title.textContent = song.name || song.title || 'Unknown Song';
+            const artist = document.createElement('div');
+            artist.className = 'song-artist';
+            artist.textContent = song.artists?.[0]?.name || song.artist || 'Unknown Artist';
+            info.appendChild(title);
+            info.appendChild(artist);
+            const duration = document.createElement('div');
+            duration.className = 'song-duration';
+            duration.textContent = song.duration || '';
+            songItem.appendChild(thumbnail);
+            songItem.appendChild(info);
+            songItem.appendChild(duration);
+            return songItem;
+        }
+        /**
+         * Helper method to create a result card element
+         */
+        createResultCard(type, data) {
+            const card = document.createElement('div');
+            card.className = 'result-card';
+            if (type === 'artist') {
+                card.setAttribute('data-artist-id', data.id);
+                card.setAttribute('data-artist-name', data.name);
+            }
+            else {
+                card.setAttribute('data-album-id', data.id);
+                card.setAttribute('data-album-title', data.name);
+            }
+            const thumbnail = document.createElement('div');
+            thumbnail.className = 'result-card-thumbnail';
+            const img = document.createElement('img');
+            img.src = data.thumbnails?.[0]?.url || '/logo.png';
+            img.alt = data.name;
+            thumbnail.appendChild(img);
+            const info = document.createElement('div');
+            info.className = 'result-card-info';
+            const title = document.createElement('div');
+            title.className = 'result-card-title';
+            title.textContent = data.name;
+            const subtitle = document.createElement('div');
+            subtitle.className = 'result-card-subtitle';
+            if (type === 'artist') {
+                subtitle.textContent = data.subscribers || 'Unknown subscribers';
+            }
+            else {
+                subtitle.textContent = data.artists?.[0]?.name || 'Unknown Artist';
+            }
+            info.appendChild(title);
+            info.appendChild(subtitle);
+            card.appendChild(thumbnail);
+            card.appendChild(info);
+            return card;
+        }
+        /**
+         * Helper method to create a header element
+         */
+        createHeader(title, subtitle) {
+            const header = document.createElement('div');
+            header.className = 'playlist-header';
+            const h1 = document.createElement('h1');
+            h1.textContent = title;
+            const p = document.createElement('p');
+            p.textContent = subtitle;
+            header.appendChild(h1);
+            header.appendChild(p);
+            return header;
+        }
+        /**
+         * Helper method to clear and prepare search results container
+         */
+        prepareSearchResultsContainer() {
             const searchResults = document.getElementById('searchResults');
             const welcomeSection = document.querySelector('.welcome-section');
             if (welcomeSection) {
@@ -2317,80 +2412,76 @@ define("app", ["require", "exports", "managers/app-settings-manager", "managers/
             }
             if (searchResults) {
                 searchResults.style.display = 'block';
-                let html = `
-                <div class="playlist-header">
-                    <h1>${playlistData.id || 'Playlist'}</h1>
-                    <p>${playlistData.totalSongs || 0} songs</p>
-                </div>
-                <div class="songs-list">
-            `;
-                if (playlistData.songs && playlistData.songs.length > 0) {
-                    playlistData.songs.forEach((song, index) => {
-                        const songName = song.name || song.title || 'Unknown Song';
-                        const songArtist = song.artists?.[0]?.name || song.artist || 'Unknown Artist';
-                        const songThumbnail = song.thumbnails?.[0]?.url || song.thumbnail || '/logo.png';
-                        html += `
-                        <div class="song-item" data-song-id="${song.id}" data-song-name="${songName}" data-song-artist="${songArtist}" data-song-thumbnail="${songThumbnail}" data-playlist-id="${playlistData.id}" data-song-index="${index}">
-                            <div class="song-thumbnail">
-                                <img src="${songThumbnail}" alt="${songName}">
-                            </div>
-                            <div class="song-info">
-                                <div class="song-title">${songName}</div>
-                                <div class="song-artist">${songArtist}</div>
-                            </div>
-                            <div class="song-duration">${song.duration || ''}</div>
-                        </div>
-                    `;
-                    });
+                // Clear container by removing all child nodes
+                while (searchResults.firstChild) {
+                    searchResults.removeChild(searchResults.firstChild);
                 }
-                else {
-                    html += '<div class="no-songs">No songs found in this playlist</div>';
-                }
-                html += '</div>';
-                searchResults.innerHTML = html;
+                return searchResults;
             }
+            return null;
+        }
+        /**
+         * Display playlist data in the UI
+         */
+        displayPlaylist(playlistData) {
+            console.log('Displaying playlist:', playlistData);
+            // Update page title
+            document.title = `${playlistData.id} - YouTube Music`;
+            const searchResults = this.prepareSearchResultsContainer();
+            if (!searchResults)
+                return;
+            // Create header
+            const header = this.createHeader(playlistData.id || 'Playlist', `${playlistData.totalSongs || 0} songs`);
+            searchResults.appendChild(header);
+            // Create songs list container
+            const songsList = document.createElement('div');
+            songsList.className = 'songs-list';
+            if (playlistData.songs && playlistData.songs.length > 0) {
+                playlistData.songs.forEach((song, index) => {
+                    const songItem = this.createSongItem(song, index, playlistData.id);
+                    songsList.appendChild(songItem);
+                });
+            }
+            else {
+                const noSongs = document.createElement('div');
+                noSongs.className = 'no-songs';
+                noSongs.textContent = 'No songs found in this playlist';
+                songsList.appendChild(noSongs);
+            }
+            searchResults.appendChild(songsList);
         }
         /**
          * Display search results in the UI
          */
         displaySearchResults(searchResults) {
             console.log('Displaying search results:', searchResults);
-            const searchResultsElement = document.getElementById('searchResults');
-            const welcomeSection = document.querySelector('.welcome-section');
-            if (welcomeSection) {
-                welcomeSection.style.display = 'none';
+            const searchResultsElement = this.prepareSearchResultsContainer();
+            if (!searchResultsElement)
+                return;
+            // Create header
+            const header = document.createElement('div');
+            header.className = 'search-results-header';
+            const h2 = document.createElement('h2');
+            h2.textContent = 'Search Results';
+            header.appendChild(h2);
+            searchResultsElement.appendChild(header);
+            if (searchResults.results && searchResults.results.length > 0) {
+                const songsList = document.createElement('div');
+                songsList.className = 'songs-list';
+                searchResults.results.forEach((result) => {
+                    if (result.category === api_types_2.SearchCategory.Songs) {
+                        const song = result;
+                        const songItem = this.createSongItem(song);
+                        songsList.appendChild(songItem);
+                    }
+                });
+                searchResultsElement.appendChild(songsList);
             }
-            if (searchResultsElement) {
-                searchResultsElement.style.display = 'block';
-                let html = '<div class="search-results-header"><h2>Search Results</h2></div>';
-                if (searchResults.results && searchResults.results.length > 0) {
-                    html += '<div class="songs-list">';
-                    searchResults.results.forEach((result) => {
-                        if (result.category === api_types_2.SearchCategory.Songs) {
-                            const song = result;
-                            const songName = song.name;
-                            const songArtist = song.artists?.[0]?.name || 'Unknown Artist';
-                            const songThumbnail = song.thumbnails?.[0]?.url || '/logo.png';
-                            html += `
-                            <div class="song-item" data-song-id="${song.id}" data-song-name="${songName}" data-song-artist="${songArtist}" data-song-thumbnail="${songThumbnail}">
-                                <div class="song-thumbnail">
-                                    <img src="${songThumbnail}" alt="${songName}">
-                                </div>
-                                <div class="song-info">
-                                    <div class="song-title">${songName}</div>
-                                    <div class="song-artist">${songArtist}</div>
-                                </div>
-                                <div class="song-duration">${song.duration || ''}</div>
-                            </div>
-                        `;
-                        }
-                    });
-                    html += '</div>';
-                }
-                else {
-                    html += '<div class="no-results">No results found</div>';
-                }
-                searchResultsElement.innerHTML = html;
+            else {
+                const noResults = document.createElement('div');
+                noResults.className = 'no-results';
+                noResults.textContent = 'No results found';
+                searchResultsElement.appendChild(noResults);
             }
         }
         /**
@@ -2398,279 +2489,170 @@ define("app", ["require", "exports", "managers/app-settings-manager", "managers/
          */
         displayAlbum(albumData) {
             console.log('Displaying album:', albumData);
-            const searchResults = document.getElementById('searchResults');
-            const welcomeSection = document.querySelector('.welcome-section');
-            if (welcomeSection) {
-                welcomeSection.style.display = 'none';
+            const searchResults = this.prepareSearchResultsContainer();
+            if (!searchResults)
+                return;
+            // Create header
+            const header = this.createHeader(albumData.name, `${albumData.songs?.length || 0} songs`);
+            searchResults.appendChild(header);
+            // Create songs list container
+            const songsList = document.createElement('div');
+            songsList.className = 'songs-list';
+            if (albumData.songs && albumData.songs.length > 0) {
+                albumData.songs.forEach((song, index) => {
+                    const songItem = this.createSongItem(song, index);
+                    songsList.appendChild(songItem);
+                });
             }
-            if (searchResults) {
-                searchResults.style.display = 'block';
-                let html = `
-                <div class="playlist-header">
-                    <h1>${albumData.name}</h1>
-                    <p>${albumData.songs?.length || 0} songs</p>
-                </div>
-                <div class="songs-list">
-            `;
-                if (albumData.songs && albumData.songs.length > 0) {
-                    albumData.songs.forEach((song, index) => {
-                        const songName = song.name;
-                        const songArtist = song.artists?.[0]?.name || 'Unknown Artist';
-                        const songThumbnail = song.thumbnails?.[0]?.url || albumData.thumbnails?.[0]?.url || '/logo.png';
-                        html += `
-                        <div class="song-item" data-song-id="${song.id}" data-song-name="${songName}" data-song-artist="${songArtist}" data-song-thumbnail="${songThumbnail}" data-song-index="${index}">
-                            <div class="song-thumbnail">
-                                <img src="${songThumbnail}" alt="${songName}">
-                            </div>
-                            <div class="song-info">
-                                <div class="song-title">${songName}</div>
-                                <div class="song-artist">${songArtist}</div>
-                            </div>
-                            <div class="song-duration">${song.duration || ''}</div>
-                        </div>
-                    `;
-                    });
-                }
-                else {
-                    html += '<div class="no-songs">No songs found in this album</div>';
-                }
-                html += '</div>';
-                searchResults.innerHTML = html;
+            else {
+                const noSongs = document.createElement('div');
+                noSongs.className = 'no-songs';
+                noSongs.textContent = 'No songs found in this album';
+                songsList.appendChild(noSongs);
             }
+            searchResults.appendChild(songsList);
         }
         /**
          * Display artist data in the UI
          */
         displayArtist(artistData) {
             console.log('Displaying artist:', artistData);
-            const searchResults = document.getElementById('searchResults');
-            const welcomeSection = document.querySelector('.welcome-section');
-            if (welcomeSection) {
-                welcomeSection.style.display = 'none';
+            const searchResults = this.prepareSearchResultsContainer();
+            if (!searchResults)
+                return;
+            // Create header
+            const header = this.createHeader(artistData.name, `${artistData.songs?.length || 0} songs`);
+            searchResults.appendChild(header);
+            // Create songs list container
+            const songsList = document.createElement('div');
+            songsList.className = 'songs-list';
+            if (artistData.songs && artistData.songs.length > 0) {
+                artistData.songs.forEach((song, index) => {
+                    const songItem = this.createSongItem(song, index);
+                    songsList.appendChild(songItem);
+                });
             }
-            if (searchResults) {
-                searchResults.style.display = 'block';
-                let html = `
-                <div class="playlist-header">
-                    <h1>${artistData.name}</h1>
-                    <p>${artistData.songs?.length || 0} songs</p>
-                </div>
-                <div class="songs-list">
-            `;
-                if (artistData.songs && artistData.songs.length > 0) {
-                    artistData.songs.forEach((song, index) => {
-                        const songName = song.name;
-                        const songArtist = artistData.name;
-                        const songThumbnail = song.thumbnails?.[0]?.url || artistData.thumbnails?.[0]?.url || '/logo.png';
-                        html += `
-                        <div class="song-item" data-song-id="${song.id}" data-song-name="${songName}" data-song-artist="${songArtist}" data-song-thumbnail="${songThumbnail}" data-song-index="${index}">
-                            <div class="song-thumbnail">
-                                <img src="${songThumbnail}" alt="${songName}">
-                            </div>
-                            <div class="song-info">
-                                <div class="song-title">${songName}</div>
-                                <div class="song-artist">${songArtist}</div>
-                            </div>
-                            <div class="song-duration">${song.duration || ''}</div>
-                        </div>
-                    `;
-                    });
-                }
-                else {
-                    html += '<div class="no-songs">No songs found for this artist</div>';
-                }
-                html += '</div>';
-                searchResults.innerHTML = html;
+            else {
+                const noSongs = document.createElement('div');
+                noSongs.className = 'no-songs';
+                noSongs.textContent = 'No songs found for this artist';
+                songsList.appendChild(noSongs);
             }
+            searchResults.appendChild(songsList);
         }
         /**
          * Display song data in the UI
          */
         displaySong(songData) {
             console.log('Displaying song:', songData);
-            const searchResults = document.getElementById('searchResults');
-            const welcomeSection = document.querySelector('.welcome-section');
-            if (welcomeSection) {
-                welcomeSection.style.display = 'none';
-            }
-            if (searchResults) {
-                searchResults.style.display = 'block';
-                const songName = songData.name;
-                const songArtist = songData.artists?.[0]?.name || 'Unknown Artist';
-                const songThumbnail = songData.thumbnails?.[0]?.url || '/logo.png';
-                let html = `
-                <div class="playlist-header">
-                    <h1>${songName}</h1>
-                    <p>by ${songArtist}</p>
-                </div>
-                <div class="songs-list">
-                    <div class="song-item" data-song-id="${songData.id}" data-song-name="${songName}" data-song-artist="${songArtist}" data-song-thumbnail="${songThumbnail}">
-                        <div class="song-thumbnail">
-                            <img src="${songThumbnail}" alt="${songName}">
-                        </div>
-                        <div class="song-info">
-                            <div class="song-title">${songName}</div>
-                            <div class="song-artist">${songArtist}</div>
-                        </div>
-                        <div class="song-duration">${songData.duration || ''}</div>
-                    </div>
-                </div>
-            `;
-                searchResults.innerHTML = html;
-            }
+            const searchResults = this.prepareSearchResultsContainer();
+            if (!searchResults)
+                return;
+            // Create header
+            const header = this.createHeader(songData.name, `by ${songData.artists?.[0]?.name || 'Unknown Artist'}`);
+            searchResults.appendChild(header);
+            // Create songs list container
+            const songsList = document.createElement('div');
+            songsList.className = 'songs-list';
+            const songItem = this.createSongItem(songData);
+            songsList.appendChild(songItem);
+            searchResults.appendChild(songsList);
         }
         /**
          * Display library data in the UI
          */
         displayLibrary(libraryData) {
             console.log('Displaying library:', libraryData);
-            const searchResults = document.getElementById('searchResults');
-            const welcomeSection = document.querySelector('.welcome-section');
-            if (welcomeSection) {
-                welcomeSection.style.display = 'none';
-            }
-            if (searchResults) {
-                searchResults.style.display = 'block';
-                let html = `
-                <div class="playlist-header">
-                    <h1>Your Library</h1>
-                    <p>${libraryData.songs?.length || 0} songs, ${libraryData.albums?.length || 0} albums, ${libraryData.artists?.length || 0} artists</p>
-                </div>
-            `;
-                searchResults.innerHTML = html;
-            }
+            const searchResults = this.prepareSearchResultsContainer();
+            if (!searchResults)
+                return;
+            // Create header
+            const header = this.createHeader('Your Library', `${libraryData.songs?.length || 0} songs, ${libraryData.albums?.length || 0} albums, ${libraryData.artists?.length || 0} artists`);
+            searchResults.appendChild(header);
         }
         /**
          * Display songs data in the UI
          */
         displaySongs(songsData) {
             console.log('Displaying songs:', songsData);
-            const searchResults = document.getElementById('searchResults');
-            const welcomeSection = document.querySelector('.welcome-section');
-            if (welcomeSection) {
-                welcomeSection.style.display = 'none';
+            const searchResults = this.prepareSearchResultsContainer();
+            if (!searchResults)
+                return;
+            // Create header
+            const header = this.createHeader('Your Songs', `${songsData.totalCount || 0} songs`);
+            searchResults.appendChild(header);
+            // Create songs list container
+            const songsList = document.createElement('div');
+            songsList.className = 'songs-list';
+            if (songsData.songs && songsData.songs.length > 0) {
+                songsData.songs.forEach((song, index) => {
+                    const songItem = this.createSongItem(song, index);
+                    songsList.appendChild(songItem);
+                });
             }
-            if (searchResults) {
-                searchResults.style.display = 'block';
-                let html = `
-                <div class="playlist-header">
-                    <h1>Your Songs</h1>
-                    <p>${songsData.totalCount || 0} songs</p>
-                </div>
-                <div class="songs-list">
-            `;
-                if (songsData.songs && songsData.songs.length > 0) {
-                    songsData.songs.forEach((song, index) => {
-                        const songName = song.name;
-                        const songArtist = song.artists?.[0]?.name || 'Unknown Artist';
-                        const songThumbnail = song.thumbnails?.[0]?.url || '/logo.png';
-                        html += `
-                        <div class="song-item" data-song-id="${song.id}" data-song-name="${songName}" data-song-artist="${songArtist}" data-song-thumbnail="${songThumbnail}" data-song-index="${index}">
-                            <div class="song-thumbnail">
-                                <img src="${songThumbnail}" alt="${songName}">
-                            </div>
-                            <div class="song-info">
-                                <div class="song-title">${songName}</div>
-                                <div class="song-artist">${songArtist}</div>
-                            </div>
-                            <div class="song-duration">${song.duration || ''}</div>
-                        </div>
-                    `;
-                    });
-                }
-                else {
-                    html += '<div class="no-songs">No songs found in your library</div>';
-                }
-                html += '</div>';
-                searchResults.innerHTML = html;
+            else {
+                const noSongs = document.createElement('div');
+                noSongs.className = 'no-songs';
+                noSongs.textContent = 'No songs found in your library';
+                songsList.appendChild(noSongs);
             }
+            searchResults.appendChild(songsList);
         }
         /**
          * Display artists data in the UI
          */
         displayArtists(artistsData) {
             console.log('Displaying artists:', artistsData);
-            const searchResults = document.getElementById('searchResults');
-            const welcomeSection = document.querySelector('.welcome-section');
-            if (welcomeSection) {
-                welcomeSection.style.display = 'none';
+            const searchResults = this.prepareSearchResultsContainer();
+            if (!searchResults)
+                return;
+            // Create header
+            const header = this.createHeader('Your Artists', `${artistsData.totalCount || 0} artists`);
+            searchResults.appendChild(header);
+            // Create results grid container
+            const resultsGrid = document.createElement('div');
+            resultsGrid.className = 'results-grid';
+            if (artistsData.artists && artistsData.artists.length > 0) {
+                artistsData.artists.forEach((artist) => {
+                    const artistCard = this.createResultCard('artist', artist);
+                    resultsGrid.appendChild(artistCard);
+                });
             }
-            if (searchResults) {
-                searchResults.style.display = 'block';
-                let html = `
-                <div class="playlist-header">
-                    <h1>Your Artists</h1>
-                    <p>${artistsData.totalCount || 0} artists</p>
-                </div>
-                <div class="results-grid">
-            `;
-                if (artistsData.artists && artistsData.artists.length > 0) {
-                    artistsData.artists.forEach((artist) => {
-                        const artistName = artist.name;
-                        const artistThumbnail = artist.thumbnails?.[0]?.url || '/logo.png';
-                        html += `
-                        <div class="result-card" data-artist-id="${artist.id}" data-artist-name="${artistName}">
-                            <div class="result-card-thumbnail">
-                                <img src="${artistThumbnail}" alt="${artistName}">
-                            </div>
-                            <div class="result-card-info">
-                                <div class="result-card-title">${artistName}</div>
-                                <div class="result-card-subtitle">${artist.subscribers || 'Unknown subscribers'}</div>
-                            </div>
-                        </div>
-                    `;
-                    });
-                }
-                else {
-                    html += '<div class="no-results">No artists found in your library</div>';
-                }
-                html += '</div>';
-                searchResults.innerHTML = html;
+            else {
+                const noResults = document.createElement('div');
+                noResults.className = 'no-results';
+                noResults.textContent = 'No artists found in your library';
+                resultsGrid.appendChild(noResults);
             }
+            searchResults.appendChild(resultsGrid);
         }
         /**
          * Display albums data in the UI
          */
         displayAlbums(albumsData) {
             console.log('Displaying albums:', albumsData);
-            const searchResults = document.getElementById('searchResults');
-            const welcomeSection = document.querySelector('.welcome-section');
-            if (welcomeSection) {
-                welcomeSection.style.display = 'none';
+            const searchResults = this.prepareSearchResultsContainer();
+            if (!searchResults)
+                return;
+            // Create header
+            const header = this.createHeader('Your Albums', `${albumsData.totalCount || 0} albums`);
+            searchResults.appendChild(header);
+            // Create results grid container
+            const resultsGrid = document.createElement('div');
+            resultsGrid.className = 'results-grid';
+            if (albumsData.albums && albumsData.albums.length > 0) {
+                albumsData.albums.forEach((album) => {
+                    const albumCard = this.createResultCard('album', album);
+                    resultsGrid.appendChild(albumCard);
+                });
             }
-            if (searchResults) {
-                searchResults.style.display = 'block';
-                let html = `
-                <div class="playlist-header">
-                    <h1>Your Albums</h1>
-                    <p>${albumsData.totalCount || 0} albums</p>
-                </div>
-                <div class="results-grid">
-            `;
-                if (albumsData.albums && albumsData.albums.length > 0) {
-                    albumsData.albums.forEach((album) => {
-                        const albumName = album.name;
-                        const albumArtist = album.artists?.[0]?.name || 'Unknown Artist';
-                        const albumThumbnail = album.thumbnails?.[0]?.url || '/logo.png';
-                        html += `
-                        <div class="result-card" data-album-id="${album.id}" data-album-title="${albumName}">
-                            <div class="result-card-thumbnail">
-                                <img src="${albumThumbnail}" alt="${albumName}">
-                            </div>
-                            <div class="result-card-info">
-                                <div class="result-card-title">${albumName}</div>
-                                <div class="result-card-subtitle">${albumArtist}</div>
-                            </div>
-                        </div>
-                    `;
-                    });
-                }
-                else {
-                    html += '<div class="no-results">No albums found in your library</div>';
-                }
-                html += '</div>';
-                searchResults.innerHTML = html;
+            else {
+                const noResults = document.createElement('div');
+                noResults.className = 'no-results';
+                noResults.textContent = 'No albums found in your library';
+                resultsGrid.appendChild(noResults);
             }
+            searchResults.appendChild(resultsGrid);
         }
     }
     exports.App = App;
@@ -3284,14 +3266,40 @@ define("core/ui-component", ["require", "exports", "core/event-emitter"], functi
          */
         setContent(content) {
             if (this.element) {
-                this.element.innerHTML = content;
+                // Clear existing content
+                this.element.textContent = '';
+                // For simple text content, use textContent directly
+                if (!content.includes('<')) {
+                    this.element.textContent = content;
+                    return;
+                }
+                // For HTML content, use a safer approach with DOMParser
+                try {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(content, 'text/html');
+                    const body = doc.body;
+                    // Move all child nodes to the element
+                    while (body.firstChild) {
+                        this.element.appendChild(body.firstChild);
+                    }
+                }
+                catch (error) {
+                    // Fallback to text content if parsing fails
+                    console.warn('Failed to parse HTML content, using text content instead:', error);
+                    this.element.textContent = content;
+                }
             }
         }
         /**
          * Get component content
          */
         getContent() {
-            return this.element?.innerHTML || '';
+            if (!this.element)
+                return '';
+            // Create a temporary container to get HTML content
+            const tempContainer = document.createElement('div');
+            tempContainer.appendChild(this.element.cloneNode(true));
+            return tempContainer.innerHTML;
         }
     }
     exports.UIComponent = UIComponent;

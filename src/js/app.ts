@@ -689,7 +689,10 @@ export class App {
 
         if (searchResults) {
             searchResults.style.display = 'block';
-            searchResults.innerHTML = '';
+            // Clear container by removing all child nodes
+            while (searchResults.firstChild) {
+                searchResults.removeChild(searchResults.firstChild);
+            }
             return searchResults;
         }
 
