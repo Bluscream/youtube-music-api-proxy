@@ -33,7 +33,7 @@ public class PoTokenService : IPoTokenService
             // Prepare the request payload
             var requestPayload = new
             {
-                visitor_data = visitorData ?? string.Empty,
+                content_binding = visitorData ?? string.Empty,
                 context = "gvs" // Default context for YouTube Music
             };
 
@@ -146,7 +146,7 @@ public class PoTokenService : IPoTokenService
             httpClient.Timeout = TimeSpan.FromSeconds(10); // Short timeout for testing
 
             // Send a simple test request
-            var testPayload = new { visitor_data = "test", context = "gvs" };
+            var testPayload = new { content_binding = "test", context = "gvs" };
             var jsonContent = JsonSerializer.Serialize(testPayload);
             var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
