@@ -15,21 +15,7 @@ public interface IConfigurationService
     /// <returns>Cookies string or null if not found</returns>
     string? GetCookies(string? queryCookies = null, bool print = false);
 
-    /// <summary>
-    /// Gets visitor data with priority: query parameter > appsettings > environment variable
-    /// </summary>
-    /// <param name="queryVisitorData">Visitor data from query parameter</param>
-    /// <param name="print">Whether to print debug information to console</param>
-    /// <returns>Visitor data string or null if not found</returns>
-    string? GetVisitorData(string? queryVisitorData = null, bool print = false);
 
-    /// <summary>
-    /// Gets PoToken with priority: query parameter > appsettings > environment variable
-    /// </summary>
-    /// <param name="queryPoToken">PoToken from query parameter</param>
-    /// <param name="print">Whether to print debug information to console</param>
-    /// <returns>PoToken string or null if not found</returns>
-    string? GetPoToken(string? queryPoToken = null, bool print = false);
 
     /// <summary>
     /// Gets PoToken server URL with priority: query parameter > appsettings > environment variable

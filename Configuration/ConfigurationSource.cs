@@ -41,8 +41,6 @@ public class ConfigurationSource<T>
 public static class YouTubeMusicConfigSources
 {
     public static readonly ConfigurationSource<string?> Cookies = new("YTM_COOKIES", null);
-    public static readonly ConfigurationSource<string?> VisitorData = new("YTM_VISITORDATA", null);
-    public static readonly ConfigurationSource<string?> PoToken = new("YTM_POTOKEN", null);
     public static readonly ConfigurationSource<string?> PoTokenServer = new("YTM_POTOKEN_SERVER", null);
     public static readonly ConfigurationSource<string?> GeographicalLocation = new("YTM_GEOGRAPHICAL_LOCATION", "US");
     public static readonly ConfigurationSource<string?> UserAgent = new("YTM_USER_AGENT", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");

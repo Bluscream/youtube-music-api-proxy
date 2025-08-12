@@ -183,14 +183,5 @@ public interface IYouTubeMusicService
         string? geographicalLocation = null,
         string? poTokenServer = null);
 
-    /// <summary>
-    /// Clear the session cache (useful for testing or when cookies change)
-    /// </summary>
-    void ClearSessionCache();
 
-    /// <summary>
-    /// Get session cache statistics
-    /// </summary>
-    /// <returns>Cache statistics</returns>
-    object GetSessionCacheStats();
 } 

@@ -23,11 +23,7 @@ public class YouTubeMusicService : IYouTubeMusicService
     private readonly ILogger<YouTubeMusicService> _logger;
     private readonly ILyricsService _lyricsService;
     private readonly IConfigurationService _configService;
-    private readonly IPoTokenService _poTokenService;
-    
-    // Cache for generated session data to avoid regenerating on every request
-    private readonly Dictionary<string, (string VisitorData, string PoToken, DateTime Expiry)> _sessionCache = new();
-    private readonly object _sessionCacheLock = new object();
+    private readonly IAuthService _authService;
 
     public YouTubeMusicService(
         IOptions<YouTubeMusicConfig> config,
@@ -35,14 +31,14 @@ public class YouTubeMusicService : IYouTubeMusicService
         ILogger<YouTubeMusicService> logger,
         ILyricsService lyricsService,
         IConfigurationService configService,
-        IPoTokenService poTokenService)
+        IAuthService authService)
     {
         _config = config;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
         _lyricsService = lyricsService;
         _configService = configService;
-        _poTokenService = poTokenService;
+        _authService = authService;
     }
 
     /// <summary>
@@ -60,47 +56,39 @@ public class YouTubeMusicService : IYouTubeMusicService
         
         // Parse cookies if provided
         IEnumerable<Cookie>? cookieCollection = null;
-        if (!string.IsNullOrEmpty(cookies))
+        var cookieString = cookies ?? config.Cookies;
+        
+        if (!string.IsNullOrEmpty(cookieString))
         {
             try
             {
-                cookieCollection = ParseCookies(cookies);
+                cookieCollection = _authService.ParseCookies(cookieString);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to parse cookies from query parameter");
-            }
-        }
-        else if (!string.IsNullOrEmpty(config.Cookies))
-        {
-            try
-            {
-                cookieCollection = ParseCookies(config.Cookies);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to parse cookies from configuration");
+                _logger.LogWarning(ex, "Failed to parse cookies");
             }
         }
 
-        // Get visitor data, poToken, and poTokenServer if not provided
-        var finalVisitorData = visitorData ?? config.VisitorData;
-        var finalPoToken = poToken ?? config.PoToken;
+        // Get PoToken server if not provided
         var finalPoTokenServer = poTokenServer ?? config.PoTokenServer;
 
-        // Generate session data if needed using cached data when possible
+        // Generate session data if needed
+        var finalVisitorData = visitorData;
+        var finalPoToken = poToken;
+        
         if (cookieCollection != null && (string.IsNullOrEmpty(finalVisitorData) || string.IsNullOrEmpty(finalPoToken)))
         {
-            var (cachedVisitorData, cachedPoToken) = await GetOrGenerateSessionDataAsync(cookieCollection, finalPoTokenServer);
+            var (generatedVisitorData, generatedPoToken) = await _authService.GenerateSessionDataAsync(cookieString, finalPoTokenServer);
             
             if (string.IsNullOrEmpty(finalVisitorData))
             {
-                finalVisitorData = cachedVisitorData;
+                finalVisitorData = generatedVisitorData;
             }
             
             if (string.IsNullOrEmpty(finalPoToken))
             {
-                finalPoToken = cachedPoToken;
+                finalPoToken = generatedPoToken;
             }
         }
 
@@ -113,209 +101,11 @@ public class YouTubeMusicService : IYouTubeMusicService
             _httpClientFactory.CreateClient());
     }
 
-    /// <summary>
-    /// Get or generate session data (visitor data and proof of origin token) with caching
-    /// </summary>
-    private async Task<(string VisitorData, string PoToken)> GetOrGenerateSessionDataAsync(IEnumerable<Cookie> cookieCollection, string? poTokenServer = null)
-    {
-        // Create a cache key based on the cookie collection
-        var cookieKey = string.Join("|", cookieCollection.Select(c => $"{c.Name}={c.Value}").OrderBy(s => s));
-        
-        lock (_sessionCacheLock)
-        {
-            // Check if we have valid cached session data
-            if (_sessionCache.TryGetValue(cookieKey, out var cachedData) && cachedData.Expiry > DateTime.UtcNow)
-            {
-                _logger.LogDebug("Using cached session data");
-                return (cachedData.VisitorData, cachedData.PoToken);
-            }
-            
-            // Remove expired entries
-            var expiredKeys = _sessionCache.Keys.Where(k => _sessionCache[k].Expiry <= DateTime.UtcNow).ToList();
-            foreach (var key in expiredKeys)
-            {
-                _sessionCache.Remove(key);
-            }
-        }
 
-        // Generate new session data
-        _logger.LogInformation("Generating new session data using YouTubeSessionGenerator");
-        
-        try
-        {
-            var httpClient = _httpClientFactory.CreateClient();
-            var cookieString = string.Join("; ", cookieCollection.Select(c => $"{c.Name}={c.Value}"));
-            
-            // Only add cookie header if we have actual cookies
-            if (!string.IsNullOrEmpty(cookieString))
-            {
-                httpClient.DefaultRequestHeaders.Add("Cookie", cookieString);
-            }
 
-            using var jsEnvironment = new NodeEnvironment();
-            var sessionCreator = new YouTubeSessionCreator(new()
-            {
-                Logger = _logger,
-                HttpClient = httpClient,
-                JsEnvironment = jsEnvironment
-            });
 
-            // Generate visitor data
-            var visitorData = await sessionCreator.VisitorDataAsync();
-            _logger.LogDebug("Generated visitor data: {VisitorData}", visitorData?.Substring(0, Math.Min(50, visitorData?.Length ?? 0)));
 
-            // Generate proof of origin token
-            string? poToken;
-            
-            // Try external PoToken server first if configured
-            if (!string.IsNullOrEmpty(poTokenServer))
-            {
-                try
-                {
-                    _logger.LogInformation("Using external PoToken server: {PoTokenServer}", poTokenServer);
-                    poToken = await _poTokenService.GeneratePoTokenAsync(poTokenServer, visitorData ?? string.Empty);
-                    _logger.LogDebug("Generated PoToken from external server: {PoToken}", poToken?.Substring(0, Math.Min(50, poToken?.Length ?? 0)));
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to generate PoToken from external server, falling back to local generation");
-                    poToken = await sessionCreator.ProofOfOriginTokenAsync(visitorData ?? string.Empty);
-                    _logger.LogDebug("Generated PoToken locally: {PoToken}", poToken?.Substring(0, Math.Min(50, poToken?.Length ?? 0)));
-                }
-            }
-            else
-            {
-                poToken = await sessionCreator.ProofOfOriginTokenAsync(visitorData ?? string.Empty);
-                _logger.LogDebug("Generated PoToken locally: {PoToken}", poToken?.Substring(0, Math.Min(50, poToken?.Length ?? 0)));
-            }
 
-            // Cache the session data for 1 hour
-            var expiry = DateTime.UtcNow.AddHours(1);
-            
-            lock (_sessionCacheLock)
-            {
-                _sessionCache[cookieKey] = (visitorData ?? string.Empty, poToken ?? string.Empty, expiry);
-            }
-
-            _logger.LogInformation("Successfully generated and cached session data");
-            return (visitorData ?? string.Empty, poToken ?? string.Empty);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to generate session data using YouTubeSessionGenerator");
-            
-            // Provide more specific error messages based on the exception type
-            if (ex.Message.Contains("Sign in to confirm you're not a bot"))
-            {
-                throw new InvalidOperationException("YouTube requires authentication. Please provide valid YouTube cookies to access this content.", ex);
-            }
-            else if (ex.Message.Contains("network") || ex.Message.Contains("timeout"))
-            {
-                throw new InvalidOperationException("Network error while generating session data. Please check your internet connection and try again.", ex);
-            }
-            else
-            {
-                throw new InvalidOperationException("Failed to generate YouTube session data. This may be due to network issues, invalid cookies, or YouTube's anti-bot measures.", ex);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Clear the session cache (useful for testing or when cookies change)
-    /// </summary>
-    public void ClearSessionCache()
-    {
-        lock (_sessionCacheLock)
-        {
-            _sessionCache.Clear();
-            _logger.LogInformation("Session cache cleared");
-        }
-    }
-
-    /// <summary>
-    /// Get session cache statistics
-    /// </summary>
-    public object GetSessionCacheStats()
-    {
-        lock (_sessionCacheLock)
-        {
-            var now = DateTime.UtcNow;
-            var totalEntries = _sessionCache.Count;
-            var validEntries = _sessionCache.Count(kvp => kvp.Value.Expiry > now);
-            var expiredEntries = totalEntries - validEntries;
-            
-            return new
-            {
-                totalEntries,
-                validEntries,
-                expiredEntries,
-                cacheSize = _sessionCache.Count
-            };
-        }
-    }
-
-    /// <summary>
-    /// Parse base64 encoded cookies string into Cookie collection
-    /// </summary>
-    private IEnumerable<Cookie> ParseCookies(string base64Cookies)
-    {
-        if (string.IsNullOrWhiteSpace(base64Cookies))
-        {
-            _logger.LogWarning("Empty or null cookies string provided");
-            return new List<Cookie>();
-        }
-
-        // URL-decode the cookies parameter first
-        var urlDecodedCookies = Uri.UnescapeDataString(base64Cookies);
-        _logger.LogDebug("URL-decoded cookies. Original length: {OriginalLength}, Decoded length: {DecodedLength}", 
-            base64Cookies.Length, urlDecodedCookies.Length);
-
-        try
-        {
-            var cookieString = Encoding.UTF8.GetString(Convert.FromBase64String(urlDecodedCookies));
-            _logger.LogDebug("Successfully decoded base64 cookies. Length: {Length}", cookieString.Length);
-            
-            var cookies = new List<Cookie>();
-            
-            foreach (var cookiePair in cookieString.Split(';', StringSplitOptions.RemoveEmptyEntries))
-            {
-                var parts = cookiePair.Trim().Split('=', 2);
-                if (parts.Length == 2)
-                {
-                    var cookie = new Cookie(parts[0].Trim(), parts[1].Trim())
-                    {
-                        Domain = ".youtube.com"
-                    };
-                    cookies.Add(cookie);
-                }
-            }
-            
-            _logger.LogDebug("Parsed {Count} cookies from base64 string", cookies.Count);
-            return cookies;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Base64 decoding failed, trying plain cookie string");
-            
-            // If base64 decoding fails, try parsing as plain cookie string
-            var cookies = new List<Cookie>();
-            foreach (var cookiePair in urlDecodedCookies.Split(';', StringSplitOptions.RemoveEmptyEntries))
-            {
-                var parts = cookiePair.Trim().Split('=', 2);
-                if (parts.Length == 2)
-                {
-                    var cookie = new Cookie(parts[0].Trim(), parts[1].Trim())
-                    {
-                        Domain = ".youtube.com"
-                    };
-                    cookies.Add(cookie);
-                }
-            }
-            
-            _logger.LogDebug("Parsed {Count} cookies from plain string", cookies.Count);
-            return cookies;
-        }
-    }
 
     public async Task<PaginatedAsyncEnumerable<SearchResult>> SearchAsync(
         string query,

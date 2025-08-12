@@ -19,15 +19,18 @@ public class ApiController : ControllerBase
 {
     private readonly IYouTubeMusicService _service;
     private readonly IConfigurationService _configService;
+    private readonly IAuthService _authService;
     private readonly ILogger<ApiController> _logger;
 
     public ApiController(
         IYouTubeMusicService service,
         IConfigurationService configService,
+        IAuthService authService,
         ILogger<ApiController> logger)
     {
         _service = service;
         _configService = configService;
+        _authService = authService;
         _logger = logger;
     }
 
@@ -40,7 +43,7 @@ public class ApiController : ControllerBase
     /// <response code="200">Returns health status and version information</response>
     [HttpGet]
     [ProducesResponseType(typeof(HealthResponse), 200)]
-    public IActionResult GetHealth()
+    public async Task<IActionResult> GetHealth()
     {
         var process = System.Diagnostics.Process.GetCurrentProcess();
         var runtimeInfo = new RuntimeInfo
@@ -56,6 +59,22 @@ public class ApiController : ControllerBase
             Environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Unknown",
             CookiesConfigured = !string.IsNullOrWhiteSpace(_configService.GetCookies())
         };
+
+        // Get authentication status for debugging
+        try
+        {
+            var cookies = _configService.GetCookies();
+            var poTokenServer = _configService.GetPoTokenServer();
+            environmentInfo.AuthStatus = await _authService.GetAuthStatusAsync(cookies, poTokenServer);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to get authentication status for health check");
+            environmentInfo.AuthStatus = new AuthStatus
+            {
+                ErrorMessage = ex.Message
+            };
+        }
 
         var healthResponse = new HealthResponse
         {
@@ -729,49 +748,5 @@ public class ApiController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Clear the session cache (useful for testing or when cookies change)
-    /// </summary>
-    /// <returns>Success message</returns>
-    /// <response code="200">Session cache cleared successfully</response>
-    /// <response code="500">If there was an internal server error</response>
-    [HttpPost("cache/clear")]
-    [ProducesResponseType(typeof(object), 200)]
-    [ProducesResponseType(typeof(ErrorResponse), 500)]
-    public IActionResult ClearSessionCache()
-    {
-        try
-        {
-            _service.ClearSessionCache();
-            return Ok(new { message = "Session cache cleared successfully" });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error clearing session cache");
-            return StatusCode(500, new ErrorResponse { Error = "Internal server error" });
-        }
-    }
 
-    /// <summary>
-    /// Get session cache statistics
-    /// </summary>
-    /// <returns>Cache statistics</returns>
-    /// <response code="200">Returns cache statistics</response>
-    /// <response code="500">If there was an internal server error</response>
-    [HttpGet("cache/stats")]
-    [ProducesResponseType(typeof(object), 200)]
-    [ProducesResponseType(typeof(ErrorResponse), 500)]
-    public IActionResult GetSessionCacheStats()
-    {
-        try
-        {
-            var stats = _service.GetSessionCacheStats();
-            return Ok(stats);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting session cache stats");
-            return StatusCode(500, new ErrorResponse { Error = "Internal server error" });
-        }
-    }
 } 

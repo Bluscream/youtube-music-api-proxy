@@ -11,16 +11,6 @@ public class YouTubeMusicConfig
     public string? Cookies { get; set; }
 
     /// <summary>
-    /// Visitor data for session tailoring (from appsettings, environment variable YTM_VISITORDATA, or query parameter)
-    /// </summary>
-    public string? VisitorData { get; set; }
-
-    /// <summary>
-    /// Proof of Origin Token for attestation (from appsettings, environment variable YTM_POTOKEN, or query parameter)
-    /// </summary>
-    public string? PoToken { get; set; }
-
-    /// <summary>
     /// PoToken server URL for external PoToken generation (from appsettings, environment variable YTM_POTOKEN_SERVER, or query parameter)
     /// Example: http://192.168.2.12:4416/get_pot
     /// </summary>

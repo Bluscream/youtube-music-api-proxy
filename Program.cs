@@ -167,8 +167,6 @@ if (ytmConfig != null)
 {
     Console.WriteLine("YouTube Music Configuration:");
     Console.WriteLine($"  Cookies: {(string.IsNullOrEmpty(ytmConfig.Cookies) ? "Not set" : "Set")}");
-    Console.WriteLine($"  VisitorData: {(string.IsNullOrEmpty(ytmConfig.VisitorData) ? "Not set" : "Set")}");
-    Console.WriteLine($"  PoToken: {(string.IsNullOrEmpty(ytmConfig.PoToken) ? "Not set" : "Set")}");
     Console.WriteLine($"  PoTokenServer: {(string.IsNullOrEmpty(ytmConfig.PoTokenServer) ? "Not set" : "Set")}");
     Console.WriteLine($"  GeographicalLocation: {ytmConfig.GeographicalLocation ?? "Not set"}");
     Console.WriteLine($"  UserAgent: {(string.IsNullOrEmpty(ytmConfig.UserAgent) ? "Not set" : "Set")}");
@@ -213,7 +211,7 @@ Console.WriteLine("=== End Configuration Loading ===");
 Console.WriteLine("=== Environment Variables ===");
 var envVars = new[]
 {
-    "YTM_COOKIES", "YTM_VISITORDATA", "YTM_POTOKEN", "YTM_POTOKEN_SERVER", 
+    "YTM_COOKIES", "YTM_POTOKEN_SERVER", 
     "YTM_GEOGRAPHICAL_LOCATION", "YTM_USER_AGENT", "YTM_TIMEOUT", "YTM_MAX_RETRIES", 
     "YTM_DEBUG", "LYRICS_ADD_TO_SONG_RESPONSE", "ENABLE_HTTPS_REDIRECTION"
 };
@@ -229,7 +227,7 @@ Console.WriteLine("=== End Environment Variables ===");
 builder.Services.AddScoped<IYouTubeMusicService, YouTubeMusicService>();
 builder.Services.AddScoped<IConfigurationService, ConfigurationService>();
 builder.Services.AddScoped<ILyricsService, LyricsService>();
-builder.Services.AddScoped<IPoTokenService, PoTokenService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddHttpClient();
 
 var app = builder.Build();

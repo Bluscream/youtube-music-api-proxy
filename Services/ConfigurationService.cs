@@ -23,21 +23,7 @@ public class ConfigurationService : BaseConfigurationService, IConfigurationServ
         return GetStringValue(queryCookies, _config.Cookies, YouTubeMusicConfigSources.Cookies, print);
     }
 
-    /// <summary>
-    /// Gets visitor data with priority: query parameter > appsettings > environment variable
-    /// </summary>
-    public string? GetVisitorData(string? queryVisitorData = null, bool print = false)
-    {
-        return GetStringValue(queryVisitorData, _config.VisitorData, YouTubeMusicConfigSources.VisitorData, print);
-    }
 
-    /// <summary>
-    /// Gets PoToken with priority: query parameter > appsettings > environment variable
-    /// </summary>
-    public string? GetPoToken(string? queryPoToken = null, bool print = false)
-    {
-        return GetStringValue(queryPoToken, _config.PoToken, YouTubeMusicConfigSources.PoToken, print);
-    }
 
     /// <summary>
     /// Gets PoToken server URL with priority: query parameter > appsettings > environment variable
@@ -102,8 +88,6 @@ public class ConfigurationService : BaseConfigurationService, IConfigurationServ
     {
         Console.WriteLine("=== Resolved Configuration Values ===");
         Console.WriteLine($"Cookies: {(GetCookies() != null ? "Set" : "Not set")}");
-        Console.WriteLine($"VisitorData: {(GetVisitorData() != null ? "Set" : "Not set")}");
-        Console.WriteLine($"PoToken: {(GetPoToken() != null ? "Set" : "Not set")}");
         Console.WriteLine($"PoTokenServer: {(GetPoTokenServer() != null ? "Set" : "Not set")}");
         Console.WriteLine($"GeographicalLocation: {GetGeographicalLocation()}");
         Console.WriteLine($"UserAgent: {GetUserAgent()}");

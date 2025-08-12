@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using YouTubeMusicAPI.Models.Search;
 using YouTubeMusicAPI.Models.Library;
+using YoutubeMusicAPIProxy.Services;
 
 namespace YoutubeMusicAPIProxy.Models;
 
@@ -307,4 +308,9 @@ public class EnvironmentInfo
     /// Whether cookies are configured
     /// </summary>
     public bool CookiesConfigured { get; set; }
+
+    /// <summary>
+    /// Authentication status information
+    /// </summary>
+    public AuthStatus? AuthStatus { get; set; }
 } 
