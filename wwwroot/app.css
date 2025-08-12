@@ -1,11 +1,6 @@
-/* ==========================================================================
-   YOUTUBE MUSIC API PROXY - CONSOLIDATED CSS
-   ========================================================================== */
-/* CSS Variables */
 :root {
     --sidebar-collapse-breakpoint: 800px;
 }
-/* Base Styles */
 * {
     margin: 0;
     padding: 0;
@@ -30,7 +25,6 @@ body {
     padding: 40px;
     color: #ff4444;
 }
-/* Custom scrollbar styling for dark theme */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -50,12 +44,10 @@ body {
 ::-webkit-scrollbar-corner {
     background: #0f0f0f;
 }
-/* Firefox scrollbar styling */
 * {
     scrollbar-width: thin;
     scrollbar-color: #404040 #0f0f0f;
 }
-/* Specific scrollbar styling for sidebar */
 .sidebar::-webkit-scrollbar {
     width: 6px;
 }
@@ -68,7 +60,6 @@ body {
 .sidebar::-webkit-scrollbar-thumb:hover {
     background: #404040;
 }
-/* Content area scrollbar */
 .content-area::-webkit-scrollbar {
     width: 8px;
 }
@@ -81,28 +72,18 @@ body {
 .content-area::-webkit-scrollbar-thumb:hover {
     background: #606060;
 }
-/* ==========================================================================
-   LAYOUT STYLES
-   ========================================================================== */
-/* Main Layout Styles */
 .main-content {
     flex: 1;
     display: flex;
     flex-direction: column;
     background-color: #0f0f0f;
     padding-bottom: 90px;
-    /* Add padding to account for fixed player bar */
     min-width: 0;
-    /* Allow content to shrink */
     overflow-x: hidden;
-    /* Prevent horizontal scroll */
     transition: all 0.3s ease;
-    /* Start with expanded state */
     width: calc(100vw - 240px);
     padding-right: var(--right-sidebar-width, 300px);
-    /* Default right sidebar width */
 }
-/* Adjust main content for different sidebar states */
 .main-content.sidebar-expanded {
     width: calc(100vw - 240px);
 }
@@ -118,11 +99,9 @@ body {
     margin-left: 0;
     width: 100vw;
 }
-/* Ensure toggle button is visible when sidebar is collapsed */
 .sidebar.collapsed~.sidebar-toggle {
     left: 20px;
 }
-/* Alternative positioning for when sidebar is collapsed */
 .sidebar.collapsed+.main-content .sidebar-toggle {
     left: 20px;
 }
@@ -138,16 +117,13 @@ body {
     top: 0;
     z-index: 100;
     min-width: 0;
-    /* Allow header to shrink */
 }
 .content-area {
     flex: 1;
     padding: 24px;
     overflow-y: auto;
     overflow-x: hidden;
-    /* Prevent horizontal scroll */
     min-width: 0;
-    /* Allow content to shrink */
 }
 .welcome-section {
     text-align: center;
@@ -164,11 +140,9 @@ body {
     color: #b3b3b3;
     margin-bottom: 32px;
 }
-/* Adjust main content for right sidebar */
 .main-content.right-sidebar-collapsed {
     padding-right: 0;
 }
-/* Adjust player bar for right sidebar */
 .player-bar {
     right: var(--right-sidebar-width, 300px);
     transition: all 0.3s ease;
@@ -176,22 +150,16 @@ body {
 .player-bar.right-sidebar-collapsed {
     right: 0;
 }
-/* Responsive adjustments */
 @media (max-width: 800px) {
     .main-content {
         margin-left: 0;
         width: 100vw;
         padding-right: 0;
     }
-    /* Ensure player bar is full width on mobile */
     .player-bar {
         left: 0 !important;
     }
 }
-/* ==========================================================================
-   LEFT SIDEBAR STYLES
-   ========================================================================== */
-/* Left Sidebar Styles */
 .sidebar {
     width: 240px;
     background-color: #0f0f0f;
@@ -204,7 +172,6 @@ body {
     display: flex;
     flex-direction: column;
 }
-/* Sidebar states */
 .sidebar.full {
     position: fixed;
     top: 0;
@@ -225,7 +192,6 @@ body {
     transform: translateX(-100%);
     width: 0;
 }
-/* Mobile sidebar overlay */
 .sidebar.mobile-open {
     position: fixed;
     top: 0;
@@ -236,7 +202,6 @@ body {
     z-index: 200;
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
 }
-/* Logo styling */
 .logo {
     padding: 0 24px 20px;
     font-size: 24px;
@@ -260,7 +225,6 @@ body {
     white-space: nowrap;
     overflow: hidden;
 }
-/* Icon state - hide text, show only icons */
 .sidebar.icon .logo-text,
 .sidebar.icon .nav-text,
 .sidebar.icon .nav-title {
@@ -279,7 +243,6 @@ body {
 .sidebar.icon .nav-icon {
     margin-right: 0;
 }
-/* Full state - center content */
 .sidebar.full .logo {
     justify-content: center;
     font-size: 32px;
@@ -298,7 +261,6 @@ body {
     height: 28px;
     font-size: 20px;
 }
-/* Add subtle visual indicators for different states */
 .sidebar.expanded {
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
 }
@@ -309,7 +271,6 @@ body {
     box-shadow: none;
     background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
 }
-/* Smooth transitions for all states */
 .sidebar * {
     transition: all 0.3s ease;
 }
@@ -357,7 +318,6 @@ body {
     white-space: nowrap;
     overflow: hidden;
 }
-/* Sidebar toggle button */
 .sidebar-toggle {
     position: fixed;
     top: 20px;
@@ -380,7 +340,6 @@ body {
     background-color: #282828;
     transform: scale(1.1);
 }
-/* Toggle button positioning for different states */
 .sidebar.expanded~.sidebar-toggle {
     left: 260px;
 }
@@ -393,13 +352,11 @@ body {
 .sidebar.full~.sidebar-toggle {
     display: none;
 }
-/* Add hover effects for toggle button */
 .sidebar-toggle:hover {
     background-color: #282828;
     transform: scale(1.1);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
-/* Different colors for different states */
 .sidebar.expanded~.sidebar-toggle {
     background-color: #181818;
     border-color: #404040;
@@ -412,7 +369,6 @@ body {
     background-color: #0f0f0f;
     border-color: #282828;
 }
-/* Mobile menu toggle button */
 .mobile-menu-toggle {
     display: none;
     position: fixed;
@@ -436,7 +392,6 @@ body {
     background-color: #282828;
     transform: scale(1.1);
 }
-/* Hamburger menu button in search bar */
 .hamburger-menu {
     display: none;
     background: none;
@@ -448,18 +403,14 @@ body {
     border-radius: 4px;
     transition: all 0.2s ease;
     flex-shrink: 0;
-    /* Prevent shrinking */
     order: -1;
-    /* Ensure it's first in the flex container */
 }
 .hamburger-menu:hover {
     background-color: #282828;
 }
-/* Show hamburger menu when sidebar is collapsed */
 .main-content.sidebar-collapsed .hamburger-menu {
     display: block;
 }
-/* Responsive adjustments */
 @media (max-width: 800px) {
     .sidebar-toggle {
         display: none;
@@ -486,10 +437,6 @@ body {
         display: none !important;
     }
 }
-/* ==========================================================================
-   RIGHT SIDEBAR STYLES
-   ========================================================================== */
-/* Right Sidebar Styles */
 .right-sidebar {
     width: 300px;
     min-width: 200px;
@@ -500,7 +447,6 @@ body {
     top: 0;
     right: 0;
     height: calc(100vh - 90px);
-    /* Reduce height to account for player bar */
     z-index: 150;
     display: flex;
     flex-direction: column;
@@ -528,7 +474,6 @@ body {
     transform: translateX(100%);
     width: 0;
 }
-/* Toggle button positioning for different right sidebar states */
 .right-sidebar:not(.collapsed)~.right-sidebar-toggle {
     right: calc(var(--right-sidebar-width, 300px) + 20px);
 }
@@ -633,7 +578,6 @@ body {
     font-size: 14px;
     line-height: 1.4;
 }
-/* Right sidebar mobile toggle button */
 .right-sidebar-mobile-toggle {
     display: none;
     width: 40px;
@@ -654,7 +598,6 @@ body {
     background-color: #282828;
     transform: scale(1.1);
 }
-/* Song Info Styles */
 .song-info-container {
     padding: 16px;
     color: #ffffff;
@@ -726,7 +669,6 @@ body {
 .song-info-description::-webkit-scrollbar-thumb:hover {
     background: #666666;
 }
-/* Lyrics Styles */
 .lyrics-container {
     padding: 16px;
     color: #ffffff;
@@ -812,7 +754,6 @@ body {
     color: #ffffff;
     border-color: #535353;
 }
-/* Mobile responsive adjustments for right sidebar */
 @media (max-width: 1200px) {
     .right-sidebar {
         width: 280px;
@@ -839,7 +780,6 @@ body {
         top: 0;
         right: 0;
         height: calc(100vh - 90px);
-        /* Reduce height to account for player bar */
         width: 280px;
         transform: translateX(100%);
         z-index: 300;
@@ -854,7 +794,6 @@ body {
     .right-sidebar-mobile-toggle {
         display: flex;
     }
-    /* Add mobile backdrop for right sidebar */
     .right-sidebar-backdrop {
         position: fixed;
         top: 0;
@@ -872,9 +811,6 @@ body {
         visibility: visible;
     }
 }
-/* ==========================================================================
-   PLAYER STYLES
-   ========================================================================== */
 .player-bar {
     height: 90px;
     background-color: #181818;
@@ -885,22 +821,17 @@ body {
     position: fixed;
     bottom: 0;
     left: 0;
-    /* Account for sidebar width */
     right: 0;
     z-index: 1000;
-    /* Ensure smooth transitions */
     transition: all 0.3s ease;
     box-sizing: border-box;
-    /* Ensure padding is included in width */
 }
 .now-playing {
     display: flex;
     align-items: center;
     width: 300px;
     min-width: 0;
-    /* Allow shrinking */
     flex-shrink: 0;
-    /* Prevent excessive shrinking */
 }
 .now-playing-thumbnail {
     width: 56px;
@@ -909,7 +840,6 @@ body {
     border-radius: 4px;
     margin-right: 12px;
     flex-shrink: 0;
-    /* Ensure image fits properly */
     overflow: hidden;
 }
 .now-playing-thumbnail img {
@@ -921,14 +851,12 @@ body {
 .now-playing-info {
     flex: 1;
     min-width: 0;
-    /* Allow text truncation */
 }
 .now-playing-title {
     font-size: 14px;
     font-weight: 500;
     color: #ffffff;
     margin-bottom: 4px;
-    /* Ensure text truncation works */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -936,7 +864,6 @@ body {
 .now-playing-artist {
     font-size: 12px;
     color: #b3b3b3;
-    /* Ensure text truncation works */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -947,7 +874,6 @@ body {
     flex-direction: column;
     align-items: center;
     min-width: 0;
-    /* Allow shrinking */
 }
 .control-buttons {
     display: flex;
@@ -964,14 +890,12 @@ body {
     padding: 8px;
     border-radius: 50%;
     transition: all 0.2s ease;
-    /* Ensure proper touch targets */
     min-width: 40px;
     min-height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    /* Prevent button shrinking */
 }
 .control-button:hover {
     background-color: #333;
@@ -1012,9 +936,7 @@ body {
     gap: 8px;
     width: 200px;
     min-width: 0;
-    /* Allow shrinking */
     flex-shrink: 0;
-    /* Prevent excessive shrinking */
 }
 .volume-icon {
     color: #b3b3b3;
@@ -1022,7 +944,6 @@ body {
     cursor: pointer;
     transition: color 0.2s ease;
     flex-shrink: 0;
-    /* Prevent icon shrinking */
 }
 .volume-icon:hover {
     color: #ffffff;
@@ -1031,7 +952,6 @@ body {
     flex: 1;
     position: relative;
     min-width: 0;
-    /* Allow shrinking */
 }
 .volume-slider {
     width: 100%;
@@ -1068,7 +988,6 @@ body {
 .volume-slider:hover .volume-thumb {
     opacity: 1;
 }
-/* Mobile-specific player improvements */
 @media (max-width: 768px) {
     .player-bar {
         left: 0 !important;
@@ -1083,7 +1002,6 @@ body {
         flex-shrink: 0;
     }
 }
-/* Ensure proper spacing for mobile */
 @media (max-width: 480px) {
     .player-bar {
         padding: 8px 12px;
@@ -1100,19 +1018,14 @@ body {
         min-height: 52px;
     }
 }
-/* ==========================================================================
-   SEARCH STYLES
-   ========================================================================== */
 .search-container {
     flex: 1;
     max-width: 600px;
     position: relative;
     min-width: 0;
-    /* Allow container to shrink */
     display: flex;
     align-items: center;
     gap: 12px;
-    /* Add gap between hamburger and search input */
 }
 .search-input {
     flex: 1;
@@ -1125,9 +1038,7 @@ body {
     font-size: 16px;
     outline: none;
     box-sizing: border-box;
-    /* Ensure padding is included in width */
     position: relative;
-    /* For search icon positioning */
 }
 .search-input::placeholder {
     color: #b3b3b3;
@@ -1139,9 +1050,7 @@ body {
     transform: translateY(-50%);
     color: #b3b3b3;
     z-index: 1;
-    /* Ensure icon stays above input */
     pointer-events: none;
-    /* Allow clicks to pass through to input */
 }
 .search-results {
     display: none;
@@ -1149,7 +1058,6 @@ body {
     gap: 16px;
     margin-top: 24px;
     width: 100%;
-    /* Ensure full width */
     box-sizing: border-box;
 }
 .result-card {
@@ -1159,7 +1067,6 @@ body {
     cursor: pointer;
     transition: background-color 0.2s;
     box-sizing: border-box;
-    /* Ensure padding is included in width */
 }
 .result-card:hover {
     background-color: #282828;
@@ -1181,17 +1088,12 @@ body {
     margin-bottom: 4px;
     color: #ffffff;
     word-wrap: break-word;
-    /* Allow long titles to wrap */
 }
 .result-artist {
     font-size: 12px;
     color: #b3b3b3;
     word-wrap: break-word;
-    /* Allow long artist names to wrap */
 }
-/* ==========================================================================
-   LIBRARY STYLES
-   ========================================================================== */
 .library-content {
     padding: 20px 0;
 }
@@ -1318,7 +1220,6 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
 }
-/* Common utility classes for inline styles */
 .thumbnail-image {
     width: 100%;
     height: 100%;
@@ -1430,10 +1331,6 @@ body {
 .playlist-song-item.playing .playlist-song-number {
     color: #000000;
 }
-/* ==========================================================================
-   NOTIFICATION STYLES
-   ========================================================================== */
-/* Notification System Styles */
 .notification-container {
     position: fixed;
     top: 20px;
@@ -1515,10 +1412,6 @@ body {
     color: #ffffff;
     background-color: #333;
 }
-/* ==========================================================================
-   RESPONSIVE DESIGN
-   ========================================================================== */
-/* Responsive Design - Sidebar Collapse Breakpoints */
 @media (max-width: var(--sidebar-collapse-breakpoint)) {
     .sidebar {
         width: 200px;
@@ -1532,7 +1425,6 @@ body {
     }
     .player-bar {
         left: 200px;
-        /* Adjust for smaller sidebar width */
     }
     .notification-container {
         right: 10px;
@@ -1543,14 +1435,12 @@ body {
         min-width: auto;
     }
 }
-/* Desktop sidebar toggle button */
 @media (min-width: calc(var(--sidebar-collapse-breakpoint) + 1px)) {
     .sidebar-toggle {
         display: flex !important;
         left: 20px;
     }
 }
-/* Mobile Responsive Design */
 @media (max-width: var(--sidebar-collapse-breakpoint)) {
     body {
         flex-direction: column;
@@ -1611,7 +1501,6 @@ body {
     }
     .main-content {
         padding-bottom: 120px;
-        /* Ensure proper spacing for mobile player bar */
         margin-left: 0 !important;
         width: 100%;
     }
@@ -1635,7 +1524,6 @@ body {
     }
     .content-area {
         padding: 16px;
-        /* Ensure content doesn't overflow */
         max-width: 100%;
         box-sizing: border-box;
     }
@@ -1648,13 +1536,11 @@ body {
     .search-results {
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
         gap: 12px;
-        /* Ensure grid doesn't overflow */
         max-width: 100%;
         box-sizing: border-box;
     }
     .result-card {
         padding: 12px;
-        /* Ensure cards don't overflow */
         max-width: 100%;
         box-sizing: border-box;
     }
@@ -1671,7 +1557,6 @@ body {
     .library-category h3 {
         font-size: 16px;
     }
-    /* Improved Player Bar for Mobile */
     .player-bar {
         height: auto;
         min-height: 100px;
@@ -1680,7 +1565,6 @@ body {
         flex-direction: column;
         gap: 12px;
         border-top: 1px solid #282828;
-        /* Ensure player bar doesn't overflow */
         max-width: 100%;
         box-sizing: border-box;
     }
@@ -1774,7 +1658,6 @@ body {
         padding: 12px;
     }
 }
-/* Ensure proper touch targets on mobile */
 @media (max-width: var(--sidebar-collapse-breakpoint)) {
     .nav-item,
     .control-button,
@@ -1786,15 +1669,12 @@ body {
     .search-input {
         min-height: 44px;
     }
-    /* Improve touch scrolling */
     .content-area {
         -webkit-overflow-scrolling: touch;
     }
-    /* Prevent zoom on input focus */
     .search-input {
         font-size: 16px;
     }
-    /* Better touch feedback */
     .result-card:active,
     .library-item:active,
     .playlist-item:active,
@@ -1802,12 +1682,10 @@ body {
         transform: scale(0.98);
         transition: transform 0.1s;
     }
-    /* Improve button touch targets */
     .control-button {
         min-width: 44px;
         min-height: 44px;
     }
-    /* Enhanced touch feedback for player controls */
     .control-button:active {
         background-color: #404040;
         transform: scale(0.95);
@@ -1817,7 +1695,6 @@ body {
         opacity: 0.8;
     }
 }
-/* Landscape orientation optimizations for mobile */
 @media (max-width: var(--sidebar-collapse-breakpoint)) and (orientation: landscape) {
     .sidebar {
         height: 60px;
@@ -1834,7 +1711,6 @@ body {
     .main-content {
         padding-bottom: 80px;
     }
-    /* Landscape Player Bar - More compact horizontal layout */
     .player-bar {
         height: 60px;
         padding: 8px 16px;
@@ -1893,7 +1769,6 @@ body {
         height: 12px;
     }
 }
-/* Extra small mobile devices */
 @media (max-width: 360px) {
     .player-bar {
         padding: 6px 8px;
