@@ -68,12 +68,8 @@ function loadAllSettings() {
     const settings = {
         playlist: loadSetting(SETTINGS_KEYS.PLAYLIST, null),
         song: loadSetting(SETTINGS_KEYS.SONG, null),
-        autoplay: loadSetting(SETTINGS_KEYS.AUTOPLAY, true),
-        crossfade: loadSetting(SETTINGS_KEYS.CROSSFADE, true),
         repeat: loadSetting(SETTINGS_KEYS.REPEAT, 'none'),
-        shuffle: loadSetting(SETTINGS_KEYS.SHUFFLE, false),
         tab: loadSetting(SETTINGS_KEYS.TAB, 'info'),
-        pos: loadSetting(SETTINGS_KEYS.POS, 0),
         split: loadSetting(SETTINGS_KEYS.RIGHT_SIDEBAR_SPLITTER_POS, 300)
     };
     console.log('🎵 Settings System: Loaded settings:', settings);
@@ -84,9 +80,6 @@ function applySettings(settings) {
     if (window.rightSidebarManager) {
         window.rightSidebarManager.switchTab(window.settings.tab);
     }
-    if (window.settings.pos > 0) {
-        window.pendingSongPosition = window.settings.pos;
-    }
     if (window.rightSidebarManager) {
         window.rightSidebarManager.sidebarWidth = window.settings.split;
         window.rightSidebarManager.updateSidebarWidth();
@@ -95,16 +88,11 @@ function applySettings(settings) {
 }
 function saveAllSettings() {
     window.settings.tab = window.rightSidebarManager ? window.rightSidebarManager.currentTab : 'info';
-    window.settings.pos = currentAudio ? currentAudio.currentTime : 0;
     window.settings.split = window.rightSidebarManager ? window.rightSidebarManager.sidebarWidth : 300;
     saveSetting(SETTINGS_KEYS.PLAYLIST, window.settings.playlist);
     saveSetting(SETTINGS_KEYS.SONG, window.settings.song);
-    saveSetting(SETTINGS_KEYS.AUTOPLAY, window.settings.autoplay);
-    saveSetting(SETTINGS_KEYS.CROSSFADE, window.settings.crossfade);
     saveSetting(SETTINGS_KEYS.REPEAT, window.settings.repeat);
-    saveSetting(SETTINGS_KEYS.SHUFFLE, window.settings.shuffle);
     saveSetting(SETTINGS_KEYS.TAB, window.settings.tab);
-    saveSetting(SETTINGS_KEYS.POS, window.settings.pos);
     saveSetting(SETTINGS_KEYS.RIGHT_SIDEBAR_SPLITTER_POS, window.settings.split);
 }
 function setupSettingsAutoSave() {
@@ -125,8 +113,7 @@ let isMobileMenuOpen = false;
 let isSidebarCollapsed = false;
 let errorRecoveryTimeout = null;
 let autoSkip = false;
-let originalPlaylistOrder = [];
-let shuffledPlaylistOrder = [];
+
 const DEFAULT_TITLE = 'YouTube Music';
 let currentSongInfo = null;
 function setupMediaKeyListeners() {
@@ -845,7 +832,6 @@ async function loadSong(songId, title, artist, thumbnail = null, playlistId = nu
     isPlaying = false;
     if (!playlistId) {
         window.settings.repeat = 'none';
-        window.settings.shuffle = false;
         updateRepeatShuffleDisplay();
     }
     document.title = `${title} by ${artist}`;
@@ -901,11 +887,8 @@ async function loadSong(songId, title, artist, thumbnail = null, playlistId = nu
                     artwork: thumbnail ? [{ src: thumbnail, sizes: '300x300', type: 'image/jpeg' }] : []
                 });
             }
-            if (window.pendingSongPosition && window.pendingSongPosition > 0) {
-                audio.currentTime = window.pendingSongPosition;
-                window.pendingSongPosition = null;
-            }
-            audio.nextSongTriggered = false;
+
+
             showInfoNotification(`Loaded: "${title}" by ${artist}`);
         });
         audio.addEventListener('timeupdate', () => {
@@ -918,31 +901,7 @@ async function loadSong(songId, title, artist, thumbnail = null, playlistId = nu
                     playbackRate: audio.playbackRate
                 });
             }
-            const currentSecond = Math.floor(audio.currentTime);
-            const lastSavedSecond = Math.floor(audio.lastSavedPosition || 0);
-            if (currentSecond % 5 === 0 && currentSecond !== lastSavedSecond) {
-                audio.lastSavedPosition = audio.currentTime;
-                saveSetting(SETTINGS_KEYS.POS, audio.currentTime);
-            }
-            if (window.settings.crossfade && audio.duration && window.settings.playlist && currentPlaylistSongs.length > 0) {
-                const timeRemaining = audio.duration - audio.currentTime;
-                const threeSeconds = 3;
-                if (timeRemaining > threeSeconds && audio.nextSongTriggered) {
-                    audio.nextSongTriggered = false;
-                }
-                if (timeRemaining <= threeSeconds && !audio.nextSongTriggered) {
-                    audio.nextSongTriggered = true;
-                    console.log(`🎵 Pre-loading next song (${timeRemaining.toFixed(1)}s remaining)`);
-                    const nextIndex = getNextSongIndex();
-                    if (nextIndex !== -1) {
-                        const nextSong = currentPlaylistSongs[nextIndex];
-                        const nextTitle = nextSong.name || nextSong.title || 'Unknown Title';
-                        const nextArtist = nextSong.artists && nextSong.artists.length > 0 ? nextSong.artists[0].name : '';
-                        const nextThumbnail = nextSong.thumbnails && nextSong.thumbnails.length > 0 ? nextSong.thumbnails[0].url : '';
-                        loadSong(nextSong.id || '', nextTitle, nextArtist, nextThumbnail, window.settings.playlist, nextIndex);
-                    }
-                }
-            }
+
         });
         audio.addEventListener('ended', () => {
             isPlaying = false;
@@ -972,7 +931,7 @@ async function loadSong(songId, title, artist, thumbnail = null, playlistId = nu
                 }
                 return;
             }
-            if (window.settings.autoplay && window.settings.playlist && currentPlaylistSongs.length > 0) {
+            if (window.settings.playlist && currentPlaylistSongs.length > 0) {
                 playNextSong();
             } else {
                 currentSongInfo = null;
@@ -1311,8 +1270,7 @@ function togglePlay() {
             if (navigator.mediaSession) {
                 navigator.mediaSession.playbackState = 'paused';
             }
-            saveSetting(SETTINGS_KEYS.POS, currentAudio.currentTime);
-            currentAudio.lastSavedPosition = currentAudio.currentTime;
+
         } else {
             currentAudio.play();
             document.getElementById('playButton').textContent = '⏸';
@@ -1332,8 +1290,6 @@ function seek(event) {
         const clickX = event.clientX - rect.left;
         const percentage = clickX / rect.width;
         currentAudio.currentTime = percentage * currentAudio.duration;
-        saveSetting(SETTINGS_KEYS.POS, currentAudio.currentTime);
-        currentAudio.lastSavedPosition = currentAudio.currentTime;
     }
 }
 let isDraggingVolume = false;
@@ -1665,9 +1621,7 @@ function displayPlaylistContent(playlistData, playlistTitle) {
     container.style.display = 'block';
     window.settings.playlist = playlistData.id || playlistData.browseId || '';
     currentPlaylistSongs = playlistData.songs || [];
-    if (window.settings.shuffle && currentPlaylistSongs.length > 0) {
-        createShuffledOrder();
-    }
+
     highlightCurrentPlaylist();
     container.innerHTML = '';
     const headerDiv = document.createElement('div');
@@ -2223,95 +2177,30 @@ function toggleRepeatMode() {
     saveSetting(SETTINGS_KEYS.REPEAT, window.settings.repeat);
     updateRepeatShuffleDisplay();
 }
-function toggleShuffle() {
-    window.settings.shuffle = !window.settings.shuffle;
-    if (window.settings.shuffle) {
-        if (currentPlaylistSongs.length > 0) {
-            createShuffledOrder();
-        }
-        showInfoNotification('Shuffle enabled');
-    } else {
-        showInfoNotification('Shuffle disabled');
-    }
-    saveSetting(SETTINGS_KEYS.SHUFFLE, window.settings.shuffle);
-    updateRepeatShuffleDisplay();
-}
 
-function toggleAutoplay() {
-    window.settings.autoplay = !window.settings.autoplay;
-    if (window.settings.autoplay) {
-        showInfoNotification('Autoplay enabled');
-    } else {
-        showInfoNotification('Autoplay disabled');
-    }
-    saveSetting(SETTINGS_KEYS.AUTOPLAY, window.settings.autoplay);
-    updateRepeatShuffleDisplay();
-}
 
-function toggleCrossfade() {
-    window.settings.crossfade = !window.settings.crossfade;
-    if (window.settings.crossfade) {
-        showInfoNotification('Crossfade enabled');
-    } else {
-        showInfoNotification('Crossfade disabled');
-    }
-    saveSetting(SETTINGS_KEYS.CROSSFADE, window.settings.crossfade);
-    updateRepeatShuffleDisplay();
-}
-function createShuffledOrder() {
-    originalPlaylistOrder = [...Array(currentPlaylistSongs.length).keys()];
-    shuffledPlaylistOrder = [...originalPlaylistOrder];
-    for (let i = shuffledPlaylistOrder.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffledPlaylistOrder[i], shuffledPlaylistOrder[j]] = [shuffledPlaylistOrder[j], shuffledPlaylistOrder[i]];
-    }
-}
 function getNextSongIndex() {
     if (currentPlaylistSongs.length === 0 || currentSongIndex === -1) return -1;
-    if (window.settings.shuffle) {
-        const currentShuffledIndex = shuffledPlaylistOrder.indexOf(currentSongIndex);
-        const nextShuffledIndex = currentShuffledIndex + 1;
-        if (nextShuffledIndex < shuffledPlaylistOrder.length) {
-            return shuffledPlaylistOrder[nextShuffledIndex];
-        } else if (window.settings.repeat === 'all') {
-            createShuffledOrder();
-            return shuffledPlaylistOrder[0];
-        }
-    } else {
-        const nextIndex = currentSongIndex + 1;
-        if (nextIndex < currentPlaylistSongs.length) {
-            return nextIndex;
-        } else if (window.settings.repeat === 'all') {
-            return 0;
-        }
+    const nextIndex = currentSongIndex + 1;
+    if (nextIndex < currentPlaylistSongs.length) {
+        return nextIndex;
+    } else if (window.settings.repeat === 'all') {
+        return 0;
     }
     return -1;
 }
 function getPreviousSongIndex() {
     if (currentPlaylistSongs.length === 0 || currentSongIndex === -1) return -1;
-    if (window.settings.shuffle) {
-        const currentShuffledIndex = shuffledPlaylistOrder.indexOf(currentSongIndex);
-        const prevShuffledIndex = currentShuffledIndex - 1;
-        if (prevShuffledIndex >= 0) {
-            return shuffledPlaylistOrder[prevShuffledIndex];
-        } else if (window.settings.repeat === 'all') {
-            return shuffledPlaylistOrder[shuffledPlaylistOrder.length - 1];
-        }
-    } else {
-        const prevIndex = currentSongIndex - 1;
-        if (prevIndex >= 0) {
-            return prevIndex;
-        } else if (window.settings.repeat === 'all') {
-            return currentPlaylistSongs.length - 1;
-        }
+    const prevIndex = currentSongIndex - 1;
+    if (prevIndex >= 0) {
+        return prevIndex;
+    } else if (window.settings.repeat === 'all') {
+        return currentPlaylistSongs.length - 1;
     }
     return -1;
 }
 function updateRepeatShuffleDisplay() {
     const repeatButton = document.getElementById('repeatButton');
-    const shuffleButton = document.getElementById('shuffleButton');
-    const autoplayButton = document.getElementById('autoplayButton');
-    const crossfadeButton = document.getElementById('crossfadeButton');
 
     switch (window.settings.repeat) {
         case 'none':
@@ -2329,35 +2218,6 @@ function updateRepeatShuffleDisplay() {
             repeatButton.title = 'Repeat one';
             repeatButton.style.color = '#1db954';
             break;
-    }
-    if (window.settings.shuffle) {
-        shuffleButton.textContent = '🔀';
-        shuffleButton.style.color = '#1db954';
-        shuffleButton.title = 'Shuffle on';
-    } else {
-        shuffleButton.textContent = '🔀';
-        shuffleButton.style.color = '';
-        shuffleButton.title = 'Shuffle off';
-    }
-
-    if (window.settings.autoplay) {
-        autoplayButton.textContent = '▶▶';
-        autoplayButton.style.color = '#1db954';
-        autoplayButton.title = 'Autoplay on';
-    } else {
-        autoplayButton.textContent = '▶▶';
-        autoplayButton.style.color = '';
-        autoplayButton.title = 'Autoplay off';
-    }
-
-    if (window.settings.crossfade) {
-        crossfadeButton.textContent = '⏭';
-        crossfadeButton.style.color = '#1db954';
-        crossfadeButton.title = 'Crossfade on';
-    } else {
-        crossfadeButton.textContent = '⏭';
-        crossfadeButton.style.color = '';
-        crossfadeButton.title = 'Crossfade off';
     }
 }
 updateCSSBreakpoints();
@@ -2414,9 +2274,7 @@ window.togglePlay = togglePlay;
 window.playNextSong = playNextSong;
 window.playPreviousSong = playPreviousSong;
 window.toggleRepeatMode = toggleRepeatMode;
-window.toggleShuffle = toggleShuffle;
-window.toggleAutoplay = toggleAutoplay;
-window.toggleCrossfade = toggleCrossfade;
+
 window.toggleSidebar = toggleSidebar;
 window.handleSearch = handleSearch;
 window.seek = seek;
