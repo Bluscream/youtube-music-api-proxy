@@ -64,8 +64,8 @@ public class ApiController : ControllerBase
         // Get authentication status for debugging
         try
         {
-            var cookies = _configService.GetCookies();
-            environmentInfo.AuthStatus = await _authService.GetAuthStatusAsync(cookies);
+            var sessionConfig = YouTubeMusicSessionConfig.FromMainConfig(_configService.GetYouTubeMusicConfig());
+            environmentInfo.AuthStatus = await _authService.GetAuthStatusAsync(sessionConfig);
         }
         catch (Exception ex)
         {

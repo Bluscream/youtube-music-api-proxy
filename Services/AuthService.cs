@@ -30,13 +30,13 @@ public class AuthService : IAuthService
     /// <summary>
     /// Generates visitor data using YouTubeSessionGenerator
     /// </summary>
-    public async Task<string> GenerateVisitorDataAsync(string? cookies = null, CancellationToken cancellationToken = default)
+    public async Task<string> GenerateVisitorDataAsync(YouTubeMusicSessionConfig? sessionConfig = null, CancellationToken cancellationToken = default)
     {
         try
         {
             _logger.LogInformation("Generating visitor data using YouTubeSessionGenerator");
             
-            var sessionConfig = new YouTubeMusicSessionConfig { Cookies = cookies };
+            sessionConfig ??= new YouTubeMusicSessionConfig();
             var httpClient = await _httpClientService.GetAuthClientAsync(sessionConfig);
 
             using var jsEnvironment = new NodeEnvironment();
@@ -70,7 +70,7 @@ public class AuthService : IAuthService
     /// <summary>
     /// Generates a PoToken using local YouTubeSessionGenerator
     /// </summary>
-    public async Task<string> GeneratePoTokenLocalAsync(string visitorData, string? cookies = null, CancellationToken cancellationToken = default)
+    public async Task<string> GeneratePoTokenLocalAsync(string visitorData, YouTubeMusicSessionConfig? sessionConfig = null, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(visitorData))
         {
@@ -80,7 +80,7 @@ public class AuthService : IAuthService
         try
         {
             _logger.LogInformation("Generating PoToken locally using YouTubeSessionGenerator");
-            var sessionConfig = new YouTubeMusicSessionConfig { Cookies = cookies };
+            sessionConfig ??= new YouTubeMusicSessionConfig();
             var httpClient = await _httpClientService.GetAuthClientAsync(sessionConfig);
 
             using var jsEnvironment = new NodeEnvironment();
@@ -141,9 +141,9 @@ public class AuthService : IAuthService
     }
 
     /// <summary>
-    /// Generates a PoToken using either external server or local generation (legacy method)
+    /// Generates a PoToken using either external server or local generation
     /// </summary>
-    public async Task<string> GeneratePoTokenAsync(string visitorData, string? poTokenServer = null, string? cookies = null, CancellationToken cancellationToken = default)
+    public async Task<string> GeneratePoTokenAsync(string visitorData, YouTubeMusicSessionConfig? sessionConfig = null, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(visitorData))
         {
@@ -153,11 +153,11 @@ public class AuthService : IAuthService
         try
         {
             // Try external PoToken server first if configured
-            if (!string.IsNullOrEmpty(poTokenServer))
+            if (!string.IsNullOrEmpty(sessionConfig?.PoTokenServer))
             {
                 try
                 {
-                    return await GeneratePoTokenRemoteAsync(visitorData, poTokenServer, cancellationToken);
+                    return await GeneratePoTokenRemoteAsync(visitorData, sessionConfig.PoTokenServer, cancellationToken);
                 }
                 catch (Exception ex)
                 {
@@ -166,7 +166,7 @@ public class AuthService : IAuthService
             }
 
             // Fallback to local generation
-            return await GeneratePoTokenLocalAsync(visitorData, cookies, cancellationToken);
+            return await GeneratePoTokenLocalAsync(visitorData, sessionConfig, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -178,10 +178,10 @@ public class AuthService : IAuthService
     /// <summary>
     /// Generates both visitor data and PoToken in a single operation with caching
     /// </summary>
-    public async Task<(string VisitorData, string PoToken)> GenerateSessionDataAsync(string? cookies = null, string? poTokenServer = null, CancellationToken cancellationToken = default)
+    public async Task<(string VisitorData, string PoToken)> GenerateSessionDataAsync(YouTubeMusicSessionConfig? sessionConfig = null, CancellationToken cancellationToken = default)
     {
-        // Create a cache key based on the cookies and PoToken server
-        var cacheKey = $"cookies:{cookies ?? "none"}|server:{poTokenServer ?? "local"}";
+        // Create a cache key based on the session configuration
+        var cacheKey = sessionConfig?.CreateCacheKey() ?? "default";
         
         lock (_sessionCacheLock)
         {
@@ -205,25 +205,25 @@ public class AuthService : IAuthService
         
         try
         {
-            var visitorData = await GenerateVisitorDataAsync(cookies, cancellationToken);
+            var visitorData = await GenerateVisitorDataAsync(sessionConfig, cancellationToken);
             
             // Generate PoToken using the appropriate method
             string poToken;
-            if (!string.IsNullOrEmpty(poTokenServer))
+            if (!string.IsNullOrEmpty(sessionConfig?.PoTokenServer))
             {
                 try
                 {
-                    poToken = await GeneratePoTokenRemoteAsync(visitorData, poTokenServer, cancellationToken);
+                    poToken = await GeneratePoTokenRemoteAsync(visitorData, sessionConfig.PoTokenServer, cancellationToken);
                 }
                 catch (Exception ex)
                 {
                     _logger.LogWarning(ex, "Failed to generate PoToken remotely, falling back to local generation");
-                    poToken = await GeneratePoTokenLocalAsync(visitorData, cookies, cancellationToken);
+                    poToken = await GeneratePoTokenLocalAsync(visitorData, sessionConfig, cancellationToken);
                 }
             }
             else
             {
-                poToken = await GeneratePoTokenLocalAsync(visitorData, cookies, cancellationToken);
+                poToken = await GeneratePoTokenLocalAsync(visitorData, sessionConfig, cancellationToken);
             }
 
             // Cache the session data for 1 hour
@@ -429,45 +429,45 @@ public class AuthService : IAuthService
     /// <summary>
     /// Gets the current authentication status and generated tokens for debugging
     /// </summary>
-    public async Task<AuthStatus> GetAuthStatusAsync(string? cookies = null, string? poTokenServer = null, CancellationToken cancellationToken = default)
+    public async Task<AuthStatus> GetAuthStatusAsync(YouTubeMusicSessionConfig? sessionConfig = null, CancellationToken cancellationToken = default)
     {
         var status = new AuthStatus
         {
-            CookiesConfigured = !string.IsNullOrEmpty(cookies),
-            PoTokenServerConfigured = !string.IsNullOrEmpty(poTokenServer),
+            CookiesConfigured = !string.IsNullOrEmpty(sessionConfig?.Cookies),
+            PoTokenServerConfigured = !string.IsNullOrEmpty(sessionConfig?.PoTokenServer),
             LastGenerated = DateTime.UtcNow
         };
 
         try
         {
             // Validate cookies if provided
-            if (!string.IsNullOrEmpty(cookies))
+            if (!string.IsNullOrEmpty(sessionConfig?.Cookies))
             {
-                var parsedCookies = ParseCookies(cookies);
+                var parsedCookies = ParseCookies(sessionConfig.Cookies);
                 var cookieValidation = ValidateYouTubeCookies(parsedCookies);
                 status.CookieValidationResult = cookieValidation;
                 status.CookiesValid = cookieValidation.IsValid;
             }
 
             // Test PoToken server if configured
-            if (!string.IsNullOrEmpty(poTokenServer))
+            if (!string.IsNullOrEmpty(sessionConfig?.PoTokenServer))
             {
-                status.PoTokenServerReachable = await TestPoTokenServerAsync(poTokenServer, cancellationToken);
+                status.PoTokenServerReachable = await TestPoTokenServerAsync(sessionConfig.PoTokenServer, cancellationToken);
             }
 
             // Generate visitor data for debugging
-            var visitorData = await GenerateVisitorDataAsync(cookies, cancellationToken);
+            var visitorData = await GenerateVisitorDataAsync(sessionConfig, cancellationToken);
             status.VisitorData = visitorData;
             // status.ContentBinding = TruncateForDebug(visitorData); // Content binding is typically the visitor data
 
             // Generate PoToken using the appropriate method
             string poToken;
-            if (!string.IsNullOrEmpty(poTokenServer) && status.PoTokenServerReachable)
+            if (!string.IsNullOrEmpty(sessionConfig?.PoTokenServer) && status.PoTokenServerReachable)
             {
                 try
                 {
                     // Get the full PoToken response from server
-                    var poTokenResponse = await GeneratePoTokenFromServerAsync(poTokenServer, visitorData, cancellationToken);
+                    var poTokenResponse = await GeneratePoTokenFromServerAsync(sessionConfig.PoTokenServer, visitorData, cancellationToken);
                     poToken = poTokenResponse.PoToken ?? throw new InvalidOperationException("PoToken server returned null token");
                     status.ContentBinding = poTokenResponse.ContentBinding;
                     status.ExpiresAt = poTokenResponse.ExpiresAt;
@@ -475,12 +475,12 @@ public class AuthService : IAuthService
                 catch (Exception ex)
                 {
                     _logger.LogWarning(ex, "Failed to generate PoToken remotely, falling back to local generation");
-                    poToken = await GeneratePoTokenLocalAsync(visitorData, cookies, cancellationToken);
+                    poToken = await GeneratePoTokenLocalAsync(visitorData, sessionConfig, cancellationToken);
                 }
             }
             else
             {
-                poToken = await GeneratePoTokenLocalAsync(visitorData, cookies, cancellationToken);
+                poToken = await GeneratePoTokenLocalAsync(visitorData, sessionConfig, cancellationToken);
             }
             
             status.PoToken = poToken;

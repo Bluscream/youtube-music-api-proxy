@@ -70,7 +70,7 @@ public class YouTubeMusicService : IYouTubeMusicService
         // Generate session data if needed
         if (cookieCollection != null && sessionConfig.NeedsSessionDataGeneration())
         {
-            var (generatedVisitorData, generatedPoToken) = await _authService.GenerateSessionDataAsync(cookieString, sessionConfig.PoTokenServer);
+            var (generatedVisitorData, generatedPoToken) = await _authService.GenerateSessionDataAsync(sessionConfig);
             
             // Update session configuration with generated data
             sessionConfig = sessionConfig.With(

@@ -1,4 +1,5 @@
 using System.Net;
+using YoutubeMusicAPIProxy.Configuration;
 
 namespace YoutubeMusicAPIProxy.Services;
 
@@ -10,19 +11,19 @@ public interface IAuthService
     /// <summary>
     /// Generates visitor data using YouTubeSessionGenerator
     /// </summary>
-    /// <param name="cookies">Optional cookies to use for generation</param>
+    /// <param name="sessionConfig">Session configuration</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The generated visitor data</returns>
-    Task<string> GenerateVisitorDataAsync(string? cookies = null, CancellationToken cancellationToken = default);
+    Task<string> GenerateVisitorDataAsync(YouTubeMusicSessionConfig? sessionConfig = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Generates a PoToken using local YouTubeSessionGenerator
     /// </summary>
     /// <param name="visitorData">Visitor data to use for PoToken generation</param>
-    /// <param name="cookies">Optional cookies to use for generation</param>
+    /// <param name="sessionConfig">Session configuration</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The generated PoToken</returns>
-    Task<string> GeneratePoTokenLocalAsync(string visitorData, string? cookies = null, CancellationToken cancellationToken = default);
+    Task<string> GeneratePoTokenLocalAsync(string visitorData, YouTubeMusicSessionConfig? sessionConfig = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Generates a PoToken using an external server
@@ -34,23 +35,21 @@ public interface IAuthService
     Task<string> GeneratePoTokenRemoteAsync(string visitorData, string poTokenServer, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Generates a PoToken using either external server or local generation (legacy method)
+    /// Generates a PoToken using either external server or local generation
     /// </summary>
     /// <param name="visitorData">Visitor data to use for PoToken generation</param>
-    /// <param name="poTokenServer">Optional external PoToken server URL</param>
-    /// <param name="cookies">Optional cookies to use for generation</param>
+    /// <param name="sessionConfig">Session configuration</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>The generated PoToken</returns>
-    Task<string> GeneratePoTokenAsync(string visitorData, string? poTokenServer = null, string? cookies = null, CancellationToken cancellationToken = default);
+    Task<string> GeneratePoTokenAsync(string visitorData, YouTubeMusicSessionConfig? sessionConfig = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Generates both visitor data and PoToken in a single operation
     /// </summary>
-    /// <param name="cookies">Optional cookies to use for generation</param>
-    /// <param name="poTokenServer">Optional external PoToken server URL</param>
+    /// <param name="sessionConfig">Session configuration</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Tuple containing visitor data and PoToken</returns>
-    Task<(string VisitorData, string PoToken)> GenerateSessionDataAsync(string? cookies = null, string? poTokenServer = null, CancellationToken cancellationToken = default);
+    Task<(string VisitorData, string PoToken)> GenerateSessionDataAsync(YouTubeMusicSessionConfig? sessionConfig = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Validates that the parsed cookies contain the essential YouTube Music authentication cookies
@@ -77,11 +76,10 @@ public interface IAuthService
     /// <summary>
     /// Gets the current authentication status and generated tokens for debugging
     /// </summary>
-    /// <param name="cookies">Optional cookies to use for generation</param>
-    /// <param name="poTokenServer">Optional external PoToken server URL</param>
+    /// <param name="sessionConfig">Session configuration</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Authentication status information</returns>
-    Task<AuthStatus> GetAuthStatusAsync(string? cookies = null, string? poTokenServer = null, CancellationToken cancellationToken = default);
+    Task<AuthStatus> GetAuthStatusAsync(YouTubeMusicSessionConfig? sessionConfig = null, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
