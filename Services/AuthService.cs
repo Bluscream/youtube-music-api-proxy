@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using YouTubeSessionGenerator;
 using YouTubeSessionGenerator.Js.Environments;
+using YoutubeMusicAPIProxy.Configuration;
 using YoutubeMusicAPIProxy.Models;
 
 namespace YoutubeMusicAPIProxy.Services;
@@ -13,16 +14,16 @@ namespace YoutubeMusicAPIProxy.Services;
 /// </summary>
 public class AuthService : IAuthService
 {
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IHttpClientService _httpClientService;
     private readonly ILogger<AuthService> _logger;
     
     // Cache for generated session data to avoid regenerating on every request
     private readonly Dictionary<string, (string VisitorData, string PoToken, DateTime Expiry)> _sessionCache = new();
     private readonly object _sessionCacheLock = new object();
 
-    public AuthService(IHttpClientFactory httpClientFactory, ILogger<AuthService> logger)
+    public AuthService(IHttpClientService httpClientService, ILogger<AuthService> logger)
     {
-        _httpClientFactory = httpClientFactory;
+        _httpClientService = httpClientService;
         _logger = logger;
     }
 
@@ -35,14 +36,8 @@ public class AuthService : IAuthService
         {
             _logger.LogInformation("Generating visitor data using YouTubeSessionGenerator");
             
-            var httpClient = _httpClientFactory.CreateClient();
-            
-            // Add cookies to request if provided
-            if (!string.IsNullOrEmpty(cookies))
-            {
-                httpClient.DefaultRequestHeaders.Add("Cookie", cookies);
-                _logger.LogDebug("Added cookies to visitor data generation request");
-            }
+            var sessionConfig = new YouTubeMusicSessionConfig { Cookies = cookies };
+            var httpClient = await _httpClientService.GetAuthClientAsync(sessionConfig);
 
             using var jsEnvironment = new NodeEnvironment();
             var sessionCreator = new YouTubeSessionCreator(new()
@@ -84,13 +79,8 @@ public class AuthService : IAuthService
         try
         {
             _logger.LogInformation("Generating PoToken locally using YouTubeSessionGenerator");
-            var httpClient = _httpClientFactory.CreateClient();
-            
-            if (!string.IsNullOrEmpty(cookies))
-            {
-                httpClient.DefaultRequestHeaders.Add("Cookie", cookies);
-                _logger.LogDebug("Added cookies to local PoToken generation request");
-            }
+            var sessionConfig = new YouTubeMusicSessionConfig { Cookies = cookies };
+            var httpClient = await _httpClientService.GetAuthClientAsync(sessionConfig);
 
             using var jsEnvironment = new NodeEnvironment();
             var sessionCreator = new YouTubeSessionCreator(new()
@@ -412,7 +402,8 @@ public class AuthService : IAuthService
         {
             _logger.LogDebug("Testing PoToken server connection: {ServerUrl}", serverUrl);
 
-            var httpClient = _httpClientFactory.CreateClient();
+            var sessionConfig = new YouTubeMusicSessionConfig();
+            var httpClient = await _httpClientService.GetAuthClientAsync(sessionConfig);
             httpClient.Timeout = TimeSpan.FromSeconds(10); // Short timeout for testing
 
             // Send a simple test request
@@ -487,7 +478,7 @@ public class AuthService : IAuthService
                 poToken = await GeneratePoTokenLocalAsync(visitorData, cookies, cancellationToken);
             }
             
-            status.PoToken = TruncateForDebug(poToken);
+            status.PoToken = poToken;
         }
         catch (Exception ex)
         {
@@ -507,7 +498,8 @@ public class AuthService : IAuthService
         {
             _logger.LogDebug("Generating PoToken from server: {ServerUrl}", serverUrl);
 
-            var httpClient = _httpClientFactory.CreateClient();
+            var sessionConfig = new YouTubeMusicSessionConfig();
+            var httpClient = await _httpClientService.GetAuthClientAsync(sessionConfig);
             
             // Prepare the request payload
             var requestPayload = new

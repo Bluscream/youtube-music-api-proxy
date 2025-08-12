@@ -224,6 +224,7 @@ foreach (var envVar in envVars)
 Console.WriteLine("=== End Environment Variables ===");
 
 // Add services
+builder.Services.AddScoped<IHttpClientService, HttpClientService>();
 builder.Services.AddScoped<IYouTubeMusicService, YouTubeMusicService>();
 builder.Services.AddScoped<IConfigurationService, ConfigurationService>();
 builder.Services.AddScoped<ILyricsService, LyricsService>();

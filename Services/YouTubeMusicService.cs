@@ -19,7 +19,7 @@ namespace YoutubeMusicAPIProxy.Services;
 public class YouTubeMusicService : IYouTubeMusicService
 {
     private readonly IOptions<YouTubeMusicConfig> _config;
-    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IHttpClientService _httpClientService;
     private readonly ILogger<YouTubeMusicService> _logger;
     private readonly ILyricsService _lyricsService;
     private readonly IConfigurationService _configService;
@@ -27,14 +27,14 @@ public class YouTubeMusicService : IYouTubeMusicService
 
     public YouTubeMusicService(
         IOptions<YouTubeMusicConfig> config,
-        IHttpClientFactory httpClientFactory,
+        IHttpClientService httpClientService,
         ILogger<YouTubeMusicService> logger,
         ILyricsService lyricsService,
         IConfigurationService configService,
         IAuthService authService)
     {
         _config = config;
-        _httpClientFactory = httpClientFactory;
+        _httpClientService = httpClientService;
         _logger = logger;
         _lyricsService = lyricsService;
         _configService = configService;
@@ -52,11 +52,19 @@ public class YouTubeMusicService : IYouTubeMusicService
         string? poTokenServer = null)
     {
         var config = _config.Value;
-        var location = geographicalLocation ?? config.GeographicalLocation;
+        
+        // Create session configuration
+        var sessionConfig = YouTubeMusicSessionConfig.Create(
+            config, 
+            cookies, 
+            geographicalLocation, 
+            visitorData, 
+            poToken, 
+            poTokenServer);
         
         // Parse cookies if provided
         IEnumerable<Cookie>? cookieCollection = null;
-        var cookieString = cookies ?? config.Cookies;
+        var cookieString = sessionConfig.Cookies;
         
         if (!string.IsNullOrEmpty(cookieString))
         {
@@ -70,35 +78,27 @@ public class YouTubeMusicService : IYouTubeMusicService
             }
         }
 
-        // Get PoToken server if not provided
-        var finalPoTokenServer = poTokenServer ?? config.PoTokenServer;
-
         // Generate session data if needed
-        var finalVisitorData = visitorData;
-        var finalPoToken = poToken;
-        
-        if (cookieCollection != null && (string.IsNullOrEmpty(finalVisitorData) || string.IsNullOrEmpty(finalPoToken)))
+        if (cookieCollection != null && sessionConfig.NeedsSessionDataGeneration())
         {
-            var (generatedVisitorData, generatedPoToken) = await _authService.GenerateSessionDataAsync(cookieString, finalPoTokenServer);
+            var (generatedVisitorData, generatedPoToken) = await _authService.GenerateSessionDataAsync(cookieString, sessionConfig.PoTokenServer);
             
-            if (string.IsNullOrEmpty(finalVisitorData))
-            {
-                finalVisitorData = generatedVisitorData;
-            }
-            
-            if (string.IsNullOrEmpty(finalPoToken))
-            {
-                finalPoToken = generatedPoToken;
-            }
+            // Update session configuration with generated data
+            sessionConfig = sessionConfig.With(
+                visitorData: sessionConfig.VisitorData ?? generatedVisitorData,
+                poToken: sessionConfig.PoToken ?? generatedPoToken);
         }
+
+        // Get cached HTTP client with session data
+        var httpClient = await _httpClientService.GetClientAsync(sessionConfig);
 
         return new YouTubeMusicClient(
             _logger,
-            location,
-            finalVisitorData,
-            finalPoToken,
+            sessionConfig.GeographicalLocation ?? "US",
+            sessionConfig.VisitorData,
+            sessionConfig.PoToken,
             cookieCollection,
-            _httpClientFactory.CreateClient());
+            httpClient);
     }
 
 
