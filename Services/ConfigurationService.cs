@@ -82,6 +82,14 @@ public class ConfigurationService : BaseConfigurationService, IConfigurationServ
     }
 
     /// <summary>
+    /// Gets the YouTube Music configuration object
+    /// </summary>
+    public YouTubeMusicConfig GetYouTubeMusicConfig()
+    {
+        return _config;
+    }
+
+    /// <summary>
     /// Logs the final resolved configuration values
     /// </summary>
     public void LogResolvedConfiguration()

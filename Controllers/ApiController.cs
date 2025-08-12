@@ -5,6 +5,7 @@ using YouTubeMusicAPI.Models.Streaming;
 using YouTubeMusicAPI.Models.Library;
 using YoutubeMusicAPIProxy.Services;
 using YoutubeMusicAPIProxy.Models;
+using YoutubeMusicAPIProxy.Configuration;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace YoutubeMusicAPIProxy.Controllers;
@@ -54,7 +55,6 @@ public class ApiController : ControllerBase
             MemoryUsageMB = process.WorkingSet64 / 1024 / 1024
         };
 
-        var poTokenServer = _configService.GetPoTokenServer();
         var environmentInfo = new EnvironmentInfo
         {
             Environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Unknown",
@@ -65,7 +65,7 @@ public class ApiController : ControllerBase
         try
         {
             var cookies = _configService.GetCookies();
-            environmentInfo.AuthStatus = await _authService.GetAuthStatusAsync(cookies, poTokenServer);
+            environmentInfo.AuthStatus = await _authService.GetAuthStatusAsync(cookies);
         }
         catch (Exception ex)
         {
@@ -95,7 +95,6 @@ public class ApiController : ControllerBase
     /// <param name="query">Search query</param>
     /// <param name="category">Optional category filter. Available values: Songs, Videos, Albums, CommunityPlaylists, Artists, Podcasts, Episodes, Profiles</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
-    /// <param name="poTokenServer">Optional PoToken server URL for external PoToken generation</param>
     /// <returns>Search results</returns>
     /// <response code="200">Returns search results containing songs, videos, albums, artists, playlists, podcasts, episodes, or profiles</response>
     /// <response code="400">If the query is invalid or missing</response>
@@ -108,8 +107,7 @@ public class ApiController : ControllerBase
         [FromQuery] string query,
         [FromQuery] SearchCategory? category = null,
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
-        [FromQuery] string? location = null,
-        [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? poTokenServer = null)
+        [FromQuery] string? location = null)
     {
         if (string.IsNullOrWhiteSpace(query))
         {
@@ -119,8 +117,11 @@ public class ApiController : ControllerBase
         try
         {
             var authCookies = _configService.GetCookies(cookies);
-            var poTokenServerUrl = _configService.GetPoTokenServer(poTokenServer);
-            var searchResults = await _service.SearchAsync(query, category, authCookies, location, poTokenServerUrl);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var searchResults = await _service.SearchAsync(query, category, sessionConfig);
             var results = new List<SearchResult>();
             
             await foreach (var result in searchResults)
@@ -150,7 +151,6 @@ public class ApiController : ControllerBase
     /// </summary>
     /// <param name="id">YouTube video/song ID</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
-    /// <param name="poTokenServer">Optional PoToken server URL for external PoToken generation</param>
     /// <returns>Song/video information with streaming data</returns>
     /// <response code="200">Returns song/video information including metadata and streaming URLs</response>
     /// <response code="400">If the ID is invalid or missing</response>
@@ -164,8 +164,7 @@ public class ApiController : ControllerBase
     public async Task<IActionResult> GetSongVideoInfo(
         [FromRoute] string id,
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
-        [FromQuery] string? location = null,
-        [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? poTokenServer = null)
+        [FromQuery] string? location = null)
     {
         if (string.IsNullOrWhiteSpace(id))
         {
@@ -175,8 +174,11 @@ public class ApiController : ControllerBase
         try
         {
             var authCookies = _configService.GetCookies(cookies);
-            var poTokenServerUrl = _configService.GetPoTokenServer(poTokenServer);
-            var result = await _service.GetSongVideoInfoAsync(id, authCookies, location, poTokenServerUrl);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var result = await _service.GetSongVideoInfoAsync(id, sessionConfig);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -196,7 +198,6 @@ public class ApiController : ControllerBase
     /// </summary>
     /// <param name="id">YouTube video/song ID</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
-    /// <param name="poTokenServer">Optional PoToken server URL for external PoToken generation</param>
     /// <returns>Streaming data including audio and video URLs</returns>
     /// <response code="200">Returns streaming data with available audio and video streams</response>
     /// <response code="400">If the ID is invalid or missing</response>
@@ -210,8 +211,7 @@ public class ApiController : ControllerBase
     public async Task<IActionResult> GetStreamingData(
         [FromRoute] string id,
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
-        [FromQuery] string? location = null,
-        [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? poTokenServer = null)
+        [FromQuery] string? location = null)
     {
         if (string.IsNullOrWhiteSpace(id))
         {
@@ -221,8 +221,11 @@ public class ApiController : ControllerBase
         try
         {
             var authCookies = _configService.GetCookies(cookies);
-            var poTokenServerUrl = _configService.GetPoTokenServer(poTokenServer);
-            var result = await _service.GetStreamingDataAsync(id, authCookies, location, poTokenServerUrl);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var result = await _service.GetStreamingDataAsync(id, sessionConfig);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -243,7 +246,6 @@ public class ApiController : ControllerBase
     /// <param name="id">YouTube video/song ID</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
     /// <param name="quality">Audio quality preference (e.g., "AUDIO_QUALITY_MEDIUM")</param>
-    /// <param name="poTokenServer">Optional PoToken server URL for external PoToken generation</param>
     /// <returns>Audio stream</returns>
     /// <response code="200">Returns audio stream in M4A format (accessible with or without .m4a extension)</response>
     /// <response code="400">If the ID is invalid or missing</response>
@@ -259,8 +261,7 @@ public class ApiController : ControllerBase
         [FromRoute] string id,
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
         [FromQuery] string? location = null,
-        [FromQuery] string? quality = null,
-        [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? poTokenServer = null)
+        [FromQuery] string? quality = null)
     {
         if (string.IsNullOrWhiteSpace(id))
         {
@@ -270,8 +271,11 @@ public class ApiController : ControllerBase
         try
         {
             var authCookies = _configService.GetCookies(cookies);
-            var poTokenServerUrl = _configService.GetPoTokenServer(poTokenServer);
-            var streamingData = await _service.GetStreamingDataAsync(id, authCookies, location, poTokenServerUrl);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var streamingData = await _service.GetStreamingDataAsync(id, sessionConfig);
             
             _logger.LogDebug("Retrieved streaming data for ID: {Id}. Stream count: {Count}", 
                 id, streamingData.StreamInfo?.Count() ?? 0);
@@ -348,7 +352,6 @@ public class ApiController : ControllerBase
     /// </summary>
     /// <param name="browseId">Album browse ID</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
-    /// <param name="poTokenServer">Optional PoToken server URL for external PoToken generation</param>
     /// <returns>Album information including songs and metadata</returns>
     /// <response code="200">Returns album information with songs, artists, and metadata</response>
     /// <response code="400">If the browse ID is invalid or missing</response>
@@ -362,8 +365,7 @@ public class ApiController : ControllerBase
     public async Task<IActionResult> GetAlbumInfo(
         [FromRoute] string browseId,
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
-        [FromQuery] string? location = null,
-        [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? poTokenServer = null)
+        [FromQuery] string? location = null)
     {
         if (string.IsNullOrWhiteSpace(browseId))
         {
@@ -373,8 +375,11 @@ public class ApiController : ControllerBase
         try
         {
             var authCookies = _configService.GetCookies(cookies);
-            var poTokenServerUrl = _configService.GetPoTokenServer(poTokenServer);
-            var result = await _service.GetAlbumInfoAsync(browseId, authCookies, location, poTokenServerUrl);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var result = await _service.GetAlbumInfoAsync(browseId, sessionConfig);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -394,7 +399,6 @@ public class ApiController : ControllerBase
     /// </summary>
     /// <param name="browseId">Artist browse ID</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
-    /// <param name="poTokenServer">Optional PoToken server URL for external PoToken generation</param>
     /// <returns>Artist information including albums, songs, and metadata</returns>
     /// <response code="200">Returns artist information with albums, songs, and metadata</response>
     /// <response code="400">If the browse ID is invalid or missing</response>
@@ -408,8 +412,7 @@ public class ApiController : ControllerBase
     public async Task<IActionResult> GetArtistInfo(
         [FromRoute] string browseId,
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
-        [FromQuery] string? location = null,
-        [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? poTokenServer = null)
+        [FromQuery] string? location = null)
     {
         if (string.IsNullOrWhiteSpace(browseId))
         {
@@ -419,8 +422,11 @@ public class ApiController : ControllerBase
         try
         {
             var authCookies = _configService.GetCookies(cookies);
-            var poTokenServerUrl = _configService.GetPoTokenServer(poTokenServer);
-            var result = await _service.GetArtistInfoAsync(browseId, authCookies, location, poTokenServerUrl);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var result = await _service.GetArtistInfoAsync(browseId, sessionConfig);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -440,7 +446,6 @@ public class ApiController : ControllerBase
     /// </summary>
     /// <param name="cookies">Base64 encoded YouTube cookies for authentication</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
-    /// <param name="poTokenServer">Optional PoToken server URL for external PoToken generation</param>
     /// <returns>User's complete library including songs, albums, artists, subscriptions, podcasts, and playlists</returns>
     /// <response code="200">Returns user's complete library with all content types</response>
     /// <response code="401">If authentication is required but not provided</response>
@@ -451,8 +456,7 @@ public class ApiController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), 500)]
     public async Task<IActionResult> GetLibrary(
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
-        [FromQuery] string? location = null,
-        [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? poTokenServer = null)
+        [FromQuery] string? location = null)
     {
         var authCookies = _configService.GetCookies(cookies);
         if (string.IsNullOrWhiteSpace(authCookies))
@@ -462,8 +466,11 @@ public class ApiController : ControllerBase
 
         try
         {
-            var poTokenServerUrl = _configService.GetPoTokenServer(poTokenServer);
-            var result = await _service.GetLibraryAsync(authCookies, location, poTokenServerUrl);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var result = await _service.GetLibraryAsync(sessionConfig);
             return Ok(result);
         }
         catch (Exception ex)
@@ -478,7 +485,6 @@ public class ApiController : ControllerBase
     /// </summary>
     /// <param name="cookies">Base64 encoded YouTube cookies for authentication</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
-    /// <param name="poTokenServer">Optional PoToken server URL for external PoToken generation</param>
     /// <returns>User's library songs</returns>
     /// <response code="200">Returns user's library songs</response>
     /// <response code="401">If authentication is required but not provided</response>
@@ -489,8 +495,7 @@ public class ApiController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), 500)]
     public async Task<IActionResult> GetLibrarySongs(
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
-        [FromQuery] string? location = null,
-        [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? poTokenServer = null)
+        [FromQuery] string? location = null)
     {
         var authCookies = _configService.GetCookies(cookies);
         if (string.IsNullOrWhiteSpace(authCookies))
@@ -500,8 +505,11 @@ public class ApiController : ControllerBase
 
         try
         {
-            var poTokenServerUrl = _configService.GetPoTokenServer(poTokenServer);
-            var result = await _service.GetLibrarySongsAsync(authCookies, location, poTokenServerUrl);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var result = await _service.GetLibrarySongsAsync(sessionConfig);
             return Ok(result);
         }
         catch (Exception ex)
@@ -516,7 +524,6 @@ public class ApiController : ControllerBase
     /// </summary>
     /// <param name="cookies">Base64 encoded YouTube cookies for authentication</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
-    /// <param name="poTokenServer">Optional PoToken server URL for external PoToken generation</param>
     /// <returns>User's library albums</returns>
     /// <response code="200">Returns user's library albums</response>
     /// <response code="401">If authentication is required but not provided</response>
@@ -527,8 +534,7 @@ public class ApiController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), 500)]
     public async Task<IActionResult> GetLibraryAlbums(
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
-        [FromQuery] string? location = null,
-        [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? poTokenServer = null)
+        [FromQuery] string? location = null)
     {
         var authCookies = _configService.GetCookies(cookies);
         if (string.IsNullOrWhiteSpace(authCookies))
@@ -538,8 +544,11 @@ public class ApiController : ControllerBase
 
         try
         {
-            var poTokenServerUrl = _configService.GetPoTokenServer(poTokenServer);
-            var result = await _service.GetLibraryAlbumsAsync(authCookies, location, poTokenServerUrl);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var result = await _service.GetLibraryAlbumsAsync(sessionConfig);
             return Ok(result);
         }
         catch (Exception ex)
@@ -554,7 +563,6 @@ public class ApiController : ControllerBase
     /// </summary>
     /// <param name="cookies">Base64 encoded YouTube cookies for authentication</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
-    /// <param name="poTokenServer">Optional PoToken server URL for external PoToken generation</param>
     /// <returns>User's library artists</returns>
     /// <response code="200">Returns user's library artists</response>
     /// <response code="401">If authentication is required but not provided</response>
@@ -565,8 +573,7 @@ public class ApiController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), 500)]
     public async Task<IActionResult> GetLibraryArtists(
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
-        [FromQuery] string? location = null,
-        [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? poTokenServer = null)
+        [FromQuery] string? location = null)
     {
         var authCookies = _configService.GetCookies(cookies);
         if (string.IsNullOrWhiteSpace(authCookies))
@@ -576,8 +583,11 @@ public class ApiController : ControllerBase
 
         try
         {
-            var poTokenServerUrl = _configService.GetPoTokenServer(poTokenServer);
-            var result = await _service.GetLibraryArtistsAsync(authCookies, location, poTokenServerUrl);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var result = await _service.GetLibraryArtistsAsync(sessionConfig);
             return Ok(result);
         }
         catch (Exception ex)
@@ -592,7 +602,6 @@ public class ApiController : ControllerBase
     /// </summary>
     /// <param name="cookies">Base64 encoded YouTube cookies for authentication</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
-    /// <param name="poTokenServer">Optional PoToken server URL for external PoToken generation</param>
     /// <returns>User's library subscriptions</returns>
     /// <response code="200">Returns user's library subscriptions</response>
     /// <response code="401">If authentication is required but not provided</response>
@@ -603,8 +612,7 @@ public class ApiController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), 500)]
     public async Task<IActionResult> GetLibrarySubscriptions(
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
-        [FromQuery] string? location = null,
-        [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? poTokenServer = null)
+        [FromQuery] string? location = null)
     {
         var authCookies = _configService.GetCookies(cookies);
         if (string.IsNullOrWhiteSpace(authCookies))
@@ -614,8 +622,11 @@ public class ApiController : ControllerBase
 
         try
         {
-            var poTokenServerUrl = _configService.GetPoTokenServer(poTokenServer);
-            var result = await _service.GetLibrarySubscriptionsAsync(authCookies, location, poTokenServerUrl);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var result = await _service.GetLibrarySubscriptionsAsync(sessionConfig);
             return Ok(result);
         }
         catch (Exception ex)
@@ -630,7 +641,6 @@ public class ApiController : ControllerBase
     /// </summary>
     /// <param name="cookies">Base64 encoded YouTube cookies for authentication</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
-    /// <param name="poTokenServer">Optional PoToken server URL for external PoToken generation</param>
     /// <returns>User's library podcasts</returns>
     /// <response code="200">Returns user's library podcasts</response>
     /// <response code="401">If authentication is required but not provided</response>
@@ -641,8 +651,7 @@ public class ApiController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), 500)]
     public async Task<IActionResult> GetLibraryPodcasts(
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
-        [FromQuery] string? location = null,
-        [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? poTokenServer = null)
+        [FromQuery] string? location = null)
     {
         var authCookies = _configService.GetCookies(cookies);
         if (string.IsNullOrWhiteSpace(authCookies))
@@ -652,8 +661,11 @@ public class ApiController : ControllerBase
 
         try
         {
-            var poTokenServerUrl = _configService.GetPoTokenServer(poTokenServer);
-            var result = await _service.GetLibraryPodcastsAsync(authCookies, location, poTokenServerUrl);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var result = await _service.GetLibraryPodcastsAsync(sessionConfig);
             return Ok(result);
         }
         catch (Exception ex)
@@ -668,7 +680,6 @@ public class ApiController : ControllerBase
     /// </summary>
     /// <param name="cookies">Base64 encoded YouTube cookies for authentication</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
-    /// <param name="poTokenServer">Optional PoToken server URL for external PoToken generation</param>
     /// <returns>User's library playlists</returns>
     /// <response code="200">Returns user's library playlists</response>
     /// <response code="401">If authentication is required but not provided</response>
@@ -679,8 +690,7 @@ public class ApiController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), 500)]
     public async Task<IActionResult> GetLibraryPlaylists(
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
-        [FromQuery] string? location = null,
-        [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? poTokenServer = null)
+        [FromQuery] string? location = null)
     {
         var authCookies = _configService.GetCookies(cookies);
         if (string.IsNullOrWhiteSpace(authCookies))
@@ -690,8 +700,11 @@ public class ApiController : ControllerBase
 
         try
         {
-            var poTokenServerUrl = _configService.GetPoTokenServer(poTokenServer);
-            var result = await _service.GetLibraryPlaylistsAsync(authCookies, location, poTokenServerUrl);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var result = await _service.GetLibraryPlaylistsAsync(sessionConfig);
             return Ok(result);
         }
         catch (Exception ex)
@@ -707,7 +720,6 @@ public class ApiController : ControllerBase
     /// <param name="id">Playlist ID</param>
     /// <param name="cookies">Base64 encoded YouTube cookies for authentication (optional)</param>
     /// <param name="location">Geographical location (defaults to "US")</param>
-    /// <param name="poTokenServer">Optional PoToken server URL for external PoToken generation</param>
     /// <returns>Playlist information including songs and metadata</returns>
     /// <response code="200">Returns playlist information with songs and metadata</response>
     /// <response code="400">If the playlist ID is invalid or missing</response>
@@ -721,8 +733,7 @@ public class ApiController : ControllerBase
     public async Task<IActionResult> GetPlaylist(
         [FromRoute] string id,
         [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? cookies = null,
-        [FromQuery] string? location = null,
-        [FromQuery, Swashbuckle.AspNetCore.Annotations.SwaggerIgnore] string? poTokenServer = null)
+        [FromQuery] string? location = null)
     {
         if (string.IsNullOrWhiteSpace(id))
         {
@@ -732,8 +743,11 @@ public class ApiController : ControllerBase
         try
         {
             var authCookies = _configService.GetCookies(cookies);
-            var poTokenServerUrl = _configService.GetPoTokenServer(poTokenServer);
-            var result = await _service.GetPlaylistAsync(id, authCookies, location, poTokenServerUrl);
+            var sessionConfig = YouTubeMusicSessionConfig.Create(
+                _configService.GetYouTubeMusicConfig(),
+                authCookies,
+                location);
+            var result = await _service.GetPlaylistAsync(id, sessionConfig);
             return Ok(result);
         }
         catch (ArgumentException ex)

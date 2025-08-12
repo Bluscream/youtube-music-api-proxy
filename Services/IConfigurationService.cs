@@ -69,6 +69,12 @@ public interface IConfigurationService
     bool GetAddLyricsToSongResponse(bool print = false);
 
     /// <summary>
+    /// Gets the YouTube Music configuration object
+    /// </summary>
+    /// <returns>YouTube Music configuration</returns>
+    YouTubeMusicConfig GetYouTubeMusicConfig();
+
+    /// <summary>
     /// Logs the final resolved configuration values
     /// </summary>
     void LogResolvedConfiguration();

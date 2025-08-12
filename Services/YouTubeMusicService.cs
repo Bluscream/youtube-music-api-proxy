@@ -44,23 +44,12 @@ public class YouTubeMusicService : IYouTubeMusicService
     /// <summary>
     /// Create a YouTube Music client with the specified configuration
     /// </summary>
-    private async Task<YouTubeMusicClient> CreateClientAsync(
-        string? cookies = null,
-        string? geographicalLocation = null,
-        string? visitorData = null,
-        string? poToken = null,
-        string? poTokenServer = null)
+    private async Task<YouTubeMusicClient> CreateClientAsync(YouTubeMusicSessionConfig? sessionConfig = null)
     {
         var config = _config.Value;
         
-        // Create session configuration
-        var sessionConfig = YouTubeMusicSessionConfig.Create(
-            config, 
-            cookies, 
-            geographicalLocation, 
-            visitorData, 
-            poToken, 
-            poTokenServer);
+        // Use provided session config or create from main config
+        sessionConfig ??= YouTubeMusicSessionConfig.FromMainConfig(config);
         
         // Parse cookies if provided
         IEnumerable<Cookie>? cookieCollection = null;
@@ -110,21 +99,17 @@ public class YouTubeMusicService : IYouTubeMusicService
     public async Task<PaginatedAsyncEnumerable<SearchResult>> SearchAsync(
         string query,
         SearchCategory? category = null,
-        string? cookies = null,
-        string? geographicalLocation = null,
-        string? poTokenServer = null)
+        YouTubeMusicSessionConfig? sessionConfig = null)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation, null, null, poTokenServer);
+        var client = await CreateClientAsync(sessionConfig);
         return client.SearchAsync(query, category);
     }
 
     public async Task<SongVideoInfoResponse> GetSongVideoInfoAsync(
         string id,
-        string? cookies = null,
-        string? geographicalLocation = null,
-        string? poTokenServer = null)
+        YouTubeMusicSessionConfig? sessionConfig = null)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation, null, null, poTokenServer);
+        var client = await CreateClientAsync(sessionConfig);
         
         // Get song/video info
         var songVideoInfo = await client.GetSongVideoInfoAsync(id);
@@ -213,128 +198,101 @@ public class YouTubeMusicService : IYouTubeMusicService
 
     public async Task<StreamingData> GetStreamingDataAsync(
         string id,
-        string? cookies = null,
-        string? geographicalLocation = null,
-        string? poTokenServer = null)
+        YouTubeMusicSessionConfig? sessionConfig = null)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation, null, null, poTokenServer);
+        var client = await CreateClientAsync(sessionConfig);
         return await client.GetStreamingDataAsync(id);
     }
 
     public async Task<AlbumInfo> GetAlbumInfoAsync(
         string browseId,
-        string? cookies = null,
-        string? geographicalLocation = null,
-        string? poTokenServer = null)
+        YouTubeMusicSessionConfig? sessionConfig = null)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation, null, null, poTokenServer);
+        var client = await CreateClientAsync(sessionConfig);
         return await client.GetAlbumInfoAsync(browseId);
     }
 
     public async Task<ArtistInfo> GetArtistInfoAsync(
         string browseId,
-        string? cookies = null,
-        string? geographicalLocation = null,
-        string? poTokenServer = null)
+        YouTubeMusicSessionConfig? sessionConfig = null)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation, null, null, poTokenServer);
+        var client = await CreateClientAsync(sessionConfig);
         return await client.GetArtistInfoAsync(browseId);
     }
 
 
 
-    public async Task<object> GetLibraryAsync(
-        string cookies,
-        string? geographicalLocation = null,
-        string? poTokenServer = null)
+    public async Task<object> GetLibraryAsync(YouTubeMusicSessionConfig sessionConfig)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation, null, null, poTokenServer);
-        
-        var songs = await client.GetLibrarySongsAsync();
-        var albums = await client.GetLibraryAlbumsAsync();
-        var artists = await client.GetLibraryArtistsAsync();
-        var subscriptions = await client.GetLibrarySubscriptionsAsync();
-        var podcasts = await client.GetLibraryPodcastsAsync();
-        var playlists = await client.GetLibraryCommunityPlaylistsAsync();
+        var client = await CreateClientAsync(sessionConfig);
+
+        var songsTask = client.GetLibrarySongsAsync();
+        var albumsTask = client.GetLibraryAlbumsAsync();
+        var artistsTask = client.GetLibraryArtistsAsync();
+        var subscriptionsTask = client.GetLibrarySubscriptionsAsync();
+        var podcastsTask = client.GetLibraryPodcastsAsync();
+        var playlistsTask = client.GetLibraryCommunityPlaylistsAsync();
+
+        await Task.WhenAll(songsTask, albumsTask, artistsTask, subscriptionsTask, podcastsTask, playlistsTask);
 
         return new
         {
-            songs = songs.ToList(),
-            albums = albums.ToList(),
-            artists = artists.ToList(),
-            subscriptions = subscriptions.ToList(),
-            podcasts = podcasts.ToList(),
-            playlists = playlists.ToList()
+            songs = songsTask.Result.ToList(),
+            albums = albumsTask.Result.ToList(),
+            artists = artistsTask.Result.ToList(),
+            subscriptions = subscriptionsTask.Result.ToList(),
+            podcasts = podcastsTask.Result.ToList(),
+            playlists = playlistsTask.Result.ToList()
         };
     }
 
-    public async Task<object> GetLibrarySongsAsync(
-        string cookies,
-        string? geographicalLocation = null,
-        string? poTokenServer = null)
+    public async Task<object> GetLibrarySongsAsync(YouTubeMusicSessionConfig sessionConfig)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation, null, null, poTokenServer);
+        var client = await CreateClientAsync(sessionConfig);
         var songs = await client.GetLibrarySongsAsync();
         return new { songs = songs.ToList() };
     }
 
-    public async Task<object> GetLibraryAlbumsAsync(
-        string cookies,
-        string? geographicalLocation = null,
-        string? poTokenServer = null)
+    public async Task<object> GetLibraryAlbumsAsync(YouTubeMusicSessionConfig sessionConfig)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation, null, null, poTokenServer);
+        var client = await CreateClientAsync(sessionConfig);
         var albums = await client.GetLibraryAlbumsAsync();
         return new { albums = albums.ToList() };
     }
 
-    public async Task<object> GetLibraryArtistsAsync(
-        string cookies,
-        string? geographicalLocation = null,
-        string? poTokenServer = null)
+    public async Task<object> GetLibraryArtistsAsync(YouTubeMusicSessionConfig sessionConfig)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation, null, null, poTokenServer);
+        var client = await CreateClientAsync(sessionConfig);
         var artists = await client.GetLibraryArtistsAsync();
         return new { artists = artists.ToList() };
     }
 
-    public async Task<object> GetLibrarySubscriptionsAsync(
-        string cookies,
-        string? geographicalLocation = null,
-        string? poTokenServer = null)
+    public async Task<object> GetLibrarySubscriptionsAsync(YouTubeMusicSessionConfig sessionConfig)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation, null, null, poTokenServer);
+        var client = await CreateClientAsync(sessionConfig);
         var subscriptions = await client.GetLibrarySubscriptionsAsync();
         return new { subscriptions = subscriptions.ToList() };
     }
 
-    public async Task<object> GetLibraryPodcastsAsync(
-        string cookies,
-        string? geographicalLocation = null,
-        string? poTokenServer = null)
+    public async Task<object> GetLibraryPodcastsAsync(YouTubeMusicSessionConfig sessionConfig)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation, null, null, poTokenServer);
+        var client = await CreateClientAsync(sessionConfig);
         var podcasts = await client.GetLibraryPodcastsAsync();
         return new { podcasts = podcasts.ToList() };
     }
 
-    public async Task<object> GetLibraryPlaylistsAsync(
-        string cookies,
-        string? geographicalLocation = null,
-        string? poTokenServer = null)
+    public async Task<object> GetLibraryPlaylistsAsync(YouTubeMusicSessionConfig sessionConfig)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation, null, null, poTokenServer);
+        var client = await CreateClientAsync(sessionConfig);
         var playlists = await client.GetLibraryCommunityPlaylistsAsync();
         return new { playlists = playlists.ToList() };
     }
 
     public async Task<object> GetPlaylistAsync(
         string id,
-        string? cookies = null,
-        string? geographicalLocation = null,
-        string? poTokenServer = null)
+        YouTubeMusicSessionConfig? sessionConfig = null)
     {
-        var client = await CreateClientAsync(cookies, geographicalLocation, null, null, poTokenServer);
+        var client = await CreateClientAsync(sessionConfig);
         
         try
         {
