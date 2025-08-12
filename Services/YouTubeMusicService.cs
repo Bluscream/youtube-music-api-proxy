@@ -81,6 +81,9 @@ public class YouTubeMusicService : IYouTubeMusicService
         // Get cached HTTP client with session data
         var httpClient = await _httpClientService.GetClientAsync(sessionConfig);
 
+        _logger.LogDebug("Created YouTubeMusicClient");
+        _logger.LogDebug("{SessionConfig}", sessionConfig);
+
         return new YouTubeMusicClient(
             _logger,
             sessionConfig.GeographicalLocation ?? "US",
