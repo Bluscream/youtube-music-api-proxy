@@ -881,6 +881,18 @@ body {
     gap: 16px;
     margin-bottom: 8px;
 }
+.player-settings {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.player-settings .control-button {
+    font-size: 16px;
+    min-width: 32px;
+    min-height: 32px;
+    padding: 6px;
+}
 .control-button {
     background: none;
     border: none;

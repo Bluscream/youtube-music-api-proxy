@@ -3,6 +3,7 @@ const SETTINGS_KEYS = {
     PLAYLIST: 'playlist',
     SONG: 'song',
     AUTOPLAY: 'autoplay',
+    CROSSFADE: 'crossfade',
     REPEAT: 'repeat',
     SHUFFLE: 'shuffle',
     TAB: 'tab',
@@ -11,6 +12,7 @@ const SETTINGS_KEYS = {
 };
 window.settings = {
     autoplay: true,
+    crossfade: true,
     repeat: 'none',
     shuffle: false,
     playlist: null,
@@ -54,6 +56,7 @@ function saveSetting(key, value) {
 function parseSettingValue(key, value) {
     switch (key) {
         case SETTINGS_KEYS.AUTOPLAY:
+        case SETTINGS_KEYS.CROSSFADE:
         case SETTINGS_KEYS.SHUFFLE:
             if (typeof value === 'string') {
                 return value.toLowerCase() === 'true' || value === '1';
@@ -82,6 +85,7 @@ function loadAllSettings() {
         playlist: loadSetting(SETTINGS_KEYS.PLAYLIST, null),
         song: loadSetting(SETTINGS_KEYS.SONG, null),
         autoplay: loadSetting(SETTINGS_KEYS.AUTOPLAY, true),
+        crossfade: loadSetting(SETTINGS_KEYS.CROSSFADE, true),
         repeat: loadSetting(SETTINGS_KEYS.REPEAT, 'none'),
         shuffle: loadSetting(SETTINGS_KEYS.SHUFFLE, false),
         tab: loadSetting(SETTINGS_KEYS.TAB, 'info'),
@@ -112,6 +116,7 @@ function saveAllSettings() {
     saveSetting(SETTINGS_KEYS.PLAYLIST, window.settings.playlist);
     saveSetting(SETTINGS_KEYS.SONG, window.settings.song);
     saveSetting(SETTINGS_KEYS.AUTOPLAY, window.settings.autoplay);
+    saveSetting(SETTINGS_KEYS.CROSSFADE, window.settings.crossfade);
     saveSetting(SETTINGS_KEYS.REPEAT, window.settings.repeat);
     saveSetting(SETTINGS_KEYS.SHUFFLE, window.settings.shuffle);
     saveSetting(SETTINGS_KEYS.TAB, window.settings.tab);
@@ -935,7 +940,7 @@ async function loadSong(songId, title, artist, thumbnail = null, playlistId = nu
                 audio.lastSavedPosition = audio.currentTime;
                 saveSetting(SETTINGS_KEYS.POS, audio.currentTime);
             }
-            if (window.settings.autoplay && audio.duration && window.settings.playlist && currentPlaylistSongs.length > 0) {
+            if (window.settings.crossfade && audio.duration && window.settings.playlist && currentPlaylistSongs.length > 0) {
                 const timeRemaining = audio.duration - audio.currentTime;
                 const threeSeconds = 3;
                 if (timeRemaining > threeSeconds && audio.nextSongTriggered) {
@@ -943,7 +948,7 @@ async function loadSong(songId, title, artist, thumbnail = null, playlistId = nu
                 }
                 if (timeRemaining <= threeSeconds && !audio.nextSongTriggered) {
                     audio.nextSongTriggered = true;
-                    console.log(`🎵 Auto-loading next song (${timeRemaining.toFixed(1)}s remaining)`);
+                    console.log(`🎵 Pre-loading next song (${timeRemaining.toFixed(1)}s remaining)`);
                     const nextIndex = getNextSongIndex();
                     if (nextIndex !== -1) {
                         const nextSong = currentPlaylistSongs[nextIndex];
@@ -2234,6 +2239,28 @@ function toggleShuffle() {
     saveSetting(SETTINGS_KEYS.SHUFFLE, window.settings.shuffle);
     updateRepeatShuffleDisplay();
 }
+
+function toggleAutoplay() {
+    window.settings.autoplay = !window.settings.autoplay;
+    if (window.settings.autoplay) {
+        showInfoNotification('Autoplay enabled');
+    } else {
+        showInfoNotification('Autoplay disabled');
+    }
+    saveSetting(SETTINGS_KEYS.AUTOPLAY, window.settings.autoplay);
+    updateRepeatShuffleDisplay();
+}
+
+function toggleCrossfade() {
+    window.settings.crossfade = !window.settings.crossfade;
+    if (window.settings.crossfade) {
+        showInfoNotification('Crossfade enabled');
+    } else {
+        showInfoNotification('Crossfade disabled');
+    }
+    saveSetting(SETTINGS_KEYS.CROSSFADE, window.settings.crossfade);
+    updateRepeatShuffleDisplay();
+}
 function createShuffledOrder() {
     originalPlaylistOrder = [...Array(currentPlaylistSongs.length).keys()];
     shuffledPlaylistOrder = [...originalPlaylistOrder];
@@ -2286,6 +2313,9 @@ function getPreviousSongIndex() {
 function updateRepeatShuffleDisplay() {
     const repeatButton = document.getElementById('repeatButton');
     const shuffleButton = document.getElementById('shuffleButton');
+    const autoplayButton = document.getElementById('autoplayButton');
+    const crossfadeButton = document.getElementById('crossfadeButton');
+    
     switch (window.settings.repeat) {
         case 'none':
             repeatButton.textContent = '🔁';
@@ -2311,6 +2341,26 @@ function updateRepeatShuffleDisplay() {
         shuffleButton.textContent = '🔀';
         shuffleButton.style.color = '';
         shuffleButton.title = 'Shuffle off';
+    }
+    
+    if (window.settings.autoplay) {
+        autoplayButton.textContent = '▶▶';
+        autoplayButton.style.color = '#1db954';
+        autoplayButton.title = 'Autoplay on';
+    } else {
+        autoplayButton.textContent = '▶▶';
+        autoplayButton.style.color = '';
+        autoplayButton.title = 'Autoplay off';
+    }
+    
+    if (window.settings.crossfade) {
+        crossfadeButton.textContent = '⏭';
+        crossfadeButton.style.color = '#1db954';
+        crossfadeButton.title = 'Crossfade on';
+    } else {
+        crossfadeButton.textContent = '⏭';
+        crossfadeButton.style.color = '';
+        crossfadeButton.title = 'Crossfade off';
     }
 }
 updateCSSBreakpoints();
@@ -2368,6 +2418,8 @@ window.playNextSong = playNextSong;
 window.playPreviousSong = playPreviousSong;
 window.toggleRepeatMode = toggleRepeatMode;
 window.toggleShuffle = toggleShuffle;
+window.toggleAutoplay = toggleAutoplay;
+window.toggleCrossfade = toggleCrossfade;
 window.toggleSidebar = toggleSidebar;
 window.handleSearch = handleSearch;
 window.seek = seek;
