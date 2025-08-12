@@ -457,3 +457,4 @@ appsettings.Production.json
 lib/
 .references/
 appsettings.json
+appsettings_.json

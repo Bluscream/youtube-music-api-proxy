@@ -2,23 +2,15 @@ const SIDEBAR_COLLAPSE_BREAKPOINT = 800;
 const SETTINGS_KEYS = {
     PLAYLIST: 'playlist',
     SONG: 'song',
-    AUTOPLAY: 'autoplay',
-    CROSSFADE: 'crossfade',
     REPEAT: 'repeat',
-    SHUFFLE: 'shuffle',
     TAB: 'tab',
-    POS: 'pos',
     RIGHT_SIDEBAR_SPLITTER_POS: 'split'
 };
 window.settings = {
-    autoplay: true,
-    crossfade: true,
     repeat: 'none',
-    shuffle: false,
     playlist: null,
     song: null,
     tab: 'info',
-    pos: 0,
     split: 300
 };
 function loadSetting(key, defaultValue = null) {
@@ -55,14 +47,6 @@ function saveSetting(key, value) {
 }
 function parseSettingValue(key, value) {
     switch (key) {
-        case SETTINGS_KEYS.AUTOPLAY:
-        case SETTINGS_KEYS.CROSSFADE:
-        case SETTINGS_KEYS.SHUFFLE:
-            if (typeof value === 'string') {
-                return value.toLowerCase() === 'true' || value === '1';
-            }
-            return Boolean(value);
-        case SETTINGS_KEYS.POS:
         case SETTINGS_KEYS.RIGHT_SIDEBAR_SPLITTER_POS:
             const num = parseFloat(value);
             return isNaN(num) ? 0 : num;
