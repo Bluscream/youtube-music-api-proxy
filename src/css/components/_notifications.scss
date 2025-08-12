@@ -9,5 +9,120 @@
   z-index: $z-index-notification;
   @include flex-column;
   gap: $spacing-sm;
-  pointer-events: none;
+  max-width: 400px;
+}
+
+.notification {
+  background-color: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $border-radius-md;
+  padding: $spacing-md;
+  box-shadow: $shadow-lg;
+  transform: translateX(100%);
+  transition: transform $transition-base ease-in-out;
+  @include flex-start;
+  gap: $spacing-md;
+  min-width: 300px;
+
+  &.show {
+    transform: translateX(0);
+  }
+
+  // Notification icon
+  .notification-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    @include flex-center;
+    font-size: $font-size-sm;
+    flex-shrink: 0;
+  }
+
+  // Notification content
+  .notification-content {
+    flex: 1;
+    min-width: 0;
+
+    .notification-title {
+      font-size: $font-size-sm;
+      font-weight: $font-weight-medium;
+      color: $color-text-primary;
+      margin-bottom: $spacing-xs;
+    }
+
+    .notification-message {
+      font-size: $font-size-xs;
+      color: $color-text-secondary;
+      line-height: 1.4;
+    }
+  }
+
+  // Close button
+  .notification-close {
+    background: none;
+    border: none;
+    color: $color-text-secondary;
+    cursor: pointer;
+    padding: $spacing-xs;
+    border-radius: $border-radius-sm;
+    transition: all $transition-base;
+    flex-shrink: 0;
+
+    &:hover {
+      color: $color-text-primary;
+      background-color: $color-surface-light;
+    }
+  }
+
+  // Notification types
+  &.error {
+    border-color: $color-error;
+
+    .notification-icon {
+      background-color: $color-error;
+      color: $color-text-primary;
+    }
+  }
+
+  &.success {
+    border-color: $color-success;
+
+    .notification-icon {
+      background-color: $color-success;
+      color: $color-text-primary;
+    }
+  }
+
+  &.warning {
+    border-color: $color-warning;
+
+    .notification-icon {
+      background-color: $color-warning;
+      color: $color-text-primary;
+    }
+  }
+
+  &.info {
+    border-color: $color-info;
+
+    .notification-icon {
+      background-color: $color-info;
+      color: $color-text-primary;
+    }
+  }
+}
+
+// Mobile responsiveness
+@include mobile {
+  .notification-container {
+    top: $spacing-sm;
+    right: $spacing-sm;
+    left: $spacing-sm;
+    max-width: none;
+  }
+
+  .notification {
+    min-width: auto;
+    padding: $spacing-sm;
+  }
 }

@@ -2,22 +2,490 @@
 // Responsive Styles
 // =============================================================================
 
-// Mobile styles
+// Mobile breakpoint (800px and below)
 @include mobile {
-  // Mobile-specific overrides
+  body {
+    @include flex-column;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: $sidebar-width;
+    transform: translateX(-100%);
+    z-index: $z-index-modal;
+    border-right: 1px solid $color-border;
+    transition: transform $transition-base;
+
+    &.collapsed {
+      transform: translateX(-100%);
+    }
+
+    &.mobile-open {
+      transform: translateX(0);
+    }
+
+    .sidebar-toggle {
+      display: none !important;
+    }
+
+    .mobile-menu-toggle {
+      display: flex !important;
+      position: fixed;
+      top: $spacing-lg;
+      left: $spacing-lg;
+      width: 40px;
+      height: 40px;
+      background-color: $color-surface;
+      border: 1px solid $color-border;
+      border-radius: 50%;
+      color: $color-text-primary;
+      @include flex-center;
+      cursor: pointer;
+      z-index: $z-index-modal + 1;
+      transition: all $transition-base;
+      font-size: $font-size-base;
+
+      &:hover {
+        background-color: $color-surface-light;
+        transform: scale(1.1);
+      }
+    }
+
+    .logo {
+      padding: $spacing-lg;
+      margin-bottom: 0;
+      border-bottom: none;
+    }
+
+    .nav-section {
+      margin-bottom: 0;
+    }
+
+    .nav-item {
+      padding: $spacing-md $spacing-lg;
+      border-bottom: 1px solid $color-border;
+    }
+  }
+
+  .main-content {
+    padding-bottom: 120px;
+    margin-left: 0 !important;
+    width: 100%;
+
+    &.sidebar-collapsed {
+      margin-left: 0 !important;
+    }
+  }
+
+  .header {
+    height: auto;
+    padding: $spacing-md $spacing-lg;
+    @include flex-column;
+    gap: $spacing-md;
+  }
+
+  .search-container {
+    max-width: none;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .search-input {
+    height: 48px;
+    font-size: $font-size-lg;
+  }
+
+  .content-area {
+    padding: $spacing-md;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .welcome-title {
+    font-size: $font-size-xl;
+  }
+
+  .welcome-subtitle {
+    font-size: $font-size-sm;
+  }
+
+  .search-results {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: $spacing-sm;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .result-card {
+    padding: $spacing-sm;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .result-thumbnail {
+    height: 100px;
+  }
+
+  .library-grid {
+    grid-template-columns: 1fr;
+    gap: $spacing-md;
+  }
+
+  .library-section h2 {
+    font-size: $font-size-lg;
+  }
+
+  .library-category h3 {
+    font-size: $font-size-base;
+  }
+
+  .player-bar {
+    height: auto;
+    min-height: 100px;
+    left: 0;
+    padding: $spacing-md;
+    @include flex-column;
+    gap: $spacing-md;
+    border-top: 1px solid $color-border;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .now-playing {
+    width: 100%;
+    justify-content: flex-start;
+    order: 1;
+  }
+
+  .now-playing-thumbnail {
+    width: 48px;
+    height: 48px;
+    margin-right: $spacing-md;
+    flex-shrink: 0;
+  }
+
+  .now-playing-info {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .now-playing-title {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    @include text-truncate;
+    margin-bottom: 2px;
+  }
+
+  .now-playing-artist {
+    font-size: $font-size-xs;
+    @include text-truncate;
+  }
+
+  .player-controls {
+    width: 100%;
+    order: 2;
+  }
+
+  .control-buttons {
+    gap: $spacing-lg;
+    margin-bottom: $spacing-sm;
+    justify-content: center;
+  }
+
+  .control-button {
+    min-width: 48px;
+    min-height: 48px;
+    font-size: $font-size-lg;
+    padding: $spacing-md;
+    @include flex-center;
+  }
+
+  .play-button {
+    font-size: $font-size-xl;
+    min-width: 56px;
+    min-height: 56px;
+  }
+
+  .progress-bar {
+    max-width: none;
+    height: 6px;
+    margin: 0 $spacing-sm;
+  }
+
+  .volume-controls {
+    width: 100%;
+    justify-content: center;
+    order: 3;
+    gap: $spacing-md;
+  }
+
+  .volume-slider {
+    height: 6px;
+    max-width: 120px;
+  }
+
+  .volume-thumb {
+    width: 16px;
+    height: 16px;
+  }
+
+  .playlist-song-item {
+    padding: $spacing-md;
+    gap: $spacing-md;
+  }
+
+  .playlist-song-thumbnail {
+    width: 40px;
+    height: 40px;
+  }
+
+  .notification-container {
+    top: $spacing-sm;
+    right: $spacing-sm;
+    left: $spacing-sm;
+    max-width: none;
+  }
+
+  .notification {
+    min-width: auto;
+    padding: $spacing-sm;
+  }
+
+  // Touch-friendly improvements
+  .nav-item,
+  .control-button,
+  .library-item,
+  .playlist-item,
+  .playlist-song-item {
+    min-height: 44px;
+  }
+
+  .search-input {
+    min-height: 44px;
+  }
+
+  .content-area {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .search-input {
+    font-size: $font-size-base;
+  }
+
+  .result-card:active,
+  .library-item:active,
+  .playlist-item:active,
+  .playlist-song-item:active {
+    transform: scale(0.98);
+    transition: transform 0.1s;
+  }
+
+  .control-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .control-button:active {
+    background-color: $color-border-light;
+    transform: scale(0.95);
+  }
+
+  .progress-bar:active,
+  .volume-slider:active {
+    opacity: 0.8;
+  }
 }
 
-// Tablet styles
+// Landscape orientation on mobile
+@include mobile {
+  @include landscape {
+    .sidebar {
+      height: 60px;
+      overflow: hidden;
+    }
+
+    .sidebar .nav-section {
+      display: none;
+    }
+
+    .sidebar .logo {
+      padding: $spacing-sm $spacing-lg;
+      font-size: $font-size-lg;
+      margin-bottom: 0;
+    }
+
+    .main-content {
+      padding-bottom: 80px;
+    }
+
+    .player-bar {
+      height: 60px;
+      padding: $spacing-sm $spacing-md;
+      @include flex-between;
+      gap: $spacing-md;
+      align-items: center;
+    }
+
+    .now-playing {
+      width: 200px;
+      order: 1;
+    }
+
+    .now-playing-thumbnail {
+      width: 44px;
+      height: 44px;
+      margin-right: $spacing-sm;
+    }
+
+    .now-playing-title {
+      font-size: $font-size-sm;
+    }
+
+    .now-playing-artist {
+      font-size: $font-size-xs;
+    }
+
+    .player-controls {
+      order: 2;
+      flex: 1;
+    }
+
+    .control-buttons {
+      gap: $spacing-md;
+      margin-bottom: $spacing-xs;
+    }
+
+    .control-button {
+      min-width: 40px;
+      min-height: 40px;
+      font-size: $font-size-lg;
+      padding: $spacing-sm;
+    }
+
+    .play-button {
+      font-size: $font-size-lg;
+      min-width: 48px;
+      min-height: 48px;
+    }
+
+    .progress-bar {
+      height: 4px;
+      margin: 0 $spacing-sm;
+    }
+
+    .volume-controls {
+      order: 3;
+      width: 120px;
+    }
+
+    .volume-slider {
+      max-width: 80px;
+      height: 4px;
+    }
+
+    .volume-thumb {
+      width: 12px;
+      height: 12px;
+    }
+  }
+}
+
+// Very small mobile devices
+@media (max-width: 360px) {
+  .player-bar {
+    padding: $spacing-xs $spacing-sm;
+    gap: $spacing-xs;
+  }
+
+  .now-playing-thumbnail {
+    width: 36px;
+    height: 36px;
+    margin-right: $spacing-xs;
+  }
+
+  .now-playing-title {
+    font-size: $font-size-xs;
+  }
+
+  .now-playing-artist {
+    font-size: 10px;
+  }
+
+  .control-buttons {
+    gap: $spacing-md;
+  }
+
+  .control-button {
+    min-width: 40px;
+    min-height: 40px;
+    font-size: $font-size-base;
+    padding: $spacing-sm;
+  }
+
+  .play-button {
+    font-size: $font-size-lg;
+    min-width: 48px;
+    min-height: 48px;
+  }
+
+  .progress-bar {
+    height: 4px;
+  }
+}
+
+// Tablet breakpoint adjustments
 @include tablet {
-  // Tablet-specific overrides
+  .right-sidebar {
+    width: 280px;
+    min-width: $right-sidebar-width-min;
+    max-width: 500px;
+  }
+
+  .right-sidebar-toggle {
+    .right-sidebar:not(.collapsed)~& {
+      right: calc(var(--right-sidebar-width, 280px) + #{$spacing-lg});
+    }
+  }
+
+  .search-container {
+    max-width: 300px;
+    margin: 0 auto;
+  }
+
+  .now-playing {
+    width: 200px;
+  }
+
+  .player-bar {
+    left: 200px;
+  }
+
+  .notification-container {
+    right: $spacing-sm;
+    left: $spacing-sm;
+    max-width: none;
+  }
+
+  .notification {
+    min-width: auto;
+  }
 }
 
-// Desktop styles
+// Desktop and above
 @include desktop {
-  // Desktop-specific overrides
+  .sidebar-toggle {
+    display: flex !important;
+    left: $spacing-lg;
+  }
 }
 
-// Wide screen styles
+// Wide screens
 @include wide {
-  // Wide screen-specific overrides
+  .main-content {
+    max-width: 1440px;
+    margin: 0 auto;
+  }
 }

@@ -14,13 +14,326 @@
     padding: 0 $spacing-lg;
     z-index: $z-index-fixed;
     transition: all $transition-base;
+    box-sizing: border-box;
 
     &.right-sidebar-collapsed {
         right: 0;
     }
 
+    // Now playing section
+    .now-playing {
+        @include flex-start;
+        width: 300px;
+        min-width: 0;
+        flex-shrink: 0;
+
+        .now-playing-thumbnail {
+            width: 56px;
+            height: 56px;
+            background-color: $color-surface-light;
+            border-radius: $border-radius-sm;
+            margin-right: $spacing-md;
+            flex-shrink: 0;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: $color-text-muted;
+            font-size: $font-size-xl;
+
+            img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                border-radius: $border-radius-sm;
+            }
+        }
+
+        .now-playing-info {
+            flex: 1;
+            min-width: 0;
+
+            .now-playing-title {
+                font-size: $font-size-sm;
+                font-weight: $font-weight-medium;
+                color: $color-text-primary;
+                margin-bottom: $spacing-xs;
+                @include text-truncate;
+            }
+
+            .now-playing-artist {
+                font-size: $font-size-xs;
+                color: $color-text-secondary;
+                @include text-truncate;
+            }
+        }
+    }
+
+    // Player controls section
+    .player-controls {
+        flex: 1;
+        @include flex-column;
+        align-items: center;
+        min-width: 0;
+
+        .control-buttons {
+            @include flex-center;
+            gap: $spacing-md;
+            margin-bottom: $spacing-sm;
+
+            .control-button {
+                @include button-base;
+                background: none;
+                border: none;
+                color: $color-text-primary;
+                font-size: $font-size-xl;
+                cursor: pointer;
+                padding: $spacing-sm;
+                border-radius: 50%;
+                transition: all $transition-base;
+                min-width: 40px;
+                min-height: 40px;
+                @include flex-center;
+                flex-shrink: 0;
+
+                &:hover {
+                    background-color: $color-surface-light;
+                    transform: scale(1.05);
+                }
+
+                &:active {
+                    transform: scale(0.95);
+                    background-color: $color-border-light;
+                }
+
+                &.play-button {
+                    font-size: $font-size-2xl;
+                    min-width: 48px;
+                    min-height: 48px;
+                }
+            }
+        }
+
+        .progress-bar {
+            width: 100%;
+            max-width: 400px;
+            height: 4px;
+            background-color: $color-border-light;
+            border-radius: 2px;
+            cursor: pointer;
+            position: relative;
+            transition: height $transition-base;
+
+            &:hover {
+                height: 6px;
+            }
+
+            .progress-fill {
+                height: 100%;
+                background-color: $color-primary;
+                border-radius: 2px;
+                width: 0%;
+                transition: width 0.1s;
+            }
+        }
+    }
+
+    // Volume controls section
+    .volume-controls {
+        @include flex-start;
+        gap: $spacing-sm;
+        width: 200px;
+        min-width: 0;
+        flex-shrink: 0;
+
+        .volume-icon {
+            color: $color-text-secondary;
+            font-size: $font-size-base;
+            cursor: pointer;
+            transition: color $transition-base;
+            flex-shrink: 0;
+
+            &:hover {
+                color: $color-text-primary;
+            }
+        }
+
+        .volume-slider-container {
+            flex: 1;
+            position: relative;
+            min-width: 0;
+
+            .volume-slider {
+                width: 100%;
+                height: 4px;
+                background-color: $color-border-light;
+                border-radius: 2px;
+                cursor: pointer;
+                position: relative;
+                transition: height $transition-base;
+
+                &:hover {
+                    height: 6px;
+                }
+
+                .volume-fill {
+                    height: 100%;
+                    background-color: $color-primary;
+                    border-radius: 2px;
+                    width: 50%;
+                    transition: width 0.1s;
+                }
+
+                .volume-thumb {
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    width: 12px;
+                    height: 12px;
+                    background-color: $color-text-primary;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    transition: all 0.1s ease;
+                    opacity: 0;
+                }
+
+                &:hover .volume-thumb {
+                    opacity: 1;
+                }
+            }
+        }
+    }
+
+    // Mobile responsiveness
     @include mobile {
-        left: 0;
-        right: 0;
+        left: 0 !important;
+        right: 0 !important;
+        padding: $spacing-md;
+        height: auto;
+        min-height: 100px;
+        @include flex-column;
+        gap: $spacing-md;
+        border-top: 1px solid $color-border;
+        max-width: 100%;
+        box-sizing: border-box;
+
+        .now-playing {
+            width: 100%;
+            justify-content: flex-start;
+            order: 1;
+
+            .now-playing-thumbnail {
+                width: 48px;
+                height: 48px;
+                margin-right: $spacing-md;
+                flex-shrink: 0;
+            }
+
+            .now-playing-info {
+                min-width: 0;
+                flex: 1;
+
+                .now-playing-title {
+                    font-size: $font-size-sm;
+                    font-weight: $font-weight-medium;
+                    @include text-truncate;
+                    margin-bottom: 2px;
+                }
+
+                .now-playing-artist {
+                    font-size: $font-size-xs;
+                    @include text-truncate;
+                }
+            }
+        }
+
+        .player-controls {
+            width: 100%;
+            order: 2;
+
+            .control-buttons {
+                gap: $spacing-lg;
+                margin-bottom: $spacing-sm;
+                justify-content: center;
+
+                .control-button {
+                    min-width: 48px;
+                    min-height: 48px;
+                    font-size: $font-size-lg;
+                    padding: $spacing-md;
+                    @include flex-center;
+
+                    &.play-button {
+                        font-size: $font-size-xl;
+                        min-width: 56px;
+                        min-height: 56px;
+                    }
+                }
+            }
+
+            .progress-bar {
+                max-width: none;
+                height: 6px;
+                margin: 0 $spacing-sm;
+            }
+        }
+
+        .volume-controls {
+            width: 100%;
+            justify-content: center;
+            order: 3;
+            gap: $spacing-md;
+
+            .volume-slider {
+                height: 6px;
+                max-width: 120px;
+
+                .volume-thumb {
+                    width: 16px;
+                    height: 16px;
+                }
+            }
+        }
+    }
+
+    // Small mobile devices
+    @media (max-width: 480px) {
+        padding: $spacing-sm;
+
+        .now-playing-thumbnail {
+            width: 36px;
+            height: 36px;
+            margin-right: $spacing-sm;
+        }
+
+        .now-playing-title {
+            font-size: $font-size-xs;
+        }
+
+        .now-playing-artist {
+            font-size: 10px;
+        }
+
+        .control-buttons {
+            gap: $spacing-md;
+
+            .control-button {
+                min-width: 40px;
+                min-height: 40px;
+                font-size: $font-size-base;
+                padding: $spacing-sm;
+
+                &.play-button {
+                    font-size: $font-size-lg;
+                    min-width: 48px;
+                    min-height: 48px;
+                }
+            }
+        }
+
+        .progress-bar {
+            height: 4px;
+        }
     }
 }
