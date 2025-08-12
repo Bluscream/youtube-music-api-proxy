@@ -1291,6 +1291,10 @@ function togglePlay() {
     }
 }
 function seek(event) {
+    // Prevent event bubbling to avoid triggering other click handlers
+    event.preventDefault();
+    event.stopPropagation();
+
     if (currentAudio) {
         // Check if audio is ready for seeking
         if (currentAudio.readyState < 1) { // Less than HAVE_METADATA
@@ -1306,7 +1310,19 @@ function seek(event) {
         if (currentAudio.duration && isFinite(currentAudio.duration) && currentAudio.duration > 0) {
             const newTime = percentage * currentAudio.duration;
             console.log(`Seeking to ${newTime}s (${percentage * 100}%) of ${currentAudio.duration}s`);
+
+            // Store current playback state
+            const wasPlaying = !currentAudio.paused;
+
+            // Perform the seek
             currentAudio.currentTime = newTime;
+
+            // If it was playing, ensure it continues playing
+            if (wasPlaying && currentAudio.paused) {
+                currentAudio.play().catch(error => {
+                    console.error('Error resuming playback after seek:', error);
+                });
+            }
         } else {
             console.warn('Audio duration not available for seeking. Duration:', currentAudio.duration);
             // If duration is not available, try to seek to a reasonable position
@@ -2617,6 +2633,11 @@ function toggleRightSidebar() {
 
 function setupEventDelegation() {
     document.addEventListener('click', function (event) {
+        // Don't handle clicks on the progress bar or player controls
+        if (event.target.closest('.progress-bar') || event.target.closest('.player-controls') || event.target.closest('.volume-controls')) {
+            return;
+        }
+
         const songElement = event.target.closest('[data-song-id]');
         if (songElement) {
             const songId = songElement.dataset.songId;
