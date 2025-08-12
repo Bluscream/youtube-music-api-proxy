@@ -456,3 +456,4 @@ appsettings.Production.json
 *.key 
 lib/
 .references/
+appsettings.json

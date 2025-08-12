@@ -968,11 +968,24 @@ async function loadSong(songId, title, artist, thumbnail = null, playlistId = nu
                 navigator.mediaSession.playbackState = 'none';
             }
             if (window.settings.repeat === 'one') {
-                const currentSong = currentPlaylistSongs[currentSongIndex];
-                const title = currentSong.name || currentSong.title || 'Unknown Title';
-                const artist = currentSong.artists && currentSong.artists.length > 0 ? currentSong.artists[0].name : '';
-                const thumbnail = currentSong.thumbnails && currentSong.thumbnails.length > 0 ? currentSong.thumbnails[0].url : '';
-                playSong(currentSong.id || '', title, artist, thumbnail, window.settings.playlist, currentSongIndex);
+                // Restart the current song without fetching it again
+                if (currentAudio) {
+                    currentAudio.currentTime = 0;
+                    currentAudio.play().then(() => {
+                        isPlaying = true;
+                        document.getElementById('playButton').textContent = '⏸';
+                        const title = document.getElementById('nowPlayingTitle').textContent;
+                        const artist = document.getElementById('nowPlayingArtist').textContent;
+                        document.title = `${title} by ${artist}`;
+                        if (navigator.mediaSession) {
+                            navigator.mediaSession.playbackState = 'playing';
+                        }
+                        showInfoNotification(`Repeating: "${title}" by ${artist}`);
+                    }).catch((error) => {
+                        console.error('Error restarting song:', error);
+                        showErrorNotification('Failed to restart song');
+                    });
+                }
                 return;
             }
             if (window.settings.autoplay && window.settings.playlist && currentPlaylistSongs.length > 0) {
