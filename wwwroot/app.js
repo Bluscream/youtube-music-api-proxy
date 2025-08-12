@@ -2315,7 +2315,7 @@ function updateRepeatShuffleDisplay() {
     const shuffleButton = document.getElementById('shuffleButton');
     const autoplayButton = document.getElementById('autoplayButton');
     const crossfadeButton = document.getElementById('crossfadeButton');
-    
+
     switch (window.settings.repeat) {
         case 'none':
             repeatButton.textContent = '🔁';
@@ -2342,7 +2342,7 @@ function updateRepeatShuffleDisplay() {
         shuffleButton.style.color = '';
         shuffleButton.title = 'Shuffle off';
     }
-    
+
     if (window.settings.autoplay) {
         autoplayButton.textContent = '▶▶';
         autoplayButton.style.color = '#1db954';
@@ -2352,7 +2352,7 @@ function updateRepeatShuffleDisplay() {
         autoplayButton.style.color = '';
         autoplayButton.title = 'Autoplay off';
     }
-    
+
     if (window.settings.crossfade) {
         crossfadeButton.textContent = '⏭';
         crossfadeButton.style.color = '#1db954';
