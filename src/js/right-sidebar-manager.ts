@@ -22,11 +22,11 @@ export class RightSidebarManager {
         const resizeHandle = document.getElementById('rightSidebarResizeHandle');
         if (resizeHandle) {
             resizeHandle.addEventListener('mousedown', (e) => this.startResize(e));
-            resizeHandle.addEventListener('touchstart', (e) => this.startResize(e));
+            resizeHandle.addEventListener('touchstart', (e) => this.startResize(e), { passive: true });
         }
 
         document.addEventListener('mousemove', (e) => this.handleResize(e));
-        document.addEventListener('touchmove', (e) => this.handleResize(e));
+        document.addEventListener('touchmove', (e) => this.handleResize(e), { passive: true });
         document.addEventListener('mouseup', () => this.stopResize());
         document.addEventListener('touchend', () => this.stopResize());
 

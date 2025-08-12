@@ -513,7 +513,7 @@ define("managers/audio-manager", ["require", "exports", "core/state-manager", "m
             // Stop current audio
             this.stopAllAudio();
             // Create new audio element
-            const audio = new HTMLAudioElement();
+            const audio = new Audio();
             audio.src = await this.getAudioUrl(song.id);
             audio.volume = this.getState().volume;
             // Setup audio event listeners
@@ -1326,10 +1326,10 @@ define("right-sidebar-manager", ["require", "exports"], function (require, expor
             const resizeHandle = document.getElementById('rightSidebarResizeHandle');
             if (resizeHandle) {
                 resizeHandle.addEventListener('mousedown', (e) => this.startResize(e));
-                resizeHandle.addEventListener('touchstart', (e) => this.startResize(e));
+                resizeHandle.addEventListener('touchstart', (e) => this.startResize(e), { passive: true });
             }
             document.addEventListener('mousemove', (e) => this.handleResize(e));
-            document.addEventListener('touchmove', (e) => this.handleResize(e));
+            document.addEventListener('touchmove', (e) => this.handleResize(e), { passive: true });
             document.addEventListener('mouseup', () => this.stopResize());
             document.addEventListener('touchend', () => this.stopResize());
             // Mobile backdrop click handler
@@ -1549,7 +1549,100 @@ define("right-sidebar-manager", ["require", "exports"], function (require, expor
     }
     exports.RightSidebarManager = RightSidebarManager;
 });
-define("app", ["require", "exports", "managers/app-settings-manager", "managers/audio-manager", "managers/notification-manager", "sidebar-manager", "right-sidebar-manager"], function (require, exports, app_settings_manager_2, audio_manager_1, notification_manager_1, sidebar_manager_1, right_sidebar_manager_1) {
+define("services/api-service", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.ApiService = void 0;
+    // API Service for communicating with the backend
+    class ApiService {
+        constructor() {
+            this.baseUrl = '/api';
+        }
+        /**
+         * Search for content
+         */
+        async search(query, category) {
+            const url = new URL(`${this.baseUrl}/search`, window.location.origin);
+            url.searchParams.set('query', query);
+            if (category) {
+                url.searchParams.set('category', category);
+            }
+            const response = await fetch(url.toString());
+            if (!response.ok) {
+                throw new Error(`Search failed: ${response.statusText}`);
+            }
+            return await response.json();
+        }
+        /**
+         * Get playlist by ID
+         */
+        async getPlaylist(playlistId) {
+            const url = `${this.baseUrl}/playlist/${playlistId}`;
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`Failed to load playlist: ${response.statusText}`);
+            }
+            return await response.json();
+        }
+        /**
+         * Get user's library playlists
+         */
+        async getLibraryPlaylists() {
+            const url = `${this.baseUrl}/library/playlists`;
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`Failed to load library playlists: ${response.statusText}`);
+            }
+            return await response.json();
+        }
+        /**
+         * Get user's library
+         */
+        async getLibrary() {
+            const url = `${this.baseUrl}/library`;
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`Failed to load library: ${response.statusText}`);
+            }
+            return await response.json();
+        }
+        /**
+         * Get song information
+         */
+        async getSongInfo(songId) {
+            const url = `${this.baseUrl}/song/${songId}`;
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`Failed to load song info: ${response.statusText}`);
+            }
+            return await response.json();
+        }
+        /**
+         * Get album information
+         */
+        async getAlbumInfo(albumId) {
+            const url = `${this.baseUrl}/album/${albumId}`;
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`Failed to load album info: ${response.statusText}`);
+            }
+            return await response.json();
+        }
+        /**
+         * Get artist information
+         */
+        async getArtistInfo(artistId) {
+            const url = `${this.baseUrl}/artist/${artistId}`;
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`Failed to load artist info: ${response.statusText}`);
+            }
+            return await response.json();
+        }
+    }
+    exports.ApiService = ApiService;
+});
+define("app", ["require", "exports", "managers/app-settings-manager", "managers/audio-manager", "managers/notification-manager", "sidebar-manager", "right-sidebar-manager", "services/api-service"], function (require, exports, app_settings_manager_2, audio_manager_1, notification_manager_1, sidebar_manager_1, right_sidebar_manager_1, api_service_1) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.App = void 0;
@@ -1563,6 +1656,7 @@ define("app", ["require", "exports", "managers/app-settings-manager", "managers/
             this.notificationManager = notification_manager_1.NotificationManager.getInstance();
             this.sidebarManager = new sidebar_manager_1.SidebarManager();
             this.rightSidebarManager = new right_sidebar_manager_1.RightSidebarManager();
+            this.apiService = new api_service_1.ApiService();
             // Make managers available globally for backward compatibility
             window.settingsManager = this.settingsManager;
             window.audioManager = this.audioManager;
@@ -1811,8 +1905,18 @@ define("app", ["require", "exports", "managers/app-settings-manager", "managers/
         }
         async loadPlaylist(playlistId, playlistTitle) {
             console.log('Loading playlist:', { playlistId, playlistTitle });
-            // TODO: Implement playlist loading logic
-            this.notificationManager.info('Loading Playlist', `Loading ${playlistTitle || playlistId}...`);
+            try {
+                this.notificationManager.info('Loading Playlist', `Loading ${playlistTitle || playlistId}...`);
+                const playlistData = await this.apiService.getPlaylist(playlistId);
+                console.log('Playlist data:', playlistData);
+                // Update the UI with playlist data
+                this.displayPlaylist(playlistData);
+                this.notificationManager.success('Playlist Loaded', `Loaded ${playlistData.title || playlistId}`);
+            }
+            catch (error) {
+                console.error('Error loading playlist:', error);
+                this.notificationManager.error('Load Error', `Failed to load playlist: ${error.message}`);
+            }
         }
         async loadAlbum(albumId, albumTitle) {
             console.log('Loading album:', { albumId, albumTitle });
@@ -1831,8 +1935,18 @@ define("app", ["require", "exports", "managers/app-settings-manager", "managers/
         }
         async performSearch(query) {
             console.log('Performing search:', query);
-            // TODO: Implement search logic
-            this.notificationManager.info('Searching', `Searching for "${query}"...`);
+            try {
+                this.notificationManager.info('Searching', `Searching for "${query}"...`);
+                const searchResults = await this.apiService.search(query);
+                console.log('Search results:', searchResults);
+                // Update the UI with search results
+                this.displaySearchResults(searchResults);
+                this.notificationManager.success('Search Complete', `Found ${searchResults.songs?.length || 0} results`);
+            }
+            catch (error) {
+                console.error('Error performing search:', error);
+                this.notificationManager.error('Search Error', `Failed to search: ${error.message}`);
+            }
         }
         clearSearch() {
             console.log('Clearing search');
@@ -1895,6 +2009,88 @@ define("app", ["require", "exports", "managers/app-settings-manager", "managers/
                 const mode = repeatModes[repeatMode];
                 repeatButton.textContent = mode.icon;
                 repeatButton.title = mode.title;
+            }
+        }
+        /**
+         * Display playlist data in the UI
+         */
+        displayPlaylist(playlistData) {
+            console.log('Displaying playlist:', playlistData);
+            // Update page title
+            document.title = `${playlistData.title} - YouTube Music`;
+            // Show playlist content
+            const searchResults = document.getElementById('searchResults');
+            const welcomeSection = document.querySelector('.welcome-section');
+            if (welcomeSection) {
+                welcomeSection.style.display = 'none';
+            }
+            if (searchResults) {
+                searchResults.style.display = 'block';
+                let html = `
+                <div class="playlist-header">
+                    <h1>${playlistData.title || 'Playlist'}</h1>
+                    <p>${playlistData.songs?.length || 0} songs</p>
+                </div>
+                <div class="songs-list">
+            `;
+                if (playlistData.songs && playlistData.songs.length > 0) {
+                    playlistData.songs.forEach((song, index) => {
+                        html += `
+                        <div class="song-item" data-song-id="${song.id}" data-song-name="${song.title}" data-song-artist="${song.artist}" data-song-thumbnail="${song.thumbnail || ''}" data-playlist-id="${playlistData.id}" data-song-index="${index}">
+                            <div class="song-thumbnail">
+                                <img src="${song.thumbnail || '/logo.png'}" alt="${song.title}">
+                            </div>
+                            <div class="song-info">
+                                <div class="song-title">${song.title}</div>
+                                <div class="song-artist">${song.artist}</div>
+                            </div>
+                            <div class="song-duration">${song.duration || ''}</div>
+                        </div>
+                    `;
+                    });
+                }
+                else {
+                    html += '<div class="no-songs">No songs found in this playlist</div>';
+                }
+                html += '</div>';
+                searchResults.innerHTML = html;
+            }
+        }
+        /**
+         * Display search results in the UI
+         */
+        displaySearchResults(searchResults) {
+            console.log('Displaying search results:', searchResults);
+            const searchResultsElement = document.getElementById('searchResults');
+            const welcomeSection = document.querySelector('.welcome-section');
+            if (welcomeSection) {
+                welcomeSection.style.display = 'none';
+            }
+            if (searchResultsElement) {
+                searchResultsElement.style.display = 'block';
+                let html = '<div class="search-results-header"><h2>Search Results</h2></div>';
+                if (searchResults.songs && searchResults.songs.length > 0) {
+                    html += '<div class="songs-list">';
+                    searchResults.songs.forEach((song) => {
+                        html += `
+                        <div class="song-item" data-song-id="${song.id}" data-song-name="${song.title}" data-song-artist="${song.artist}" data-song-thumbnail="${song.thumbnail || ''}">
+                            <div class="song-thumbnail">
+                                <img src="${song.thumbnail || '/logo.png'}" alt="${song.title}">
+                            </div>
+                            <div class="song-info">
+                                <div class="song-title">${song.title}</div>
+                                <div class="song-artist">${song.artist}</div>
+                            </div>
+                            <div class="song-duration">${song.duration || ''}</div>
+                        </div>
+                    `;
+                    });
+                    html += '</div>';
+                }
+                else {
+                    html += '<div class="no-results">No results found</div>';
+                }
+                searchResultsElement.innerHTML = html;
             }
         }
     }

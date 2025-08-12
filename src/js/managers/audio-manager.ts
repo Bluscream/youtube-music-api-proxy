@@ -1,6 +1,6 @@
 import { StateManager } from '../core/state-manager';
 import { EventEmitter } from '../core/event-emitter';
-import { SongInfo, RepeatMode } from '../types';
+import { SongSearchResult, RepeatMode } from '../types';
 import { AppSettingsManager } from './app-settings-manager';
 
 // Audio state interface
@@ -10,8 +10,8 @@ interface AudioState {
     currentTime: number;
     duration: number;
     volume: number;
-    currentSong: SongInfo | null;
-    currentPlaylistSongs: SongInfo[];
+    currentSong: SongSearchResult | null;
+    currentPlaylistSongs: SongSearchResult[];
     currentSongIndex: number;
     errorRecoveryTimeout: number | null;
     autoSkip: boolean;
@@ -19,15 +19,15 @@ interface AudioState {
 
 // Audio events
 export interface AudioEvents {
-    play: { song: SongInfo };
-    pause: { song: SongInfo };
+    play: { song: SongSearchResult };
+    pause: { song: SongSearchResult };
     stop: void;
     timeUpdate: { currentTime: number; duration: number };
     volumeChange: { volume: number };
-    error: { error: Error; song: SongInfo };
-    songEnd: { song: SongInfo };
-    playlistChange: { songs: SongInfo[] };
-    songChange: { song: SongInfo; index: number };
+    error: { error: Error; song: SongSearchResult };
+    songEnd: { song: SongSearchResult };
+    playlistChange: { songs: SongSearchResult[] };
+    songChange: { song: SongSearchResult; index: number };
 }
 
 // Audio Manager with comprehensive state management
@@ -115,85 +115,141 @@ export class AudioManager extends StateManager<AudioState> {
                     break;
             }
         });
-
-        // Listen to settings changes
-        this.settingsManager.subscribe(({ changes }) => {
-            if (changes.repeat !== undefined) {
-                this.updateRepeatMode();
-            }
-        });
     }
 
     /**
-     * Play current audio
+     * Play a song
      */
-    async play(): Promise<void> {
-        const state = this.getState();
-        if (!state.currentAudio || !state.currentSong) return;
-
+    async playSong(song: SongSearchResult, songIndex: number = -1): Promise<void> {
         try {
-            await state.currentAudio.play();
+            // Stop any currently playing audio
+            this.stopAllAudio();
+
+            // Create audio element
+            const audio = new Audio();
+
+            // Set up audio event listeners
+            this.setupAudioEventListeners(audio);
+
+            // Set the audio source
+            const audioUrl = `/api/stream/${song.id}`;
+            audio.src = audioUrl;
+
+            // Update state
+            this.setState({
+                currentAudio: audio,
+                currentSong: song,
+                currentSongIndex: songIndex,
+                isPlaying: false
+            });
+
+            // Update media session metadata
+            this.updateMediaSessionMetadata(song);
+
+            // Start playing
+            await audio.play();
+
             this.setState({ isPlaying: true });
+            this.emit('play', { song });
 
-            if (this.mediaSession) {
-                this.mediaSession.playbackState = 'playing';
-            }
-
-            this.emit('play', { song: state.currentSong });
+            console.log(`Now playing: ${song.name} by ${song.artists?.[0]?.name || 'Unknown Artist'}`);
         } catch (error) {
-            console.error('Error playing audio:', error);
-            this.emit('error', { error: error as Error, song: state.currentSong });
+            console.error('Error playing song:', error);
+            this.emit('error', { error: error as Error, song });
         }
     }
 
     /**
-     * Pause current audio
+     * Setup audio event listeners
      */
-    pause(): void {
-        const state = this.getState();
-        if (!state.currentAudio) return;
-
-        state.currentAudio.pause();
-        this.setState({ isPlaying: false });
-
-        if (this.mediaSession) {
-            this.mediaSession.playbackState = 'paused';
-        }
-
-        if (state.currentSong) {
-            this.emit('pause', { song: state.currentSong });
-        }
-    }
-
-    /**
-     * Stop current audio
-     */
-    stop(): void {
-        const state = this.getState();
-        if (!state.currentAudio) return;
-
-        state.currentAudio.pause();
-        state.currentAudio.currentTime = 0;
-
-        this.setState({
-            isPlaying: false,
-            currentTime: 0,
-            currentSong: null
+    private setupAudioEventListeners(audio: HTMLAudioElement): void {
+        audio.addEventListener('loadstart', () => {
+            console.log('Audio loading started');
         });
 
-        if (this.mediaSession) {
-            this.mediaSession.playbackState = 'none';
-        }
+        audio.addEventListener('canplay', () => {
+            console.log('Audio can start playing');
+        });
 
-        this.emit('stop');
+        audio.addEventListener('play', () => {
+            this.setState({ isPlaying: true });
+            if (this.state.currentSong) {
+                this.emit('play', { song: this.state.currentSong });
+            }
+        });
+
+        audio.addEventListener('pause', () => {
+            this.setState({ isPlaying: false });
+            if (this.state.currentSong) {
+                this.emit('pause', { song: this.state.currentSong });
+            }
+        });
+
+        audio.addEventListener('ended', () => {
+            console.log('Audio playback ended');
+            this.setState({ isPlaying: false });
+
+            if (this.state.currentSong) {
+                this.emit('songEnd', { song: this.state.currentSong });
+            }
+
+            // Auto-play next song if in playlist mode
+            const settings = this.settingsManager.getState();
+            if (settings.repeat === 'all' && this.state.currentPlaylistSongs.length > 0) {
+                this.next();
+            }
+        });
+
+        audio.addEventListener('error', (event) => {
+            console.error('Audio error:', event);
+            const error = event as ErrorEvent;
+
+            if (this.state.currentSong) {
+                this.emit('error', { error: new Error(error.message), song: this.state.currentSong });
+            }
+        });
+
+        audio.addEventListener('timeupdate', () => {
+            if (audio) {
+                this.setState({
+                    currentTime: audio.currentTime,
+                    duration: audio.duration
+                });
+                this.emit('timeUpdate', { currentTime: audio.currentTime, duration: audio.duration });
+            }
+        });
+
+        audio.addEventListener('volumechange', () => {
+            if (audio) {
+                this.setState({ volume: audio.volume });
+                this.emit('volumeChange', { volume: audio.volume });
+            }
+        });
+    }
+
+    /**
+     * Update media session metadata
+     */
+    private updateMediaSessionMetadata(song: SongSearchResult): void {
+        if (!this.mediaSession) return;
+
+        this.mediaSession.metadata = new MediaMetadata({
+            title: song.name,
+            artist: song.artists?.[0]?.name || 'Unknown Artist',
+            album: song.album?.name || '',
+            artwork: song.thumbnails?.map(thumb => ({
+                src: thumb.url,
+                sizes: `${thumb.width}x${thumb.height}`,
+                type: 'image/jpeg'
+            })) || []
+        });
     }
 
     /**
      * Toggle play/pause
      */
     togglePlay(): void {
-        const state = this.getState();
-        if (state.isPlaying) {
+        if (this.state.isPlaying) {
             this.pause();
         } else {
             this.play();
@@ -201,15 +257,135 @@ export class AudioManager extends StateManager<AudioState> {
     }
 
     /**
+     * Play current audio
+     */
+    play(): void {
+        if (this.state.currentAudio && !this.state.isPlaying) {
+            this.state.currentAudio.play().then(() => {
+                this.setState({ isPlaying: true });
+                if (this.mediaSession) {
+                    this.mediaSession.playbackState = 'playing';
+                }
+            }).catch(error => {
+                console.error('Error playing audio:', error);
+                if (this.state.currentSong) {
+                    this.emit('error', { error, song: this.state.currentSong });
+                }
+            });
+        }
+    }
+
+    /**
+     * Pause current audio
+     */
+    pause(): void {
+        if (this.state.currentAudio && this.state.isPlaying) {
+            this.state.currentAudio.pause();
+            this.setState({ isPlaying: false });
+            if (this.mediaSession) {
+                this.mediaSession.playbackState = 'paused';
+            }
+        }
+    }
+
+    /**
+     * Stop all audio
+     */
+    stop(): void {
+        this.stopAllAudio();
+        if (this.mediaSession) {
+            this.mediaSession.playbackState = 'none';
+        }
+        this.emit('stop');
+    }
+
+    /**
+     * Stop all audio playback
+     */
+    private stopAllAudio(): void {
+        if (this.state.currentAudio) {
+            this.state.currentAudio.pause();
+            this.state.currentAudio.currentTime = 0;
+        }
+
+        // Stop all audio elements
+        const allAudioElements = document.querySelectorAll('audio');
+        allAudioElements.forEach(audio => {
+            if (audio !== this.state.currentAudio) {
+                audio.pause();
+                audio.currentTime = 0;
+            }
+        });
+
+        // Stop all video elements with audio tracks
+        const allVideoElements = document.querySelectorAll('video');
+        allVideoElements.forEach(video => {
+            if ((video as any).audioTracks && (video as any).audioTracks.length > 0) {
+                video.pause();
+                video.currentTime = 0;
+            }
+        });
+
+        // Suspend audio context if available
+        if (window.AudioContext || (window as any).webkitAudioContext) {
+            try {
+                const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+                if (audioContext.state === 'running') {
+                    audioContext.suspend();
+                }
+            } catch (e) {
+                // Ignore errors
+            }
+        }
+
+        // Stop all media elements
+        const mediaElements = document.querySelectorAll('audio, video');
+        mediaElements.forEach(media => {
+            const mediaElement = media as HTMLMediaElement;
+            if (!mediaElement.paused) {
+                mediaElement.pause();
+                mediaElement.currentTime = 0;
+            }
+        });
+
+        this.setState({
+            currentAudio: null,
+            currentSong: null,
+            isPlaying: false,
+            currentTime: 0,
+            duration: 0
+        });
+
+        console.log('Stopped all audio playback');
+    }
+
+    /**
      * Play next song in playlist
      */
     next(): void {
-        const state = this.getState();
-        const nextIndex = this.getNextSongIndex();
+        const { currentPlaylistSongs, currentSongIndex } = this.state;
 
-        if (nextIndex >= 0 && nextIndex < state.currentPlaylistSongs.length) {
-            const song = state.currentPlaylistSongs[nextIndex];
-            this.playSong(song, nextIndex);
+        if (!currentPlaylistSongs || currentPlaylistSongs.length === 0) {
+            console.log('No playlist songs available');
+            return;
+        }
+
+        let nextIndex = currentSongIndex + 1;
+        const settings = this.settingsManager.getState();
+
+        // Handle repeat modes
+        if (nextIndex >= currentPlaylistSongs.length) {
+            if (settings.repeat === 'all') {
+                nextIndex = 0; // Loop back to beginning
+            } else {
+                console.log('Reached end of playlist');
+                return;
+            }
+        }
+
+        const nextSong = currentPlaylistSongs[nextIndex];
+        if (nextSong) {
+            this.playSong(nextSong, nextIndex);
         }
     }
 
@@ -217,62 +393,29 @@ export class AudioManager extends StateManager<AudioState> {
      * Play previous song in playlist
      */
     previous(): void {
-        const state = this.getState();
-        const prevIndex = this.getPreviousSongIndex();
+        const { currentPlaylistSongs, currentSongIndex } = this.state;
 
-        if (prevIndex >= 0 && prevIndex < state.currentPlaylistSongs.length) {
-            const song = state.currentPlaylistSongs[prevIndex];
-            this.playSong(song, prevIndex);
+        if (!currentPlaylistSongs || currentPlaylistSongs.length === 0) {
+            console.log('No playlist songs available');
+            return;
         }
-    }
 
-    /**
-     * Play a specific song
-     */
-    async playSong(song: SongInfo, index: number = -1): Promise<void> {
-        // Stop current audio
-        this.stopAllAudio();
+        let prevIndex = currentSongIndex - 1;
+        const settings = this.settingsManager.getState();
 
-        // Create new audio element
-        const audio = new HTMLAudioElement();
-        audio.src = await this.getAudioUrl(song.id);
-        audio.volume = this.getState().volume;
+        // Handle repeat modes
+        if (prevIndex < 0) {
+            if (settings.repeat === 'all') {
+                prevIndex = currentPlaylistSongs.length - 1; // Loop to end
+            } else {
+                console.log('Reached beginning of playlist');
+                return;
+            }
+        }
 
-        // Setup audio event listeners
-        this.setupAudioEventListeners(audio, song);
-
-        // Update state
-        this.setState({
-            currentAudio: audio,
-            currentSong: song,
-            currentSongIndex: index,
-            currentTime: 0,
-            duration: 0
-        });
-
-        // Update media session metadata
-        this.updateMediaSessionMetadata(song);
-
-        // Start playing
-        await this.play();
-    }
-
-    /**
-     * Set playlist
-     */
-    setPlaylist(songs: SongInfo[]): void {
-        this.setState({ currentPlaylistSongs: songs });
-        this.emit('playlistChange', { songs });
-    }
-
-    /**
-     * Seek to position
-     */
-    seek(time: number): void {
-        const state = this.getState();
-        if (state.currentAudio) {
-            state.currentAudio.currentTime = time;
-            this.setState({ currentTime: time });
+        const prevSong = currentPlaylistSongs[prevIndex];
+        if (prevSong) {
+            this.playSong(prevSong, prevIndex);
         }
     }
 
@@ -280,193 +423,81 @@ export class AudioManager extends StateManager<AudioState> {
      * Set volume
      */
     setVolume(volume: number): void {
-        const clampedVolume = Math.max(0, Math.min(1, volume));
-        const state = this.getState();
-
-        if (state.currentAudio) {
-            state.currentAudio.volume = clampedVolume;
+        if (this.state.currentAudio) {
+            this.state.currentAudio.volume = Math.max(0, Math.min(1, volume));
         }
-
-        this.setState({ volume: clampedVolume });
-        this.emit('volumeChange', { volume: clampedVolume });
     }
 
     /**
-     * Get current volume
+     * Seek to position
      */
-    getVolume(): number {
-        return this.getState().volume;
+    seek(position: number): void {
+        if (this.state.currentAudio && !isNaN(position)) {
+            this.state.currentAudio.currentTime = Math.max(0, Math.min(this.state.currentAudio.duration, position));
+        }
+    }
+
+    /**
+     * Set playlist songs
+     */
+    setPlaylistSongs(songs: SongSearchResult[]): void {
+        this.setState({ currentPlaylistSongs: songs });
+        this.emit('playlistChange', { songs });
+    }
+
+    /**
+     * Get current audio state
+     */
+    getCurrentState(): AudioState {
+        return this.state;
     }
 
     /**
      * Get current song
      */
-    getCurrentSong(): SongInfo | null {
-        return this.getState().currentSong;
+    getCurrentSong(): SongSearchResult | null {
+        return this.state.currentSong;
     }
 
     /**
-     * Get current playlist
+     * Get current playlist songs
      */
-    getCurrentPlaylist(): SongInfo[] {
-        return this.getState().currentPlaylistSongs;
+    getCurrentPlaylistSongs(): SongSearchResult[] {
+        return this.state.currentPlaylistSongs;
     }
 
     /**
      * Get current song index
      */
     getCurrentSongIndex(): number {
-        return this.getState().currentSongIndex;
+        return this.state.currentSongIndex;
     }
 
     /**
      * Check if currently playing
      */
-    isPlaying(): boolean {
-        return this.getState().isPlaying;
+    isCurrentlyPlaying(): boolean {
+        return this.state.isPlaying;
     }
 
     /**
-     * Get next song index based on repeat mode
+     * Get current time
      */
-    private getNextSongIndex(): number {
-        const state = this.getState();
-        const repeatMode = this.settingsManager.getRepeatMode();
-
-        if (state.currentSongIndex === -1) return -1;
-
-        if (repeatMode === 'one') {
-            return state.currentSongIndex; // Repeat current song
-        } else if (repeatMode === 'all') {
-            return (state.currentSongIndex + 1) % state.currentPlaylistSongs.length; // Loop playlist
-        } else {
-            return state.currentSongIndex + 1 < state.currentPlaylistSongs.length ?
-                state.currentSongIndex + 1 : -1; // Stop at end
-        }
+    getCurrentTime(): number {
+        return this.state.currentTime;
     }
 
     /**
-     * Get previous song index
+     * Get duration
      */
-    private getPreviousSongIndex(): number {
-        const state = this.getState();
-        const repeatMode = this.settingsManager.getRepeatMode();
-
-        if (state.currentSongIndex === -1) return -1;
-
-        if (repeatMode === 'one') {
-            return state.currentSongIndex; // Repeat current song
-        } else if (repeatMode === 'all') {
-            return state.currentSongIndex - 1 >= 0 ?
-                state.currentSongIndex - 1 : state.currentPlaylistSongs.length - 1; // Loop playlist
-        } else {
-            return state.currentSongIndex - 1 >= 0 ? state.currentSongIndex - 1 : -1; // Stop at beginning
-        }
+    getDuration(): number {
+        return this.state.duration;
     }
 
     /**
-     * Setup audio event listeners
+     * Get volume
      */
-    private setupAudioEventListeners(audio: HTMLAudioElement, song: SongInfo): void {
-        audio.addEventListener('timeupdate', () => {
-            this.setState({
-                currentTime: audio.currentTime,
-                duration: audio.duration
-            });
-            this.emit('timeUpdate', {
-                currentTime: audio.currentTime,
-                duration: audio.duration
-            });
-        });
-
-        audio.addEventListener('ended', () => {
-            this.emit('songEnd', { song });
-            this.next();
-        });
-
-        audio.addEventListener('error', (event) => {
-            const error = new Error('Audio playback error');
-            this.emit('error', { error, song });
-            this.handlePlaybackError(song);
-        });
-    }
-
-    /**
-     * Update media session metadata
-     */
-    private updateMediaSessionMetadata(song: SongInfo): void {
-        if (!this.mediaSession) return;
-
-        this.mediaSession.metadata = new MediaMetadata({
-            title: song.title,
-            artist: song.artist,
-            album: song.album || '',
-            artwork: song.thumbnail ? [{ src: song.thumbnail }] : []
-        });
-    }
-
-    /**
-     * Get audio URL for song
-     */
-    private async getAudioUrl(songId: string): Promise<string> {
-        // TODO: Implement API call to get audio URL
-        return `/api/song/${songId}/audio`;
-    }
-
-    /**
-     * Stop all audio playback
-     */
-    private stopAllAudio(): void {
-        const state = this.getState();
-
-        if (state.currentAudio) {
-            state.currentAudio.pause();
-            state.currentAudio.currentTime = 0;
-        }
-
-        // Stop all other audio elements
-        document.querySelectorAll('audio').forEach(audio => {
-            if (audio !== state.currentAudio) {
-                audio.pause();
-                audio.currentTime = 0;
-            }
-        });
-
-        // Stop all video elements with audio
-        document.querySelectorAll('video').forEach(video => {
-            if ((video as any).audioTracks?.length > 0) {
-                video.pause();
-                video.currentTime = 0;
-            }
-        });
-    }
-
-    /**
-     * Handle playback errors
-     */
-    private handlePlaybackError(song: SongInfo): void {
-        const state = this.getState();
-
-        if (state.errorRecoveryTimeout) {
-            clearTimeout(state.errorRecoveryTimeout);
-        }
-
-        if (state.autoSkip && state.currentPlaylistSongs.length > 0) {
-            const timeout = window.setTimeout(() => {
-                console.log(`Auto-advancing playlist due to playback error: ${song.title}`);
-                this.next();
-                this.setState({ errorRecoveryTimeout: null });
-            }, 3000);
-
-            this.setState({ errorRecoveryTimeout: timeout });
-        }
-    }
-
-    /**
-     * Update repeat mode display
-     */
-    private updateRepeatMode(): void {
-        // This would update UI elements
-        console.log('Repeat mode updated:', this.settingsManager.getRepeatMode());
+    getVolume(): number {
+        return this.state.volume;
     }
 }

@@ -1,60 +1,78 @@
 // Type definitions for the YouTube Music API Proxy
+// Re-export types from API service for convenience
+export type {
+    // Base types
+    NamedEntity,
+    Thumbnail,
+    Radio,
+    PlayabilityStatus,
+    PlaybackTracking,
 
-export interface SongInfo {
-    id: string;
-    title: string;
-    artist: string;
-    thumbnail?: string;
-    duration?: string;
-    album?: string;
-    year?: string;
-    genre?: string;
-    description?: string;
-    lyrics?: string;
-}
+    // Search types
+    SearchResult,
+    SongSearchResult,
+    VideoSearchResult,
+    AlbumSearchResult,
+    ArtistSearchResult,
+    CommunityPlaylistSearchResult,
+    PodcastSearchResult,
+    EpisodeSearchResult,
+    ProfileSearchResult,
 
-export interface PlaylistInfo {
-    id: string;
-    title: string;
-    description?: string;
-    thumbnail?: string;
-    songCount?: number;
-    songs?: SongInfo[];
-}
+    // Info types
+    SongVideoInfo,
+    AlbumInfo,
+    ArtistInfo,
+    AlbumSong,
+    ArtistSong,
+    ArtistAlbum,
+    ArtistFeaturedOn,
 
-export interface AlbumInfo {
-    id: string;
-    title: string;
-    artist: string;
-    thumbnail?: string;
-    year?: string;
-    genre?: string;
-    songs?: SongInfo[];
-}
+    // Streaming types
+    StreamInfo,
+    AudioStreamInfo,
+    VideoStreamInfo,
+    StreamingData,
 
-export interface ArtistInfo {
-    id: string;
-    name: string;
-    thumbnail?: string;
-    description?: string;
-    albums?: AlbumInfo[];
-    songs?: SongInfo[];
-}
+    // Library types
+    LibrarySong,
+    LibraryAlbum,
+    LibraryArtist,
+    LibrarySubscription,
+    LibraryPodcast,
+    LibraryCommunityPlaylist,
 
-export interface LibraryData {
-    songs: SongInfo[];
-    albums: AlbumInfo[];
-    artists: ArtistInfo[];
-    playlists: PlaylistInfo[];
-}
+    // Response types
+    ErrorResponse,
+    SearchResponse,
+    SongVideoInfoResponse,
+    LibraryResponse,
+    LibrarySongsResponse,
+    LibraryAlbumsResponse,
+    LibraryArtistsResponse,
+    LibrarySubscriptionsResponse,
+    LibraryPodcastsResponse,
+    LibraryPlaylistsResponse,
+    PlaylistResponse,
+    HealthResponse,
+    RuntimeInfo,
+    EnvironmentInfo,
 
-export interface SearchResults {
-    songs: SongInfo[];
-    albums: AlbumInfo[];
-    artists: ArtistInfo[];
-    playlists: PlaylistInfo[];
-}
+    // Lyrics types
+    LyricsData,
+    LyricsSuccessResponse,
+    LyricsErrorResponse,
+    LyricsProcessingResponse,
+    LyricsApiResponse,
 
+    // PoToken types
+    PoTokenResponse
+} from './services/api-types';
+
+// Re-export enums
+export { SearchCategory } from './services/api-types';
+
+// Application-specific types
 export type RepeatMode = 'none' | 'one' | 'all';
 export type TabType = 'info' | 'lyrics';
 export type SidebarState = 'expanded' | 'collapsed' | 'icon' | 'full';
@@ -91,9 +109,9 @@ export interface AudioState {
 }
 
 export interface PlaylistState {
-    currentPlaylistSongs: SongInfo[];
+    currentPlaylistSongs: SongSearchResult[];
     currentSongIndex: number;
-    playlists: PlaylistInfo[];
+    playlists: PlaylistResponse[];
 }
 
 export interface UIState {
@@ -103,3 +121,10 @@ export interface UIState {
     rightSidebarWidth: number;
     currentTab: TabType;
 }
+
+// Legacy type aliases for backward compatibility
+import type { SongSearchResult, PlaylistResponse, LibraryResponse, SearchResponse } from './services/api-types';
+export type SongInfo = SongSearchResult;
+export type PlaylistInfo = PlaylistResponse;
+export type LibraryData = LibraryResponse;
+export type SearchResults = SearchResponse;
