@@ -1,0 +1,26 @@
+// =============================================================================
+// Player Bar Component
+// =============================================================================
+
+.player-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: var(--right-sidebar-width, #{$right-sidebar-width});
+    height: $player-height;
+    background-color: $color-surface;
+    border-top: 1px solid $color-border;
+    @include flex-between;
+    padding: 0 $spacing-lg;
+    z-index: $z-index-fixed;
+    transition: all $transition-base;
+
+    &.right-sidebar-collapsed {
+        right: 0;
+    }
+
+    @include mobile {
+        left: 0;
+        right: 0;
+    }
+}

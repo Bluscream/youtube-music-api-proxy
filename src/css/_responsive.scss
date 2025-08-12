@@ -1,0 +1,23 @@
+// =============================================================================
+// Responsive Styles
+// =============================================================================
+
+// Mobile styles
+@include mobile {
+  // Mobile-specific overrides
+}
+
+// Tablet styles
+@include tablet {
+  // Tablet-specific overrides
+}
+
+// Desktop styles
+@include desktop {
+  // Desktop-specific overrides
+}
+
+// Wide screen styles
+@include wide {
+  // Wide screen-specific overrides
+}

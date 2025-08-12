@@ -1,0 +1,26 @@
+// =============================================================================
+// Right Sidebar Component
+// =============================================================================
+
+.right-sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: var(--right-sidebar-width, #{$right-sidebar-width});
+    height: 100vh;
+    background-color: $color-surface;
+    border-left: 1px solid $color-border;
+    @include flex-column;
+    z-index: $z-index-fixed;
+    transition: all $transition-base;
+
+    &.collapsed {
+        transform: translateX(100%);
+    }
+
+    @include mobile {
+        &.mobile-open {
+            transform: translateX(0);
+        }
+    }
+}

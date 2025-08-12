@@ -1,0 +1,13 @@
+// =============================================================================
+// Notifications Component
+// =============================================================================
+
+.notification-container {
+  position: fixed;
+  top: $spacing-lg;
+  right: $spacing-lg;
+  z-index: $z-index-notification;
+  @include flex-column;
+  gap: $spacing-sm;
+  pointer-events: none;
+}

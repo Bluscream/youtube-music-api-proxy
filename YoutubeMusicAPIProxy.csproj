@@ -9,6 +9,10 @@
     <Version>1.0.6.9</Version>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.TypeScript.MSBuild" Version="5.9.2">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="YouTubeMusicAPI" Version="3.0.0" />
     <PackageReference Include="YouTubeSessionGenerator" Version="1.0.2" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.3" />

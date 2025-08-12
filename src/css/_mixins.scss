@@ -1,0 +1,255 @@
+// =============================================================================
+// SCSS Mixins
+// =============================================================================
+
+// Flexbox mixins
+@mixin flex-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@mixin flex-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+@mixin flex-start {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+@mixin flex-column {
+    display: flex;
+    flex-direction: column;
+}
+
+@mixin flex-column-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+// Typography mixins
+@mixin text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@mixin text-multiline-truncate($lines: 2) {
+    display: -webkit-box;
+    -webkit-line-clamp: $lines;
+    line-clamp: $lines;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+// Button mixins
+@mixin button-reset {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    cursor: pointer;
+    outline: none;
+}
+
+@mixin button-base {
+    @include button-reset;
+    @include flex-center;
+    padding: $spacing-sm $spacing-md;
+    border-radius: $border-radius-sm;
+    font-weight: $font-weight-medium;
+    transition: all $transition-base;
+
+    &:hover {
+        transform: translateY(-1px);
+    }
+
+    &:active {
+        transform: translateY(0);
+    }
+}
+
+// Scrollbar mixins
+@mixin custom-scrollbar($width: 8px, $track-color: $color-background, $thumb-color: $color-border-light) {
+    &::-webkit-scrollbar {
+        width: $width;
+        height: $width;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: $track-color;
+        border-radius: $border-radius-sm;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: $thumb-color;
+        border-radius: $border-radius-sm;
+        transition: background $transition-base;
+
+        &:hover {
+            background: lighten($thumb-color, 10%);
+        }
+    }
+
+    &::-webkit-scrollbar-corner {
+        background: $track-color;
+    }
+
+    scrollbar-width: thin;
+    scrollbar-color: $thumb-color $track-color;
+}
+
+// Media query mixins
+@mixin mobile {
+    @media (max-width: $breakpoint-tablet - 1px) {
+        @content;
+    }
+}
+
+@mixin tablet {
+    @media (min-width: $breakpoint-tablet) and (max-width: $breakpoint-desktop - 1px) {
+        @content;
+    }
+}
+
+@mixin desktop {
+    @media (min-width: $breakpoint-desktop) {
+        @content;
+    }
+}
+
+@mixin wide {
+    @media (min-width: $breakpoint-wide) {
+        @content;
+    }
+}
+
+// Component state mixins
+@mixin sidebar-state($state) {
+    @if $state =='expanded' {
+        width: $sidebar-width;
+    }
+
+    @else if $state =='icon' {
+        width: $sidebar-width-collapsed;
+    }
+
+    @else if $state =='collapsed' {
+        transform: translateX(-100%);
+        width: 0;
+    }
+
+    @else if $state =='full' {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 100vw;
+        z-index: $z-index-modal;
+        background-color: $color-background;
+        border-right: none;
+    }
+}
+
+@mixin main-content-state($sidebar-state) {
+    @if $sidebar-state =='expanded' {
+        width: calc(100vw - #{$sidebar-width});
+    }
+
+    @else if $sidebar-state =='icon' {
+        margin-left: $sidebar-width-collapsed;
+        width: calc(100vw - #{$sidebar-width-collapsed});
+    }
+
+    @else if $sidebar-state =='collapsed' {
+        margin-left: 0;
+        width: 100vw;
+    }
+
+    @else if $sidebar-state =='full' {
+        margin-left: 0;
+        width: 100vw;
+    }
+}
+
+// Animation mixins
+@mixin fade-in($duration: $transition-base) {
+    opacity: 0;
+    animation: fadeIn $duration ease-in-out forwards;
+}
+
+@mixin slide-in-right($duration: $transition-base) {
+    transform: translateX(100%);
+    animation: slideInRight $duration ease-out forwards;
+}
+
+@mixin slide-in-left($duration: $transition-base) {
+    transform: translateX(-100%);
+    animation: slideInLeft $duration ease-out forwards;
+}
+
+// Utility mixins
+@mixin sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+@mixin focus-ring($color: $color-primary) {
+    &:focus {
+        outline: 2px solid $color;
+        outline-offset: 2px;
+    }
+}
+
+@mixin hover-lift($distance: 2px) {
+    transition: transform $transition-base;
+
+    &:hover {
+        transform: translateY(-$distance);
+    }
+}
+
+// Keyframe animations
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInLeft {
+    from {
+        transform: translateX(-100%);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}

@@ -1,0 +1,93 @@
+// =============================================================================
+// SCSS Variables
+// =============================================================================
+
+// Colors
+$color-primary: #1db954; // Spotify green
+$color-primary-hover: #1ed760;
+$color-primary-dark: #1aa34a;
+
+$color-background: #0f0f0f; // Main background
+$color-surface: #181818; // Card/section background
+$color-surface-light: #1a1a1a; // Lighter surface
+$color-surface-dark: #0a0a0a; // Darker surface
+
+$color-border: #282828; // Borders
+$color-border-light: #404040; // Lighter borders
+$color-border-dark: #1a1a1a; // Darker borders
+
+$color-text-primary: #ffffff; // Primary text
+$color-text-secondary: #b3b3b3; // Secondary text
+$color-text-muted: #666666; // Muted text
+$color-text-disabled: #404040; // Disabled text
+
+$color-error: #ff4444; // Error color
+$color-warning: #ff9800; // Warning color
+$color-success: #4caf50; // Success color
+$color-info: #2196f3; // Info color
+
+// Typography
+$font-family-primary: 'Roboto', Arial, sans-serif;
+$font-size-xs: 12px;
+$font-size-sm: 14px;
+$font-size-base: 16px;
+$font-size-lg: 18px;
+$font-size-xl: 24px;
+$font-size-2xl: 32px;
+$font-size-3xl: 48px;
+
+$font-weight-light: 300;
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-bold: 700;
+
+// Spacing
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+$spacing-2xl: 48px;
+$spacing-3xl: 64px;
+
+// Layout
+$sidebar-width: 240px;
+$sidebar-width-collapsed: 60px;
+$player-height: 90px;
+$header-height: 64px;
+$right-sidebar-width: 300px;
+$right-sidebar-width-min: 200px;
+$right-sidebar-width-max: 600px;
+
+// Breakpoints
+$breakpoint-mobile: 480px;
+$breakpoint-tablet: 768px;
+$breakpoint-desktop: 1024px;
+$breakpoint-wide: 1440px;
+
+// Z-index layers
+$z-index-dropdown: 1000;
+$z-index-sticky: 1020;
+$z-index-fixed: 1030;
+$z-index-modal-backdrop: 1040;
+$z-index-modal: 1050;
+$z-index-popover: 1060;
+$z-index-tooltip: 1070;
+$z-index-notification: 1080;
+
+// Transitions
+$transition-fast: 0.15s ease;
+$transition-base: 0.3s ease;
+$transition-slow: 0.5s ease;
+
+// Border radius
+$border-radius-sm: 4px;
+$border-radius-md: 8px;
+$border-radius-lg: 12px;
+$border-radius-xl: 16px;
+
+// Shadows
+$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+$shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
