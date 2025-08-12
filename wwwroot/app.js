@@ -66,7 +66,7 @@ function saveSetting(key, value) {
         // Update URL without reloading the page
         window.history.replaceState({}, '', url);
 
-        console.log(`🎵 Settings System: Setting saved: ${key} = ${value}`);
+        // console.log(`🎵 Settings System: Setting saved: ${key} = ${value}`);
     } catch (error) {
         console.error(`🎵 Settings System: Error saving setting ${key}:`, error);
     }
