@@ -87,7 +87,7 @@ function applySettings(settings) {
     updateRepeatShuffleDisplay();
 }
 function saveAllSettings() {
-    window.settings.tab = window.rightSidebarManager ? window.rightSidebarManager.currentTab : 'info';
+
     window.settings.split = window.rightSidebarManager ? window.rightSidebarManager.sidebarWidth : 300;
     saveSetting(SETTINGS_KEYS.PLAYLIST, window.settings.playlist);
     saveSetting(SETTINGS_KEYS.SONG, window.settings.song);
@@ -888,20 +888,27 @@ async function loadSong(songId, title, artist, thumbnail = null, playlistId = nu
                 });
             }
 
-
             showInfoNotification(`Loaded: "${title}" by ${artist}`);
         });
-        audio.addEventListener('timeupdate', () => {
-            const progress = (audio.currentTime / audio.duration) * 100;
-            document.getElementById('progressFill').style.width = progress + '%';
-            if (navigator.mediaSession && audio.duration) {
-                navigator.mediaSession.setPositionState({
-                    duration: audio.duration,
-                    position: audio.currentTime,
-                    playbackRate: audio.playbackRate
-                });
-            }
 
+        audio.addEventListener('loadedmetadata', () => {
+            console.log(`Audio metadata loaded. Duration: ${audio.duration}s`);
+            // Ensure the progress bar is updated with the correct duration
+            updateProgressBar();
+        });
+        audio.addEventListener('timeupdate', () => {
+            // Check if duration is available and valid before calculating progress
+            if (audio.duration && isFinite(audio.duration) && audio.duration > 0) {
+                const progress = (audio.currentTime / audio.duration) * 100;
+                document.getElementById('progressFill').style.width = progress + '%';
+                if (navigator.mediaSession) {
+                    navigator.mediaSession.setPositionState({
+                        duration: audio.duration,
+                        position: audio.currentTime,
+                        playbackRate: audio.playbackRate
+                    });
+                }
+            }
         });
         audio.addEventListener('ended', () => {
             isPlaying = false;
@@ -990,10 +997,9 @@ async function fetchSongInfo(songId) {
     }
 }
 function updateInfoPanel(songInfo) {
-    const infoPanel = document.getElementById('infoPanel');
-    if (!infoPanel) return;
-    const panelContent = infoPanel.querySelector('.panel-content');
-    if (!panelContent) return;
+    const infoSection = document.getElementById('infoSection');
+    if (!infoSection) return;
+
     const duration = songInfo.duration || '';
     const formattedDuration = duration ? formatDuration(duration) : 'Unknown';
     const viewsCount = songInfo.viewsCount || 0;
@@ -1013,7 +1019,8 @@ function updateInfoPanel(songInfo) {
         thumbnail = sortedThumbnails[0].url;
     }
     const hasLyrics = songInfo.lyrics && songInfo.lyrics.data && songInfo.lyrics.data.length > 0;
-    panelContent.innerHTML = '';
+
+    infoSection.innerHTML = '';
     const container = document.createElement('div');
     container.className = 'song-info-container';
     if (thumbnail) {
@@ -1108,13 +1115,12 @@ function updateInfoPanel(songInfo) {
         detailsDiv.appendChild(tagsSection);
     }
     container.appendChild(detailsDiv);
-    panelContent.appendChild(container);
+    infoSection.appendChild(container);
 }
 function updateLyricsPanel(songInfo) {
-    const lyricsPanel = document.getElementById('lyricsPanel');
-    if (!lyricsPanel) return;
-    const panelContent = lyricsPanel.querySelector('.panel-content');
-    if (!panelContent) return;
+    const lyricsSection = document.getElementById('lyricsSection');
+    if (!lyricsSection) return;
+
     const hasLyrics = songInfo.lyrics && songInfo.lyrics.data && songInfo.lyrics.data.length > 0;
     if (hasLyrics) {
         const firstLyric = songInfo.lyrics.data[0];
@@ -1122,7 +1128,8 @@ function updateLyricsPanel(songInfo) {
         const title = songInfo.name || songInfo.title || 'Unknown Title';
         const artists = songInfo.artists || [];
         const artistNames = artists.length > 0 ? artists.map(artist => artist.name || artist).join(', ') : 'Unknown Artist';
-        panelContent.innerHTML = '';
+
+        lyricsSection.innerHTML = '';
         const lyricsContainer = document.createElement('div');
         lyricsContainer.className = 'lyrics-container';
         const lyricsContent = document.createElement('div');
@@ -1132,9 +1139,9 @@ function updateLyricsPanel(songInfo) {
         lyricsPre.textContent = lyricsText;
         lyricsContent.appendChild(lyricsPre);
         lyricsContainer.appendChild(lyricsContent);
-        panelContent.appendChild(lyricsContainer);
+        lyricsSection.appendChild(lyricsContainer);
     } else {
-        panelContent.innerHTML = '';
+        lyricsSection.innerHTML = '';
         const placeholderDiv = document.createElement('div');
         placeholderDiv.className = 'lyrics-placeholder';
         const iconDiv = document.createElement('div');
@@ -1145,17 +1152,17 @@ function updateLyricsPanel(songInfo) {
         textDiv.textContent = 'No lyrics available for this song';
         placeholderDiv.appendChild(iconDiv);
         placeholderDiv.appendChild(textDiv);
-        panelContent.appendChild(placeholderDiv);
+        lyricsSection.appendChild(placeholderDiv);
     }
 }
 function updateInfoPanelWithBasicInfo() {
-    const infoPanel = document.getElementById('infoPanel');
-    if (!infoPanel) return;
-    const panelContent = infoPanel.querySelector('.panel-content');
-    if (!panelContent) return;
+    const infoSection = document.getElementById('infoSection');
+    if (!infoSection) return;
+
     const title = document.getElementById('nowPlayingTitle').textContent;
     const artist = document.getElementById('nowPlayingArtist').textContent;
-    panelContent.innerHTML = '';
+
+    infoSection.innerHTML = '';
     const container = document.createElement('div');
     container.className = 'song-info-container';
     const detailsDiv = document.createElement('div');
@@ -1168,22 +1175,21 @@ function updateInfoPanelWithBasicInfo() {
     artistP.className = 'song-info-artist';
     artistP.textContent = artist;
     detailsDiv.appendChild(artistP);
-    const infoSection = document.createElement('div');
-    infoSection.className = 'song-info-section';
+    const infoSectionDiv = document.createElement('div');
+    infoSectionDiv.className = 'song-info-section';
     const infoP = document.createElement('p');
     infoP.className = 'info-placeholder-text';
     infoP.textContent = 'Detailed information unavailable';
-    infoSection.appendChild(infoP);
-    detailsDiv.appendChild(infoSection);
+    infoSectionDiv.appendChild(infoP);
+    detailsDiv.appendChild(infoSectionDiv);
     container.appendChild(detailsDiv);
-    panelContent.appendChild(container);
+    infoSection.appendChild(container);
 }
 function clearInfoPanel() {
-    const infoPanel = document.getElementById('infoPanel');
-    if (!infoPanel) return;
-    const panelContent = infoPanel.querySelector('.panel-content');
-    if (!panelContent) return;
-    panelContent.innerHTML = '';
+    const infoSection = document.getElementById('infoSection');
+    if (!infoSection) return;
+
+    infoSection.innerHTML = '';
     const placeholderDiv = document.createElement('div');
     placeholderDiv.className = 'info-placeholder';
     const iconDiv = document.createElement('div');
@@ -1194,7 +1200,7 @@ function clearInfoPanel() {
     textDiv.textContent = 'Song information will appear here';
     placeholderDiv.appendChild(iconDiv);
     placeholderDiv.appendChild(textDiv);
-    panelContent.appendChild(placeholderDiv);
+    infoSection.appendChild(placeholderDiv);
 }
 function formatDuration(duration) {
     if (!duration) return 'Unknown';
@@ -1286,10 +1292,38 @@ function togglePlay() {
 }
 function seek(event) {
     if (currentAudio) {
+        // Check if audio is ready for seeking
+        if (currentAudio.readyState < 1) { // Less than HAVE_METADATA
+            showWarningNotification('Audio is still loading. Please wait a moment before seeking.');
+            return;
+        }
+
         const rect = event.target.getBoundingClientRect();
         const clickX = event.clientX - rect.left;
         const percentage = clickX / rect.width;
-        currentAudio.currentTime = percentage * currentAudio.duration;
+
+        // Check if duration is available and valid
+        if (currentAudio.duration && isFinite(currentAudio.duration) && currentAudio.duration > 0) {
+            const newTime = percentage * currentAudio.duration;
+            console.log(`Seeking to ${newTime}s (${percentage * 100}%) of ${currentAudio.duration}s`);
+            currentAudio.currentTime = newTime;
+        } else {
+            console.warn('Audio duration not available for seeking. Duration:', currentAudio.duration);
+            // If duration is not available, try to seek to a reasonable position
+            // This is a fallback for when the audio is still loading
+            if (currentAudio.readyState >= 1) { // HAVE_METADATA
+                // Estimate duration based on typical song length (3-5 minutes)
+                const estimatedDuration = 240; // 4 minutes as fallback
+                const newTime = percentage * estimatedDuration;
+                console.log(`Using estimated duration for seeking: ${newTime}s`);
+                currentAudio.currentTime = newTime;
+            } else {
+                showWarningNotification('Audio is still loading. Please wait a moment before seeking.');
+            }
+        }
+    } else {
+        console.warn('No current audio element for seeking');
+        showWarningNotification('No audio is currently loaded.');
     }
 }
 let isDraggingVolume = false;
@@ -1334,10 +1368,19 @@ function updateVolumeDisplay() {
 }
 function updateProgressBar() {
     if (currentAudio) {
-        const progress = (currentAudio.currentTime / currentAudio.duration) * 100;
-        const progressFill = document.getElementById('progressFill');
-        if (progressFill) {
-            progressFill.style.width = progress + '%';
+        // Check if duration is available and valid
+        if (currentAudio.duration && isFinite(currentAudio.duration) && currentAudio.duration > 0) {
+            const progress = (currentAudio.currentTime / currentAudio.duration) * 100;
+            const progressFill = document.getElementById('progressFill');
+            if (progressFill) {
+                progressFill.style.width = progress + '%';
+            }
+        } else {
+            // If duration is not available, show a loading state
+            const progressFill = document.getElementById('progressFill');
+            if (progressFill) {
+                progressFill.style.width = '0%';
+            }
         }
     }
 }
@@ -2298,7 +2341,6 @@ window.applySettings = applySettings;
 class RightSidebarManager {
     constructor() {
         this.isCollapsed = false;
-        this.currentTab = 'info';
         this.isMobile = false;
         this.isMobileOpen = false;
         this.sidebarWidth = 300;
@@ -2352,14 +2394,7 @@ class RightSidebarManager {
                 event.preventDefault();
                 this.toggle();
             }
-            if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === '1') {
-                event.preventDefault();
-                this.switchTab('info');
-            }
-            if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === '2') {
-                event.preventDefault();
-                this.switchTab('lyrics');
-            }
+
         });
         this.setupResizeHandle();
     }
@@ -2439,14 +2474,7 @@ class RightSidebarManager {
         this.isMobileOpen = false;
         this.updateLayout();
     }
-    switchTab(tabName) {
-        if (['info', 'lyrics'].includes(tabName)) {
-            this.currentTab = tabName;
-            this.saveState();
-            this.updateLayout();
-            saveSetting(SETTINGS_KEYS.TAB, tabName);
-        }
-    }
+
     updateLayout() {
         const rightSidebar = document.getElementById('rightSidebar');
         const mainContent = document.getElementById('mainContent');
@@ -2515,22 +2543,7 @@ class RightSidebarManager {
         }
     }
     updateTabs() {
-        const infoTab = document.getElementById('infoTab');
-        const lyricsTab = document.getElementById('lyricsTab');
-        const infoPanel = document.getElementById('infoPanel');
-        const lyricsPanel = document.getElementById('lyricsPanel');
-        if (infoTab) {
-            infoTab.classList.toggle('active', this.currentTab === 'info');
-        }
-        if (lyricsTab) {
-            lyricsTab.classList.toggle('active', this.currentTab === 'lyrics');
-        }
-        if (infoPanel) {
-            infoPanel.classList.toggle('active', this.currentTab === 'info');
-        }
-        if (lyricsPanel) {
-            lyricsPanel.classList.toggle('active', this.currentTab === 'lyrics');
-        }
+        // No longer needed since we removed tabs
     }
     addMobileBackdrop() {
         if (!document.getElementById('rightSidebarBackdrop')) {
@@ -2561,7 +2574,6 @@ class RightSidebarManager {
         if (!this.isMobile) {
             localStorage.setItem('rightSidebarState', JSON.stringify({
                 isCollapsed: this.isCollapsed,
-                currentTab: this.currentTab,
                 sidebarWidth: this.sidebarWidth
             }));
         }
@@ -2576,17 +2588,14 @@ class RightSidebarManager {
                 if (savedState) {
                     const state = JSON.parse(savedState);
                     this.isCollapsed = state.isCollapsed || false;
-                    this.currentTab = state.currentTab || 'info';
                     this.sidebarWidth = state.sidebarWidth || 300;
                 } else {
                     this.isCollapsed = false;
-                    this.currentTab = 'info';
                     this.sidebarWidth = 300;
                 }
             } catch (error) {
                 console.error('Error restoring right sidebar state:', error);
                 this.isCollapsed = false;
-                this.currentTab = 'info';
                 this.sidebarWidth = 300;
             }
         }
@@ -2596,9 +2605,6 @@ const rightSidebarManager = new RightSidebarManager();
 window.rightSidebarManager = rightSidebarManager;
 function applyPendingSettings() {
     const settings = loadAllSettings();
-    if (window.rightSidebarManager && settings.tab) {
-        window.rightSidebarManager.switchTab(settings.tab);
-    }
     if (window.rightSidebarManager && settings.split) {
         window.rightSidebarManager.sidebarWidth = settings.split;
         window.rightSidebarManager.updateSidebarWidth();
@@ -2608,9 +2614,7 @@ setTimeout(applyPendingSettings, 100);
 function toggleRightSidebar() {
     rightSidebarManager.toggle();
 }
-function switchRightSidebarTab(tabName) {
-    rightSidebarManager.switchTab(tabName);
-}
+
 function setupEventDelegation() {
     document.addEventListener('click', function (event) {
         const songElement = event.target.closest('[data-song-id]');

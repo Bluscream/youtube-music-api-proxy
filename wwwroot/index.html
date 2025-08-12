@@ -95,31 +95,23 @@
     <div class="right-sidebar" id="rightSidebar">
         <div class="right-sidebar-resize-handle" id="rightSidebarResizeHandle"></div>
         <div class="right-sidebar-header">
-            <div class="right-sidebar-tabs">
-                <div class="right-sidebar-tab active" id="infoTab" onclick="switchRightSidebarTab('info')">
-                    <span class="tab-text">Info</span>
-                </div>
-                <div class="right-sidebar-tab" id="lyricsTab" onclick="switchRightSidebarTab('lyrics')">
-                    <span class="tab-text">Lyrics</span>
-                </div>
-            </div>
+            <div class="right-sidebar-title">Song Details</div>
         </div>
 
         <div class="right-sidebar-content">
-            <div class="right-sidebar-panel active" id="infoPanel">
+            <div class="right-sidebar-panel active" id="mainPanel">
                 <div class="panel-content">
-                    <div class="info-placeholder">
-                        <div class="placeholder-icon">ℹ️</div>
-                        <div class="placeholder-text">Song information will appear here</div>
+                    <div class="lyrics-section" id="lyricsSection">
+                        <div class="lyrics-placeholder">
+                            <div class="placeholder-icon">🎵</div>
+                            <div class="placeholder-text">Lyrics will appear here</div>
+                        </div>
                     </div>
-                </div>
-            </div>
-
-            <div class="right-sidebar-panel" id="lyricsPanel">
-                <div class="panel-content">
-                    <div class="lyrics-placeholder">
-                        <div class="placeholder-icon">🎵</div>
-                        <div class="placeholder-text">Lyrics will appear here</div>
+                    <div class="info-section" id="infoSection">
+                        <div class="info-placeholder">
+                            <div class="placeholder-icon">ℹ️</div>
+                            <div class="placeholder-text">Song information will appear here</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -141,11 +133,6 @@
                 <button class="control-button" onclick="playPreviousSong()" title="Previous song">⏮</button>
                 <button class="control-button play-button" id="playButton" onclick="togglePlay()">▶</button>
                 <button class="control-button" onclick="playNextSong()" title="Next song">⏭</button>
-                <button class="control-button" id="shuffleButton" onclick="toggleShuffle()" title="Shuffle off">🔀</button>
-            </div>
-            <div class="player-settings">
-                <button class="control-button" id="autoplayButton" onclick="toggleAutoplay()" title="Autoplay on">▶▶</button>
-                <button class="control-button" id="crossfadeButton" onclick="toggleCrossfade()" title="Crossfade on">⏭</button>
             </div>
             <div class="progress-bar" onclick="seek(event)">
                 <div class="progress-fill" id="progressFill"></div>
